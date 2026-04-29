@@ -19,7 +19,7 @@
          --gold:        #B5A23A  (Invig gold text)
          --cream:       #F5F0E8  (warm off-white)
          --charcoal:    #1C1F17  (near-black background)
-       DB: localStorage key "gs1ns_users" → {phone: {name, company, role, bottles:[]}}
+        DB: localStorage key "gs1ns_users" → {phone: {name, company, bottles:[]}}
            localStorage key "gs1ns_bottle_{giai}" → [{phone, name, company, ts}]
        API: https://iotpallet.no/api/track/{sscc} (public, no auth)
        GIAI range: 70735390001–70735390400
@@ -594,10 +594,6 @@
                 <label class="form-label" for="reg-company">Selskap / organisasjon</label>
                 <input class="form-input" id="reg-company" type="text" placeholder="Invig AS" autocomplete="organization" />
               </div>
-              <div>
-                <label class="form-label" for="reg-role">Rolle</label>
-                <input class="form-input" id="reg-role" type="text" placeholder="Supply Chain Manager" />
-              </div>
               <button class="btn-primary" onclick="registerNew()">🍺 Registrer min flaske</button>
               <button class="btn-secondary" onclick="goStep('step-phone')">← Tilbake</button>
             </div>
@@ -665,8 +661,8 @@
        GS1 Nordic Summit V2 – Database & Logic
        
        localStorage schema:
-         "gs1ns_users" → { [phone]: { name, company, role, registeredAt, bottles: [giai, ...] } }
-         "gs1ns_bottle_{giai}" → [{ phone, name, company, role, ts }, ...]
+  "gs1ns_users" → { [phone]: { name, company, registeredAt, bottles: [giai, ...] } }
+          "gs1ns_bottle_{giai}" → [{ phone, name, company, ts }, ...]
        
        Rules:
          - First scan: enter phone → if new → full form → save user + bottle
@@ -709,13 +705,13 @@
     }
 
     /** Register a user for a bottle. Returns updated user object. */
-    function registerUserForBottle(phone, name, company, role, giai) {
+    function registerUserForBottle(phone, name, company, giai) {
       const users = getUsers();
       const cleanPhone = phone.replace(/\s/g, '');
 
       // Upsert user
       if (!users[cleanPhone]) {
-        users[cleanPhone] = { name, company, role, registeredAt: Date.now(), bottles: [] };
+        users[cleanPhone] = { name, company, registeredAt: Date.now(), bottles: [] };
       }
       const user = users[cleanPhone];
 
@@ -729,7 +725,7 @@
       const drinkers = getBottleDrinkers(giai);
       const alreadyThere = drinkers.some(d => d.phone === cleanPhone);
       if (!alreadyThere) {
-        drinkers.push({ phone: cleanPhone, name: user.name, company: user.company, role: user.role, ts: Date.now() });
+        drinkers.push({ phone: cleanPhone, name: user.name, company: user.company, ts: Date.now() });
         saveBottleDrinkers(giai, drinkers);
       }
       return user;
@@ -775,12 +771,12 @@
     }
 
     const MOCK_NAMES = [
-      { name: 'Ola Nordmann',    company: 'GS1 Norway',     role: 'Standards Director', emoji: '👨‍💼' },
-      { name: 'Ingrid Larsen',   company: 'Carlsberg Group', role: 'Supply Chain Lead',  emoji: '👩‍🔬' },
-      { name: 'Erik Svensson',   company: 'Invig AS',        role: 'CEO',                emoji: '👨‍💻' },
-      { name: 'Maja Andersen',   company: 'ASKO Norge',      role: 'Logistics Manager',  emoji: '👩‍💼' },
-      { name: 'Lars Pettersen',  company: 'Norgesgruppen',   role: 'IT Director',        emoji: '👨‍🏫' },
-      { name: 'Sofia Lindqvist', company: 'GS1 Sweden',      role: 'Product Manager',    emoji: '👩‍💻' },
+      { name: 'Ola Nordmann',    company: 'GS1 Norway',     emoji: '👨‍💼' },
+      { name: 'Ingrid Larsen',   company: 'Carlsberg Group', emoji: '👩‍🔬' },
+      { name: 'Erik Svensson',   company: 'Invig AS',        emoji: '👨‍💻' },
+      { name: 'Maja Andersen',   company: 'ASKO Norge',      emoji: '👩‍💼' },
+      { name: 'Lars Pettersen',  company: 'Norgesgruppen',   emoji: '👨‍🏫' },
+      { name: 'Sofia Lindqvist', company: 'GS1 Sweden',      emoji: '👩‍💻' },
     ];
 
     function genMockDrinkers(bottleNum) {
@@ -911,7 +907,7 @@
               <div class="drinker-avatar">${isMe ? '⭐' : emoji}</div>
               <div>
                 <div class="drinker-name">${d.name}${isMe ? ' (deg)' : ''}</div>
-                <div class="drinker-meta">${d.company || ''} · ${d.role || ''}</div>
+                <div class="drinker-meta">${d.company || ''}</div>
               </div>
               <div class="drinker-num">🍺 ${bottleCount}</div>
             </div>`;
@@ -928,7 +924,7 @@
       if (!user) return;
       const count = user.bottles.length;
       document.getElementById('my-beer-name').textContent = user.name;
-      document.getElementById('my-beer-sub').textContent  = `${user.company || 'GS1 Nordic Summit'} · ${user.role || ''}`;
+      document.getElementById('my-beer-sub').textContent  = `${user.company || 'GS1 Nordic Summit'}`;
       document.getElementById('my-beer-count').textContent = count;
       document.getElementById('my-beer-strip').classList.add('visible');
     }
@@ -1026,7 +1022,7 @@
       if (user) {
         // Returning user
         document.getElementById('ret-name').textContent  = user.name;
-        document.getElementById('ret-meta').textContent  = `${user.company || ''} · ${user.role || ''}`;
+        document.getElementById('ret-meta').textContent  = `${user.company || ''}`;
         document.getElementById('ret-count').textContent = user.bottles.length;
         // Show bottle numbers
         const giai = getGIAI();
@@ -1052,7 +1048,7 @@
       const user  = users[cleanPhone];
       if (!user) return;
 
-      registerUserForBottle(cleanPhone, user.name, user.company, user.role, giai);
+      registerUserForBottle(cleanPhone, user.name, user.company, giai);
       localStorage.setItem('gs1ns_my_phone', cleanPhone);
       showSuccess(user.name, giai);
     }
@@ -1060,7 +1056,6 @@
     function registerNew() {
       const name    = document.getElementById('reg-name').value.trim();
       const company = document.getElementById('reg-company').value.trim();
-      const role    = document.getElementById('reg-role').value.trim();
       const phone   = document.getElementById('reg-phone').value.trim();
       const giai    = getGIAI();
 
@@ -1068,7 +1063,7 @@
       if (!giai)  return;
 
       const cleanPhone = phone.replace(/\s/g,'');
-      registerUserForBottle(cleanPhone, name, company, role, giai);
+      registerUserForBottle(cleanPhone, name, company, giai);
       localStorage.setItem('gs1ns_my_phone', cleanPhone);
       showSuccess(name, giai);
     }
@@ -1097,7 +1092,6 @@
         document.getElementById('reg-phone').value = '';
         document.getElementById('reg-name').value  = '';
         document.getElementById('reg-company').value = '';
-        document.getElementById('reg-role').value  = '';
         togglePanel('panel-drinkers');
       }, 3000);
     }
