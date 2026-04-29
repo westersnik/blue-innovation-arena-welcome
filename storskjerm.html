@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GS1 Nordic Summit – Pant-display</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --olive-dark:  #2E3D22;
+      --olive:       #4A5E35;
+      --olive-light: #7A9A60;
+      --gold:        #B5A23A;
+      --gold-light:  #D4C05A;
+      --charcoal:    #1A1D14;
+      --surface:     #232718;
+      --surface2:    #2D3320;
+      --border-dim:  rgba(255,255,255,0.07);
+      --text:        #F0EBD8;
+      --muted:       #7A8060;
+      --green:       #5DBB63;
+      --amber:       #E8A838;
+      --blue:        #6BA3C7;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--charcoal);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ── Full-screen layout ── */
+    .screen {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding: 32px 40px 28px;
+      gap: 24px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .header-left {
+      display: flex; align-items: center; gap: 20px;
+    }
+    .header-logo { height: 44px; }
+    .header-event {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .header-event span { color: var(--gold); }
+    .live-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(93,187,99,0.1);
+      border: 1px solid rgba(93,187,99,0.3);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 14px; font-weight: 600; color: var(--green);
+    }
+    .live-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--green);
+      animation: livePulse 2s ease-in-out infinite;
+    }
+    .live-dot.demo { background: var(--amber); animation: none; }
+    @keyframes livePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(93,187,99,0.6); }
+      70%  { box-shadow: 0 0 0 10px rgba(93,187,99,0); }
+      100% { box-shadow: 0 0 0 0 rgba(93,187,99,0); }
+    }
+
+    /* ── Counter grid ── */
+    .counter-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      flex-shrink: 0;
+    }
+    .counter-card {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .counter-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .counter-card.gold::before   { background: linear-gradient(to right, var(--olive), var(--gold)); }
+    .counter-card.green::before  { background: linear-gradient(to right, var(--olive-light), var(--green)); }
+    .counter-card.amber::before  { background: linear-gradient(to right, var(--gold), var(--amber)); }
+    .counter-card.blue::before   { background: linear-gradient(to right, #4A7FA5, var(--blue)); }
+    .counter-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 14px;
+    }
+    .counter-value {
+      font-size: clamp(56px, 6vw, 88px);
+      font-weight: 900; line-height: 1;
+      transition: all 0.4s ease;
+    }
+    .counter-value.gold  { color: var(--gold); }
+    .counter-value.green { color: var(--green); }
+    .counter-value.amber { color: var(--amber); }
+    .counter-value.blue  { color: var(--blue); }
+    .counter-sub {
+      font-size: 13px; color: var(--muted);
+      margin-top: 10px;
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 16px;
+      padding: 22px 28px;
+      flex-shrink: 0;
+    }
+    .progress-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .progress-title {
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .progress-pct {
+      font-size: 28px; font-weight: 800; color: var(--gold);
+    }
+    .progress-track {
+      height: 14px; background: rgba(255,255,255,0.06);
+      border-radius: 999px; overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(to right, var(--olive), var(--gold-light));
+      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute; right: 0; top: 0; bottom: 0; width: 40px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.25));
+      border-radius: 999px;
+    }
+    .progress-labels {
+      display: flex; justify-content: space-between;
+      font-size: 13px; color: var(--muted);
+    }
+
+    /* ── Recent pant feed ── */
+    .feed-wrap {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .feed-header {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border-dim);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .feed-title {
+      font-size: 16px; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .feed-count {
+      font-size: 13px; font-weight: 600; color: var(--gold);
+      background: rgba(181,162,58,0.12);
+      border: 1px solid rgba(181,162,58,0.25);
+      border-radius: 999px; padding: 3px 12px;
+    }
+    .feed-body {
+      flex: 1; overflow: hidden;
+      display: flex; flex-direction: column;
+      gap: 0;
+    }
+    .feed-empty {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: var(--muted);
+    }
+    .feed-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 28px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      animation: slideIn 0.4s ease-out;
+    }
+    .feed-row:last-child { border-bottom: none; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .feed-icon { font-size: 28px; flex-shrink: 0; }
+    .feed-info { flex: 1; min-width: 0; }
+    .feed-name {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .feed-detail {
+      font-size: 14px; color: var(--muted); margin-top: 2px;
+    }
+    .feed-bottle {
+      text-align: right; flex-shrink: 0;
+    }
+    .feed-num {
+      font-size: 22px; font-weight: 800; color: var(--gold);
+    }
+    .feed-time {
+      font-size: 12px; color: var(--muted); margin-top: 3px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    footer img { height: 22px; opacity: 0.5; }
+    footer span { font-size: 12px; color: var(--muted); }
+    footer a { color: var(--olive-light); text-decoration: none; }
+
+    /* ── Number pop animation ── */
+    @keyframes numPop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: numPop 0.4s ease-out; }
+  </style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <img class="header-logo" src="V2/img/invig-logo.png" alt="Invig" />
+      <div class="header-event">GS1 Nordic Summit <span>2025</span></div>
+    </div>
+    <div class="live-pill" id="live-pill">
+      <span class="live-dot demo" id="live-dot"></span>
+      <span id="live-label">Demo-modus</span>
+    </div>
+  </header>
+
+  <!-- Counter grid -->
+  <div class="counter-grid">
+    <div class="counter-card gold">
+      <div class="counter-label">Registrerte drikkere</div>
+      <div class="counter-value gold" id="cnt-registered">0</div>
+      <div class="counter-sub">Skannet QR-kode</div>
+    </div>
+    <div class="counter-card green">
+      <div class="counter-label">Pantet flasker</div>
+      <div class="counter-value green" id="cnt-panted">0</div>
+      <div class="counter-sub">Lest av RFID-leser</div>
+    </div>
+    <div class="counter-card amber">
+      <div class="counter-label">Unike flasker skannet</div>
+      <div class="counter-value amber" id="cnt-unique">0</div>
+      <div class="counter-sub">Av 300 totalt</div>
+    </div>
+    <div class="counter-card blue">
+      <div class="counter-label">Pant-rate</div>
+      <div class="counter-value blue" id="cnt-rate">0%</div>
+      <div class="counter-sub">Registrert → pantet</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-title">🍺 Pant-fremgang – GS1 Nordic Summit 2025</span>
+      <span class="progress-pct" id="pant-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="pant-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-labels">
+      <span id="pant-left">0 flasker pantet</span>
+      <span id="pant-right">0 av 300 flasker pantet</span>
+    </div>
+  </div>
+
+  <!-- Recent pant feed -->
+  <div class="feed-wrap">
+    <div class="feed-header">
+      <div class="feed-title">♻️ Nylig pantet</div>
+      <span class="feed-count" id="feed-count">0 i dag</span>
+    </div>
+    <div class="feed-body" id="feed-body">
+      <div class="feed-empty">Ingen flasker pantet ennå – kast din flaske i beholderen!</div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <img src="V2/img/invig-logo.png" alt="Invig" />
+    <span>Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> · GS1 Digital Link · Keonn AdvanReader</span>
+  </footer>
+
+</div>
+
+<script>
+  /* =====================================================
+     Storskjerm – Pant-display
+     Leser data fra:
+       1. localStorage (gs1ns_users, gs1ns_bottle_*) – QR-registreringer
+       2. Keonn AdvanReader REST API – RFID-panting
+       3. V2/bottles.json – EPC/GIAI-mapping
+     
+     Konfigurer RFID-leser via URL-parameter:
+       storskjerm.html?reader=192.168.1.100&interval=3
+     
+     Demo-modus aktiveres automatisk hvis ingen reader-IP er satt.
+  ===================================================== */
+
+  let bottleMap   = new Map(); // epc → {giai, num}
+  let giaiMap     = new Map(); // giai → {epc, num}
+  let pantedEPCs  = new Set();
+  let pantedGIAIs = new Set();
+  let rfidEvents  = [];
+  let demoTimer   = null;
+  let demoIdx     = 0;
+
+  // ── URL params ──────────────────────────────────────
+  const params     = new URLSearchParams(location.search);
+  const readerIP   = params.get('reader') || localStorage.getItem('gs1ns_reader_ip') || '';
+  const pollSec    = parseInt(params.get('interval') || localStorage.getItem('gs1ns_poll_interval') || '3', 10);
+
+  // ── Load bottle map ──────────────────────────────────
+  async function loadBottles() {
+    try {
+      const r = await fetch('V2/bottles.json');
+      const d = await r.json();
+      d.forEach(b => {
+        bottleMap.set(b.epc.toUpperCase(), { giai: b.giai, num: b.num });
+        giaiMap.set(b.giai, { epc: b.epc.toUpperCase(), num: b.num });
+      });
+    } catch(e) { console.warn('bottles.json not loaded:', e); }
+  }
+
+  // ── localStorage helpers ─────────────────────────────
+  function getUsers() {
+    try { return JSON.parse(localStorage.getItem('gs1ns_users') || '{}'); }
+    catch { return {}; }
+  }
+  function getUserForGIAI(giai) {
+    try {
+      const list = JSON.parse(localStorage.getItem(`gs1ns_bottle_${giai}`) || '[]');
+      return list[0] || null;
+    } catch { return null; }
+  }
+  function getAllUsers() {
+    const u = getUsers();
+    return Object.entries(u).map(([phone, d]) => ({ phone, ...d }));
+  }
+
+  // ── RFID polling ─────────────────────────────────────
+  async function pollReader() {
+    if (!readerIP) return;
+    const endpoints = [
+      `http://${readerIP}/rest/session/tags`,
+      `http://${readerIP}/api/inventory/tags`,
+      `http://${readerIP}/rest/tags`,
+    ];
+    for (const url of endpoints) {
+      try {
+        const r = await fetch(url, { signal: AbortSignal.timeout(3000), headers: { Accept: 'application/json' } });
+        if (!r.ok) continue;
+        const data = await r.json();
+        const tags = data.tags || data.inventory || data.epcs || [];
+        if (Array.isArray(tags)) {
+          setLive(true);
+          processTags(tags.map(t => ({ epc: (t.epc || t.EPC || '').toUpperCase(), ts: t.ts || Date.now() })));
+          return;
+        }
+      } catch {}
+    }
+    setLive(false);
+  }
+
+  function processTags(tags) {
+    let changed = false;
+    tags.forEach(({ epc, ts }) => {
+      if (!epc || pantedEPCs.has(epc)) return;
+      const b = bottleMap.get(epc);
+      if (!b) return;
+      pantedEPCs.add(epc);
+      pantedGIAIs.add(b.giai);
+      changed = true;
+      const who = getUserForGIAI(b.giai);
+      rfidEvents.unshift({ epc, giai: b.giai, num: b.num, name: who?.name || null, company: who?.company || null, ts: ts || Date.now() });
+      if (rfidEvents.length > 50) rfidEvents.pop();
+    });
+    if (changed) updateUI();
+  }
+
+  // ── Demo simulation ──────────────────────────────────
+  const DEMO_BOTTLES = [
+    { epc: '3415AFBC0C00000000000669', giai: '70735391641', num: 1 },
+    { epc: '3415AFBC0C0000000000066A', giai: '70735391642', num: 2 },
+    { epc: '3415AFBC0C0000000000066B', giai: '70735391643', num: 3 },
+    { epc: '3415AFBC0C0000000000066C', giai: '70735391644', num: 4 },
+    { epc: '3415AFBC0C0000000000066D', giai: '70735391645', num: 5 },
+    { epc: '3415AFBC0C0000000000066E', giai: '70735391646', num: 6 },
+    { epc: '3415AFBC0C0000000000066F', giai: '70735391647', num: 7 },
+    { epc: '3415AFBC0C00000000000670', giai: '70735391648', num: 8 },
+  ];
+  const DEMO_NAMES = [
+    { name: 'Ola Nordmann',   company: 'GS1 Norway' },
+    { name: 'Ingrid Larsen',  company: 'Carlsberg Group' },
+    { name: 'Erik Svensson',  company: 'Invig AS' },
+    { name: 'Maja Andersen',  company: 'ASKO Norge' },
+    { name: 'Lars Pettersen', company: 'Norgesgruppen' },
+    { name: 'Sofia Berg',     company: 'Reitan Retail' },
+    { name: 'Håkon Dahl',     company: 'Coop Norge' },
+    { name: 'Kari Moe',       company: 'GS1 Sweden' },
+  ];
+
+  function seedDemoUsers() {
+    const users = getUsers();
+    if (Object.keys(users).length > 0) return;
+    DEMO_NAMES.forEach((n, i) => {
+      const phone = `+4790000000${i}`;
+      const b = DEMO_BOTTLES[i];
+      users[phone] = { name: n.name, company: n.company, role: 'Deltaker', registeredAt: Date.now(), bottles: b ? [b.giai] : [] };
+      if (b) localStorage.setItem(`gs1ns_bottle_${b.giai}`, JSON.stringify([{ phone, name: n.name, company: n.company, ts: Date.now() }]));
+    });
+    localStorage.setItem('gs1ns_users', JSON.stringify(users));
+  }
+
+  function startDemo() {
+    seedDemoUsers();
+    updateUI();
+    demoTimer = setInterval(() => {
+      if (demoIdx >= DEMO_BOTTLES.length) { clearInterval(demoTimer); return; }
+      const b = DEMO_BOTTLES[demoIdx++];
+      processTags([{ epc: b.epc, ts: Date.now() }]);
+    }, 3000);
+  }
+
+  // ── UI ───────────────────────────────────────────────
+  function setLive(online) {
+    const dot   = document.getElementById('live-dot');
+    const label = document.getElementById('live-label');
+    if (online) {
+      dot.className   = 'live-dot';
+      dot.style.background = '';
+      label.textContent = `Live · AdvanReader`;
+      document.getElementById('live-pill').style.borderColor = 'rgba(93,187,99,0.3)';
+    } else {
+      dot.className = 'live-dot demo';
+      label.textContent = 'Kobler til leser…';
+    }
+  }
+
+  function animatePop(el) {
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+  }
+
+  function updateUI() {
+    const users      = getAllUsers();
+    const registered = users.length;
+    const panted     = pantedGIAIs.size;
+    const unique     = new Set(users.flatMap(u => u.bottles || [])).size;
+    const rate       = unique > 0 ? Math.round((panted / unique) * 100) : 0;
+    const pct        = Math.round((panted / 300) * 100);
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el.textContent !== String(val)) { el.textContent = val; animatePop(el); }
+    };
+    setVal('cnt-registered', registered);
+    setVal('cnt-panted',     panted);
+    setVal('cnt-unique',     unique);
+    setVal('cnt-rate',       rate + '%');
+    setVal('pant-pct',       pct + '%');
+    document.getElementById('pant-fill').style.width  = pct + '%';
+    document.getElementById('pant-left').textContent  = `${panted} flasker pantet`;
+    document.getElementById('pant-right').textContent = `${panted} av 300 flasker pantet`;
+    document.getElementById('feed-count').textContent = `${panted} i dag`;
+
+    renderFeed();
+  }
+
+  function renderFeed() {
+    const body = document.getElementById('feed-body');
+    if (rfidEvents.length === 0) {
+      body.innerHTML = '<div class="feed-empty">Ingen flasker pantet ennå – kast din flaske i beholderen!</div>';
+      return;
+    }
+    const MAX_ROWS = 5;
+    body.innerHTML = rfidEvents.slice(0, MAX_ROWS).map((e, i) => {
+      const time = new Date(e.ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const emojis = ['♻️','🍺','🌿','🎯','⭐'];
+      return `<div class="feed-row" style="animation-delay:${i*0.05}s">
+        <div class="feed-icon">${emojis[i % emojis.length]}</div>
+        <div class="feed-info">
+          <div class="feed-name">${e.name || 'Ukjent drikker'}</div>
+          <div class="feed-detail">${e.company || ''} · GIAI ${e.giai}</div>
+        </div>
+        <div class="feed-bottle">
+          <div class="feed-num">Flaske #${e.num}</div>
+          <div class="feed-time">${time}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  async function init() {
+    await loadBottles();
+    if (readerIP) {
+      setLive(false);
+      pollReader();
+      setInterval(pollReader, pollSec * 1000);
+    } else {
+      startDemo();
+    }
+    updateUI();
+    // Sync QR registrations every 8s
+    setInterval(updateUI, 8000);
+  }
+
+  init();
+</script>
+</body>
+</html>
