@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GS1 Nordic Summit – Pant-leaderboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    /* =====================================================
+       GS1 Nordic Summit – Pant-leaderboard / Dashboard
+       Design: Invig brand – olive/gold on dark charcoal
+       
+       Data sources:
+         1. localStorage (gs1ns_users, gs1ns_bottle_*) – registrerte drikkere fra V2/index.html
+         2. Keonn AdvanReader REST API – GET http://{READER_IP}/rest/session/tags
+            Response: { tags: [ { epc, rssi, port, ts }, ... ] }
+            EPC → GIAI mapping via bottles.json (300 flasker)
+         3. bottles.json – EPC/GIAI/nummer-mapping fra Excel
+       
+       RFID-note: UHF EPC Gen2 fungerer på tomme glassflasker.
+         - Frekvens: 865–868 MHz (EU), typisk leserekkevidde 0.3–1m
+         - Tomme flasker: ingen væske som demper signalet → bedre lesing
+         - Anbefalt: tag plassert på bunnen/siden, ikke i metall-kapselen
+       ===================================================== */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --olive-dark:  #2E3D22;
+      --olive:       #4A5E35;
+      --olive-light: #7A9A60;
+      --gold:        #B5A23A;
+      --gold-light:  #D4C05A;
+      --cream:       #F4EFE4;
+      --charcoal:    #1A1D14;
+      --surface:     #232718;
+      --surface2:    #2D3320;
+      --border:      rgba(181,162,58,0.18);
+      --border-dim:  rgba(255,255,255,0.07);
+      --text:        #F0EBD8;
+      --muted:       #8A9070;
+      --radius:      14px;
+      --radius-sm:   9px;
+      --green:       #5DBB63;
+      --amber:       #E8A838;
+      --red:         #D95F5F;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--charcoal);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    header {
+      background: rgba(26,29,20,0.95);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo { height: 30px; }
+    .header-title { font-size: 14px; font-weight: 600; color: var(--cream); }
+    .header-sub   { font-size: 11px; color: var(--muted); }
+    .live-indicator {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; color: var(--green);
+    }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: livePulse 2s ease-in-out infinite;
+    }
+    .live-dot.offline { background: var(--red); animation: none; }
+    @keyframes livePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(93,187,99,0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(93,187,99,0); }
+      100% { box-shadow: 0 0 0 0 rgba(93,187,99,0); }
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 960px; margin: 0 auto;
+      padding: 20px 16px 60px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+
+    /* ── Big counter cards ── */
+    .counter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 600px) {
+      .counter-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .counter-card {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; overflow: hidden;
+    }
+    .counter-card.gold-accent { border-color: rgba(181,162,58,0.35); }
+    .counter-card.green-accent { border-color: rgba(93,187,99,0.3); }
+    .counter-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .counter-card.gold-accent::before  { background: linear-gradient(to right, var(--olive), var(--gold)); }
+    .counter-card.green-accent::before { background: linear-gradient(to right, var(--olive-light), var(--green)); }
+    .counter-card.amber-accent::before { background: linear-gradient(to right, var(--gold), var(--amber)); }
+    .counter-card.blue-accent::before  { background: linear-gradient(to right, #4A7FA5, #6BA3C7); }
+    .counter-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+    .counter-value { font-size: 40px; font-weight: 800; line-height: 1; color: var(--cream); }
+    .counter-value.gold  { color: var(--gold); }
+    .counter-value.green { color: var(--green); }
+    .counter-value.amber { color: var(--amber); }
+    .counter-value.blue  { color: #6BA3C7; }
+    .counter-sub { font-size: 11px; color: var(--muted); }
+
+    /* ── Progress bar ── */
+    .pant-progress-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .pant-progress-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .pant-progress-title { font-size: 13px; font-weight: 600; color: var(--cream); }
+    .pant-progress-pct   { font-size: 20px; font-weight: 700; color: var(--gold); }
+    .pant-track {
+      height: 10px; background: rgba(255,255,255,0.06);
+      border-radius: 999px; overflow: hidden; margin-bottom: 8px;
+    }
+    .pant-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(to right, var(--olive), var(--gold));
+      transition: width 1s ease;
+    }
+    .pant-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 13px; font-weight: 700; color: var(--cream);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-badge {
+      font-size: 10px; font-weight: 600; color: var(--gold);
+      background: rgba(181,162,58,0.12); border: 1px solid rgba(181,162,58,0.25);
+      border-radius: 999px; padding: 2px 8px;
+    }
+    .refresh-btn {
+      font-size: 11px; color: var(--muted); background: none; border: none;
+      cursor: pointer; padding: 4px 8px; border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .refresh-btn:hover { color: var(--gold); background: rgba(181,162,58,0.1); }
+
+    /* ── Leaderboard ── */
+    .leaderboard {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .lb-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+      animation: fadeUp 0.3s ease-out both;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row:hover { background: rgba(255,255,255,0.02); }
+    .lb-rank {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    .lb-rank.r1 { background: rgba(181,162,58,0.25); color: var(--gold); font-size: 14px; }
+    .lb-rank.r2 { background: rgba(192,192,192,0.15); color: #C0C0C0; }
+    .lb-rank.r3 { background: rgba(205,127,50,0.15);  color: #CD7F32; }
+    .lb-rank.rN { background: rgba(255,255,255,0.05); color: var(--muted); }
+    .lb-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--surface2); display: flex; align-items: center;
+      justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .lb-info { flex: 1; min-width: 0; }
+    .lb-name { font-size: 14px; font-weight: 600; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lb-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .lb-right { text-align: right; flex-shrink: 0; }
+    .lb-bottles { font-size: 18px; font-weight: 700; color: var(--gold); line-height: 1; }
+    .lb-pant    { font-size: 11px; margin-top: 3px; }
+    .lb-pant.yes { color: var(--green); }
+    .lb-pant.no  { color: var(--muted); }
+    .lb-pant.partial { color: var(--amber); }
+    .lb-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+
+    /* ── RFID feed ── */
+    .rfid-feed {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .rfid-feed-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-dim);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .rfid-feed-title { font-size: 13px; font-weight: 600; color: var(--cream); display: flex; align-items: center; gap: 8px; }
+    .rfid-feed-body { max-height: 280px; overflow-y: auto; }
+    .rfid-event {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 12px;
+      animation: slideIn 0.3s ease-out;
+    }
+    .rfid-event:last-child { border-bottom: none; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .rfid-time { color: var(--muted); font-size: 10px; white-space: nowrap; width: 50px; flex-shrink: 0; }
+    .rfid-epc  { font-family: 'Courier New', monospace; font-size: 10px; color: var(--olive-light); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rfid-bottle { font-weight: 600; color: var(--gold); white-space: nowrap; }
+    .rfid-who    { color: var(--cream); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+    .rfid-empty  { padding: 20px; text-align: center; color: var(--muted); font-size: 12px; }
+
+    /* ── Config panel ── */
+    .config-panel {
+      background: var(--surface);
+      border: 1px solid rgba(181,162,58,0.2);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .config-header {
+      padding: 12px 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .config-header h3 { font-size: 13px; font-weight: 600; color: var(--gold); display: flex; align-items: center; gap: 8px; }
+    .config-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .config-body.hidden { display: none; }
+    .config-row { display: flex; flex-direction: column; gap: 5px; }
+    .config-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .config-input {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+      font-size: 13px; color: var(--cream); font-family: inherit; outline: none;
+      transition: border-color 0.15s;
+    }
+    .config-input:focus { border-color: rgba(181,162,58,0.5); }
+    .config-hint { font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .config-actions { display: flex; gap: 8px; }
+    .btn-save {
+      flex: 1; padding: 10px; border-radius: var(--radius-sm);
+      background: var(--gold); color: var(--charcoal);
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-demo {
+      flex: 1; padding: 10px; border-radius: var(--radius-sm);
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-family: inherit;
+      border: 1px solid var(--border-dim); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-demo:hover { border-color: rgba(181,162,58,0.3); color: var(--gold); }
+
+    /* ── Recently panted ── */
+    .pant-ticker {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .ticker-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .ticker-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      background: rgba(93,187,99,0.06);
+      border: 1px solid rgba(93,187,99,0.2);
+      border-radius: var(--radius-sm);
+      animation: fadeUp 0.3s ease-out;
+    }
+    .ticker-icon { font-size: 18px; flex-shrink: 0; }
+    .ticker-info { flex: 1; }
+    .ticker-name { font-size: 13px; font-weight: 600; color: var(--cream); }
+    .ticker-bottle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .ticker-time { font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .ticker-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 0; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: rgba(10,12,7,0.8);
+      border-top: 1px solid var(--border-dim);
+      padding: 16px 20px;
+      text-align: center;
+    }
+    footer img { height: 24px; opacity: 0.7; margin-bottom: 6px; }
+    footer p { font-size: 11px; color: var(--muted); }
+    footer a { color: var(--olive-light); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <img class="header-logo" src="V2/img/invig-logo.png" alt="Invig" />
+      <div>
+        <div class="header-title">Pant-leaderboard</div>
+        <div class="header-sub">GS1 Nordic Summit 2025</div>
+      </div>
+    </div>
+    <div class="live-indicator" id="live-indicator">
+      <span class="live-dot" id="live-dot"></span>
+      <span id="live-label">Demo-modus</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Big counters -->
+    <div class="counter-grid">
+      <div class="counter-card gold-accent">
+        <div class="counter-label">Registrerte drikkere</div>
+        <div class="counter-value gold" id="cnt-registered">0</div>
+        <div class="counter-sub">Skannet QR-kode</div>
+      </div>
+      <div class="counter-card green-accent">
+        <div class="counter-label">Pantet flasker</div>
+        <div class="counter-value green" id="cnt-panted">0</div>
+        <div class="counter-sub">Lest av RFID-leser</div>
+      </div>
+      <div class="counter-card amber-accent">
+        <div class="counter-label">Unike flasker skannet</div>
+        <div class="counter-value amber" id="cnt-unique">0</div>
+        <div class="counter-sub">Av 300 totalt</div>
+      </div>
+      <div class="counter-card blue-accent">
+        <div class="counter-label">Pant-rate</div>
+        <div class="counter-value blue" id="cnt-rate">0%</div>
+        <div class="counter-sub">Registrert → pantet</div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="pant-progress-wrap">
+      <div class="pant-progress-header">
+        <span class="pant-progress-title">🍺 Pant-fremgang – GS1 Nordic Summit 2025</span>
+        <span class="pant-progress-pct" id="pant-pct">0%</span>
+      </div>
+      <div class="pant-track">
+        <div class="pant-fill" id="pant-fill" style="width:0%"></div>
+      </div>
+      <div class="pant-labels">
+        <span>0 flasker pantet</span>
+        <span id="pant-label-right">300 flasker totalt</span>
+      </div>
+    </div>
+
+    <!-- Recently panted -->
+    <div class="pant-ticker">
+      <div class="section-header">
+        <div class="section-title">♻️ Nylig pantet</div>
+        <span class="section-badge" id="recent-count">0 i dag</span>
+      </div>
+      <div class="ticker-list" id="ticker-list">
+        <div class="ticker-empty">Ingen flasker pantet ennå – kast din flaske i beholderen!</div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">🏆 Leaderboard – flest flasker</div>
+        <button class="refresh-btn" onclick="refreshAll()">↻ Oppdater</button>
+      </div>
+      <div class="leaderboard" id="leaderboard">
+        <div class="lb-empty">Ingen registrerte drikkere ennå.</div>
+      </div>
+    </div>
+
+    <!-- RFID event feed -->
+    <div class="rfid-feed">
+      <div class="rfid-feed-header">
+        <div class="rfid-feed-title">📡 RFID-hendelser (Keonn AdvanReader)</div>
+        <span class="section-badge" id="rfid-count">0 lest</span>
+      </div>
+      <div class="rfid-feed-body" id="rfid-feed-body">
+        <div class="rfid-empty">Venter på RFID-leser… Konfigurer IP-adressen nedenfor.</div>
+      </div>
+    </div>
+
+    <!-- Config panel -->
+    <div class="config-panel">
+      <div class="config-header" onclick="toggleConfig()">
+        <h3>⚙️ Keonn AdvanReader – konfigurasjon</h3>
+        <span id="config-arrow" style="color:var(--muted);font-size:16px;">▼</span>
+      </div>
+      <div class="config-body" id="config-body">
+        <div class="config-row">
+          <label class="config-label" for="reader-ip">IP-adresse til AdvanReader</label>
+          <input class="config-input" id="reader-ip" type="text" placeholder="192.168.1.100" />
+          <div class="config-hint">
+            Keonn AdvanReader REST API: <code style="color:var(--olive-light)">GET http://{ip}/rest/session/tags</code><br/>
+            Returnerer JSON med leste EPC-koder. Polling hvert 3. sekund.
+          </div>
+        </div>
+        <div class="config-row">
+          <label class="config-label" for="poll-interval">Polling-intervall (sekunder)</label>
+          <input class="config-input" id="poll-interval" type="number" value="3" min="1" max="60" />
+        </div>
+        <div class="config-actions">
+          <button class="btn-save" onclick="saveConfig()">💾 Koble til leser</button>
+          <button class="btn-demo" onclick="startDemo()">🎭 Kjør demo</button>
+        </div>
+        <div class="config-hint" style="padding:8px;background:rgba(181,162,58,0.06);border-radius:8px;border:1px solid rgba(181,162,58,0.15);">
+          <strong style="color:var(--gold)">RFID-note:</strong> UHF EPC Gen2 (865–868 MHz) fungerer utmerket på tomme glassflasker.
+          Tomme flasker demper ikke signalet – tvert imot gir fravær av væske bedre lesbarhet.
+          Anbefalt tag-plassering: bunn eller side av flasken, unngå metallkapselen øverst.
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <img src="V2/img/invig-logo.png" alt="Invig" /><br/>
+    <p>
+      Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> ·
+      <a href="https://keonn.com" target="_blank">Keonn AdvanReader</a> ·
+      <a href="https://gs1.no" target="_blank">GS1 Norway</a>
+    </p>
+  </footer>
+
+  <script>
+    /* =====================================================
+       Dashboard logic
+       
+       State:
+         pantedEPCs    – Set of EPC strings read by RFID reader
+         pantedGIAIs   – Set of GIAI strings (mapped from EPC)
+         rfidEvents    – Array of {epc, giai, num, name, ts}
+         bottleMap     – Map: epc → {giai, num}
+         readerIP      – Keonn AdvanReader IP
+         pollTimer     – setInterval handle
+         demoTimer     – demo simulation handle
+         isDemoMode    – boolean
+       
+       Keonn AdvanReader REST API:
+         GET http://{ip}/rest/session/tags
+         Response: {"tags":[{"epc":"3415AFBC...","rssi":-60,"port":1,"ts":1234567890},...]}
+         
+         Alternative (older firmware):
+         GET http://{ip}/api/inventory/tags
+         Response: {"inventory":[{"epc":"...","count":1},...]}
+       ===================================================== */
+
+    // ── Bottle database ──────────────────────────────────
+    let bottleMap = new Map(); // epc → {giai, num}
+    let giaiMap   = new Map(); // giai → {epc, num}
+
+    async function loadBottles() {
+      try {
+        const resp = await fetch('V2/bottles.json');
+        const data = await resp.json();
+        data.forEach(b => {
+          bottleMap.set(b.epc.toUpperCase(), { giai: b.giai, num: b.num });
+          giaiMap.set(b.giai, { epc: b.epc.toUpperCase(), num: b.num });
+        });
+        console.log(`Loaded ${bottleMap.size} bottles from bottles.json`);
+      } catch(e) {
+        console.warn('Could not load bottles.json:', e);
+      }
+    }
+
+    // ── localStorage helpers ─────────────────────────────
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem('gs1ns_users') || '{}'); }
+      catch { return {}; }
+    }
+    function getBottleDrinkers(giai) {
+      try { return JSON.parse(localStorage.getItem(`gs1ns_bottle_${giai}`) || '[]'); }
+      catch { return []; }
+    }
+    function getUserForGIAI(giai) {
+      const drinkers = getBottleDrinkers(giai);
+      if (drinkers.length === 0) return null;
+      return drinkers[0]; // first registered drinker
+    }
+    function getAllUsers() {
+      const users = getUsers();
+      return Object.entries(users).map(([phone, u]) => ({ phone, ...u }));
+    }
+
+    // ── State ────────────────────────────────────────────
+    let pantedEPCs  = new Set();
+    let pantedGIAIs = new Set();
+    let rfidEvents  = [];
+    let readerIP    = localStorage.getItem('gs1ns_reader_ip') || '';
+    let pollInterval = parseInt(localStorage.getItem('gs1ns_poll_interval') || '3', 10);
+    let pollTimer   = null;
+    let demoTimer   = null;
+    let isDemoMode  = false;
+
+    // ── Keonn AdvanReader API polling ────────────────────
+    async function pollReader() {
+      if (!readerIP) return;
+      const urls = [
+        `http://${readerIP}/rest/session/tags`,
+        `http://${readerIP}/api/inventory/tags`,
+        `http://${readerIP}/rest/tags`,
+      ];
+      for (const url of urls) {
+        try {
+          const resp = await fetch(url, {
+            signal: AbortSignal.timeout(3000),
+            headers: { 'Accept': 'application/json' }
+          });
+          if (!resp.ok) continue;
+          const data = await resp.json();
+          const tags = data.tags || data.inventory || data.epcs || [];
+          if (Array.isArray(tags)) {
+            setLiveStatus(true);
+            processTags(tags.map(t => ({ epc: (t.epc || t.EPC || '').toUpperCase(), ts: t.ts || Date.now() })));
+            return;
+          }
+        } catch {}
+      }
+      setLiveStatus(false);
+    }
+
+    function processTags(tags) {
+      let newPants = 0;
+      tags.forEach(({ epc, ts }) => {
+        if (!epc || pantedEPCs.has(epc)) return;
+        const bottle = bottleMap.get(epc);
+        if (!bottle) return; // unknown EPC
+        pantedEPCs.add(epc);
+        pantedGIAIs.add(bottle.giai);
+        newPants++;
+        const who = getUserForGIAI(bottle.giai);
+        rfidEvents.unshift({
+          epc, giai: bottle.giai, num: bottle.num,
+          name: who ? who.name : null,
+          company: who ? who.company : null,
+          ts: ts || Date.now()
+        });
+        if (rfidEvents.length > 100) rfidEvents.pop();
+        addTickerItem(bottle, who, ts);
+      });
+      if (newPants > 0) updateAll();
+    }
+
+    // ── Demo mode ────────────────────────────────────────
+    const DEMO_BOTTLES = [
+      { epc: '3415AFBC0C00000000000669', giai: '70735391641', num: 1 },
+      { epc: '3415AFBC0C0000000000066A', giai: '70735391642', num: 2 },
+      { epc: '3415AFBC0C0000000000066B', giai: '70735391643', num: 3 },
+      { epc: '3415AFBC0C0000000000066C', giai: '70735391644', num: 4 },
+      { epc: '3415AFBC0C0000000000066D', giai: '70735391645', num: 5 },
+      { epc: '3415AFBC0C0000000000066E', giai: '70735391646', num: 6 },
+      { epc: '3415AFBC0C0000000000066F', giai: '70735391647', num: 7 },
+      { epc: '3415AFBC0C00000000000670', giai: '70735391648', num: 8 },
+      { epc: '3415AFBC0C00000000000671', giai: '70735391649', num: 9 },
+      { epc: '3415AFBC0C00000000000672', giai: '70735391650', num: 10 },
+    ];
+    const DEMO_NAMES = [
+      { name: 'Ola Nordmann',    company: 'GS1 Norway',     role: 'Standards Director' },
+      { name: 'Ingrid Larsen',   company: 'Carlsberg Group', role: 'Supply Chain Lead' },
+      { name: 'Erik Svensson',   company: 'Invig AS',        role: 'CEO' },
+      { name: 'Maja Andersen',   company: 'ASKO Norge',      role: 'Logistics Manager' },
+      { name: 'Lars Pettersen',  company: 'Norgesgruppen',   role: 'IT Director' },
+    ];
+
+    let demoIdx = 0;
+    function startDemo() {
+      if (demoTimer) clearInterval(demoTimer);
+      isDemoMode = true;
+      setLiveStatus(true, true);
+      // Seed some demo users in localStorage if empty
+      const users = getUsers();
+      if (Object.keys(users).length === 0) {
+        DEMO_NAMES.forEach((n, i) => {
+          const phone = `+4790000000${i}`;
+          users[phone] = { name: n.name, company: n.company, role: n.role, registeredAt: Date.now(), bottles: [] };
+          // Assign 1-2 bottles per user
+          const b1 = DEMO_BOTTLES[i * 2];
+          const b2 = DEMO_BOTTLES[i * 2 + 1];
+          if (b1) {
+            users[phone].bottles.push(b1.giai);
+            localStorage.setItem(`gs1ns_bottle_${b1.giai}`, JSON.stringify([{ phone, name: n.name, company: n.company, role: n.role, ts: Date.now() }]));
+          }
+          if (b2) {
+            users[phone].bottles.push(b2.giai);
+            localStorage.setItem(`gs1ns_bottle_${b2.giai}`, JSON.stringify([{ phone, name: n.name, company: n.company, role: n.role, ts: Date.now() }]));
+          }
+        });
+        localStorage.setItem('gs1ns_users', JSON.stringify(users));
+      }
+      updateAll();
+      // Simulate RFID reads every 3 seconds
+      demoTimer = setInterval(() => {
+        if (demoIdx >= DEMO_BOTTLES.length) {
+          clearInterval(demoTimer);
+          return;
+        }
+        const b = DEMO_BOTTLES[demoIdx++];
+        processTags([{ epc: b.epc, ts: Date.now() }]);
+      }, 2500);
+    }
+
+    // ── UI helpers ───────────────────────────────────────
+    function setLiveStatus(online, demo = false) {
+      const dot   = document.getElementById('live-dot');
+      const label = document.getElementById('live-label');
+      if (demo) {
+        dot.className   = 'live-dot';
+        dot.style.background = 'var(--amber)';
+        label.textContent = 'Demo-modus';
+      } else if (online) {
+        dot.className   = 'live-dot';
+        dot.style.background = '';
+        label.textContent = 'Live · AdvanReader';
+      } else {
+        dot.className   = 'live-dot offline';
+        label.textContent = 'Leser ikke tilkoblet';
+      }
+    }
+
+    function addTickerItem(bottle, who, ts) {
+      const list = document.getElementById('ticker-list');
+      const empty = list.querySelector('.ticker-empty');
+      if (empty) empty.remove();
+      const time = new Date(ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const div = document.createElement('div');
+      div.className = 'ticker-item';
+      div.innerHTML = `
+        <div class="ticker-icon">♻️</div>
+        <div class="ticker-info">
+          <div class="ticker-name">${who ? who.name : 'Ukjent'}</div>
+          <div class="ticker-bottle">Flaske #${bottle.num} · GIAI ${bottle.giai}</div>
+        </div>
+        <div class="ticker-time">${time}</div>`;
+      list.insertBefore(div, list.firstChild);
+      if (list.children.length > 8) list.removeChild(list.lastChild);
+    }
+
+    function updateAll() {
+      const users = getAllUsers();
+      const totalRegistered = users.length;
+      const totalPanted     = pantedGIAIs.size;
+      const totalUnique     = new Set([...users.flatMap(u => u.bottles || [])]).size;
+      const rate = totalRegistered > 0 ? Math.round((totalPanted / Math.max(totalUnique, 1)) * 100) : 0;
+      const pct  = Math.round((totalPanted / 300) * 100);
+
+      document.getElementById('cnt-registered').textContent = totalRegistered;
+      document.getElementById('cnt-panted').textContent     = totalPanted;
+      document.getElementById('cnt-unique').textContent     = totalUnique;
+      document.getElementById('cnt-rate').textContent       = rate + '%';
+      document.getElementById('pant-pct').textContent       = pct + '%';
+      document.getElementById('pant-fill').style.width      = pct + '%';
+      document.getElementById('pant-label-right').textContent = `${totalPanted} av 300 flasker pantet`;
+      document.getElementById('recent-count').textContent   = `${totalPanted} i dag`;
+      document.getElementById('rfid-count').textContent     = `${rfidEvents.length} lest`;
+
+      renderLeaderboard(users);
+      renderRFIDFeed();
+    }
+
+    function renderLeaderboard(users) {
+      const lb = document.getElementById('leaderboard');
+      if (users.length === 0) {
+        lb.innerHTML = '<div class="lb-empty">Ingen registrerte drikkere ennå. Skann en QR-kode for å registrere deg!</div>';
+        return;
+      }
+      // Sort by: panted bottles first, then total bottles
+      const sorted = users.map(u => {
+        const bottles = u.bottles || [];
+        const pantedCount = bottles.filter(g => pantedGIAIs.has(g)).length;
+        return { ...u, totalBottles: bottles.length, pantedCount };
+      }).sort((a, b) => b.pantedCount - a.pantedCount || b.totalBottles - a.totalBottles);
+
+      const EMOJIS = ['🥇','🥈','🥉','🍺','🍻','🎯','⭐','🌟','💫','🎉'];
+      lb.innerHTML = sorted.map((u, i) => {
+        const rank = i < 3 ? `r${i+1}` : 'rN';
+        const rankLabel = i < 3 ? EMOJIS[i] : `${i+1}`;
+        const pantStatus = u.pantedCount === u.totalBottles && u.totalBottles > 0
+          ? `<span class="lb-pant yes">♻️ ${u.pantedCount}/${u.totalBottles} pantet</span>`
+          : u.pantedCount > 0
+          ? `<span class="lb-pant partial">♻️ ${u.pantedCount}/${u.totalBottles} pantet</span>`
+          : `<span class="lb-pant no">Ikke pantet ennå</span>`;
+        const emoji = ['👨‍💼','👩‍💼','👨‍💻','👩‍💻','👨‍🔬','👩‍🔬','🧑‍💼','🧑‍💻'][i % 8];
+        return `<div class="lb-row" style="animation-delay:${i*0.05}s">
+          <div class="lb-rank ${rank}">${rankLabel}</div>
+          <div class="lb-avatar">${emoji}</div>
+          <div class="lb-info">
+            <div class="lb-name">${u.name}</div>
+            <div class="lb-meta">${u.company || ''} · ${u.role || ''}</div>
+          </div>
+          <div class="lb-right">
+            <div class="lb-bottles">🍺 ${u.totalBottles}</div>
+            ${pantStatus}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderRFIDFeed() {
+      const feed = document.getElementById('rfid-feed-body');
+      if (rfidEvents.length === 0) {
+        feed.innerHTML = '<div class="rfid-empty">Venter på RFID-leser… Konfigurer IP-adressen nedenfor, eller kjør demo.</div>';
+        return;
+      }
+      feed.innerHTML = rfidEvents.slice(0, 30).map(e => {
+        const time = new Date(e.ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `<div class="rfid-event">
+          <span class="rfid-time">${time}</span>
+          <span class="rfid-epc">${e.epc}</span>
+          <span class="rfid-bottle">#${e.num}</span>
+          <span class="rfid-who">${e.name || '—'}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Config ───────────────────────────────────────────
+    function toggleConfig() {
+      const body  = document.getElementById('config-body');
+      const arrow = document.getElementById('config-arrow');
+      body.classList.toggle('hidden');
+      arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
+    }
+
+    function saveConfig() {
+      readerIP     = document.getElementById('reader-ip').value.trim();
+      pollInterval = parseInt(document.getElementById('poll-interval').value, 10) || 3;
+      localStorage.setItem('gs1ns_reader_ip', readerIP);
+      localStorage.setItem('gs1ns_poll_interval', String(pollInterval));
+      if (pollTimer) clearInterval(pollTimer);
+      if (readerIP) {
+        pollReader();
+        pollTimer = setInterval(pollReader, pollInterval * 1000);
+        setLiveStatus(false);
+        document.getElementById('live-label').textContent = `Kobler til ${readerIP}…`;
+      }
+    }
+
+    function refreshAll() {
+      if (readerIP) pollReader();
+      updateAll();
+    }
+
+    // ── Init ─────────────────────────────────────────────
+    async function init() {
+      await loadBottles();
+
+      // Restore config
+      const savedIP = localStorage.getItem('gs1ns_reader_ip') || '';
+      const savedInterval = localStorage.getItem('gs1ns_poll_interval') || '3';
+      document.getElementById('reader-ip').value     = savedIP;
+      document.getElementById('poll-interval').value = savedInterval;
+
+      if (savedIP) {
+        readerIP     = savedIP;
+        pollInterval = parseInt(savedInterval, 10);
+        pollReader();
+        pollTimer = setInterval(pollReader, pollInterval * 1000);
+      }
+
+      updateAll();
+
+      // Auto-refresh leaderboard every 10s (picks up new QR registrations)
+      setInterval(updateAll, 10000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
