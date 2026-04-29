@@ -50,24 +50,58 @@ ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rfid_events   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE milestones    ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS Policies (allow anon read; anon insert for registrations; service_role bypasses RLS)
-CREATE POLICY IF NOT EXISTS anon_read_registrations   ON registrations FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS anon_insert_registrations ON registrations FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS anon_read_rfid_events     ON rfid_events   FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS anon_read_milestones      ON milestones    FOR SELECT USING (true);
+-- 5. RLS Policies
+-- NOTE: PostgreSQL does not support IF NOT EXISTS on CREATE POLICY.
+-- Use DO $$ blocks to check before creating.
+DO $$
+BEGIN
+  -- registrations: allow anyone to read
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'registrations' AND policyname = 'anon_read_registrations'
+  ) THEN
+    CREATE POLICY anon_read_registrations ON registrations FOR SELECT USING (true);
+  END IF;
 
--- 6. Realtime: enable for all three tables
+  -- registrations: allow anyone to insert (mobile QR scan page)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'registrations' AND policyname = 'anon_insert_registrations'
+  ) THEN
+    CREATE POLICY anon_insert_registrations ON registrations FOR INSERT WITH CHECK (true);
+  END IF;
+
+  -- rfid_events: allow anyone to read
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'rfid_events' AND policyname = 'anon_read_rfid_events'
+  ) THEN
+    CREATE POLICY anon_read_rfid_events ON rfid_events FOR SELECT USING (true);
+  END IF;
+
+  -- rfid_events: allow service_role to insert (Keonn endpoint via backend)
+  -- service_role bypasses RLS by default, so no explicit policy needed.
+
+  -- milestones: allow anyone to read
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'milestones' AND policyname = 'anon_read_milestones'
+  ) THEN
+    CREATE POLICY anon_read_milestones ON milestones FOR SELECT USING (true);
+  END IF;
+END $$;
+
+-- 6. Realtime: enable change tracking for all three tables
 ALTER TABLE rfid_events   REPLICA IDENTITY FULL;
 ALTER TABLE registrations REPLICA IDENTITY FULL;
 ALTER TABLE milestones    REPLICA IDENTITY FULL;
 
--- Add tables to the realtime publication
--- (Supabase creates supabase_realtime automatically; just add tables)
+-- Add tables to the Supabase realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE rfid_events;
 ALTER PUBLICATION supabase_realtime ADD TABLE registrations;
 ALTER PUBLICATION supabase_realtime ADD TABLE milestones;
 
--- 7. Verify
+-- 7. Verify – should return 3 rows with count 0
 SELECT 'registrations' AS tbl, COUNT(*) FROM registrations
 UNION ALL SELECT 'rfid_events',  COUNT(*) FROM rfid_events
 UNION ALL SELECT 'milestones',   COUNT(*) FROM milestones;
