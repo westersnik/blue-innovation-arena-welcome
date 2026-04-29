@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+  <title>GS1 Nordic Summit – Din Carlsberg</title>
+  <meta name="description" content="Du har skannet en unik Carlsberg-flaske på GS1 Nordic Summit. Se dens reise, temperaturlogg og hvem som drakk den." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    /* =====================================================
+       GS1 Nordic Summit V2 – Invig Brand Edition
+       Design: Warm Nordic – Invig olive/gold on cream/dark
+       Colors from Invig brand:
+         --olive-dark:  #3B4A2F  (dark green from logo swirls)
+         --olive:       #5C6E45  (mid green)
+         --olive-light: #8FAF7A  (light green)
+         --gold:        #B5A23A  (Invig gold text)
+         --cream:       #F5F0E8  (warm off-white)
+         --charcoal:    #1C1F17  (near-black background)
+       DB: localStorage key "gs1ns_users" → {phone: {name, company, role, bottles:[]}}
+           localStorage key "gs1ns_bottle_{giai}" → [{phone, name, company, ts}]
+       API: https://iotpallet.no/api/track/{sscc} (public, no auth)
+       GIAI range: 70735390001–70735390400
+       ===================================================== */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --olive-dark:  #2E3D22;
+      --olive:       #4A5E35;
+      --olive-light: #7A9A60;
+      --gold:        #B5A23A;
+      --gold-light:  #D4C05A;
+      --cream:       #F4EFE4;
+      --cream-dim:   #E8E0CF;
+      --charcoal:    #1A1D14;
+      --surface:     #232718;
+      --surface2:    #2D3320;
+      --border:      rgba(181,162,58,0.18);
+      --border-dim:  rgba(255,255,255,0.07);
+      --text:        #F0EBD8;
+      --muted:       #8A9070;
+      --radius:      14px;
+      --radius-sm:   9px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--charcoal);
+      color: var(--text);
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(26,29,20,0.92);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .header-logo-img { height: 32px; width: auto; object-fit: contain; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .bottle-badge {
+      background: rgba(181,162,58,0.15);
+      border: 1px solid rgba(181,162,58,0.35);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 0.04em;
+    }
+    .event-tag {
+      font-size: 10px; color: var(--muted); letter-spacing: 0.06em;
+      text-transform: uppercase; white-space: nowrap;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative; overflow: hidden;
+      height: 260px;
+      background: linear-gradient(135deg, var(--olive-dark) 0%, #0E1209 100%);
+    }
+    .hero-img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
+      opacity: 0.55; mix-blend-mode: luminosity;
+    }
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom,
+        rgba(26,29,20,0.2) 0%,
+        rgba(26,29,20,0.5) 50%,
+        var(--charcoal) 100%);
+    }
+    .hero-content {
+      position: absolute; bottom: 18px; left: 16px; right: 16px;
+    }
+    .scan-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(181,162,58,0.18); border: 1px solid rgba(181,162,58,0.4);
+      border-radius: 999px; padding: 4px 11px; margin-bottom: 9px;
+    }
+    .scan-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--gold);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .scan-badge span { font-size: 10px; font-weight: 600; color: var(--gold); letter-spacing: 0.07em; text-transform: uppercase; }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(181,162,58,0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(181,162,58,0); }
+      100% { box-shadow: 0 0 0 0 rgba(181,162,58,0); }
+    }
+    .hero-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px; font-weight: 400; line-height: 1.15; color: var(--cream);
+    }
+    .hero-title em { font-style: normal; color: var(--gold); }
+    .hero-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+    /* ── Main ── */
+    main {
+      flex: 1; max-width: 480px; width: 100%;
+      margin: 0 auto; padding: 16px 14px 48px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+
+    /* ── My beer strip (shown when registered) ── */
+    .my-beer-strip {
+      display: none;
+      background: linear-gradient(135deg, var(--olive-dark), var(--surface));
+      border: 1px solid rgba(181,162,58,0.35);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      align-items: center; gap: 14px;
+    }
+    .my-beer-strip.visible { display: flex; }
+    .my-beer-icon { font-size: 28px; flex-shrink: 0; }
+    .my-beer-info { flex: 1; }
+    .my-beer-name { font-size: 14px; font-weight: 600; color: var(--cream); }
+    .my-beer-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .my-beer-count {
+      font-size: 28px; font-weight: 700; color: var(--gold); line-height: 1;
+      text-align: right; flex-shrink: 0;
+    }
+    .my-beer-count-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── Temp strip ── */
+    .temp-strip {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .temp-main { display: flex; align-items: baseline; gap: 3px; }
+    .temp-val { font-size: 34px; font-weight: 700; color: var(--olive-light); line-height: 1; }
+    .temp-unit { font-size: 15px; color: var(--muted); }
+    .temp-meta { text-align: right; }
+    .temp-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+    .temp-status { font-size: 13px; font-weight: 600; margin-top: 2px; }
+    .temp-ok   { color: var(--olive-light); }
+    .temp-warn { color: var(--gold); }
+    .temp-hot  { color: #E05050; }
+    .temp-bar-wrap { flex: 1; }
+    .temp-bar-track {
+      height: 5px; background: rgba(255,255,255,0.07);
+      border-radius: 999px; overflow: hidden; margin-top: 4px;
+    }
+    .temp-bar-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(to right, var(--olive), var(--gold));
+      transition: width 1s ease;
+    }
+    .temp-range { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Action buttons ── */
+    .action-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .action-btn {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 15px 13px;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+      cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      text-decoration: none; color: inherit;
+    }
+    .action-btn:hover  { background: var(--surface2); border-color: rgba(181,162,58,0.25); }
+    .action-btn:active { transform: scale(0.97); }
+    .action-btn .ab-icon { font-size: 20px; }
+    .action-btn .ab-label { font-size: 13px; font-weight: 600; color: var(--cream); }
+    .action-btn .ab-sub   { font-size: 10px; color: var(--muted); line-height: 1.4; }
+    .action-btn.highlight { border-color: rgba(181,162,58,0.4); background: rgba(181,162,58,0.07); }
+    .action-btn.highlight .ab-label { color: var(--gold); }
+
+    /* ── Panels ── */
+    .panel {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      overflow: hidden;
+      animation: fadeUp 0.22s ease-out both;
+    }
+    .panel.open { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-dim);
+      cursor: pointer;
+    }
+    .panel-header h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--cream); }
+    .panel-close { font-size: 18px; color: var(--muted); line-height: 1; }
+    .panel-body { padding: 16px; }
+
+    /* Journey / map panel */
+    .map-container {
+      width: 100%; height: 200px;
+      border-radius: var(--radius-sm);
+      overflow: hidden; margin-bottom: 14px;
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .map-loading { color: var(--muted); font-size: 12px; text-align: center; }
+    .map-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; border-radius: var(--radius-sm); }
+    .journey-steps { display: flex; flex-direction: column; }
+    .j-step { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; }
+    .j-step:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .j-left { display: flex; flex-direction: column; align-items: center; }
+    .j-dot {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 12px;
+    }
+    .j-dot.done   { background: rgba(74,94,53,0.3); border: 1px solid rgba(122,154,96,0.5); }
+    .j-dot.active { background: rgba(181,162,58,0.2); border: 1px solid rgba(181,162,58,0.5); }
+    .j-dot.future { background: rgba(255,255,255,0.04); border: 1px solid var(--border-dim); }
+    .j-line { width: 1px; flex: 1; min-height: 14px; background: var(--border-dim); margin: 3px 0; }
+    .j-body { flex: 1; padding-top: 3px; }
+    .j-title { font-size: 13px; font-weight: 600; color: var(--cream); }
+    .j-meta  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .j-temp  { display: inline-block; font-size: 10px; font-weight: 600; color: var(--olive-light); background: rgba(74,94,53,0.2); border-radius: 4px; padding: 1px 6px; margin-top: 4px; }
+    .api-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; color: var(--gold); background: rgba(181,162,58,0.1);
+      border: 1px solid rgba(181,162,58,0.2); border-radius: 4px;
+      padding: 2px 7px; margin-bottom: 10px;
+    }
+
+    /* Temp log */
+    .temp-log-img { width: 100%; border-radius: var(--radius-sm); margin-bottom: 12px; opacity: 0.85; }
+    .temp-log-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .temp-log-table th {
+      text-align: left; padding: 6px 8px;
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .temp-log-table td { padding: 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .temp-log-table tr:last-child td { border-bottom: none; }
+    .t-ok   { color: var(--olive-light); font-weight: 600; }
+    .t-warn { color: var(--gold); font-weight: 600; }
+
+    /* Drinkers panel */
+    .drinker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .drinker-count { font-size: 28px; font-weight: 700; color: var(--gold); }
+    .drinker-label { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .progress-wrap { margin-bottom: 14px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+    .progress-track { height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(to right, var(--olive), var(--gold));
+      transition: width 1.2s ease;
+    }
+    .drinker-list { display: flex; flex-direction: column; gap: 8px; }
+    .drinker-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 11px;
+      background: rgba(255,255,255,0.03); border-radius: var(--radius-sm);
+    }
+    .drinker-row.me { border: 1px solid rgba(181,162,58,0.35); background: rgba(181,162,58,0.06); }
+    .drinker-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--surface2); display: flex; align-items: center;
+      justify-content: center; font-size: 15px; flex-shrink: 0;
+    }
+    .drinker-name { font-size: 13px; font-weight: 500; color: var(--cream); }
+    .drinker-meta { font-size: 11px; color: var(--muted); }
+    .drinker-num  { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+
+    /* ── Register / Phone flow ── */
+    .phone-flow { display: flex; flex-direction: column; gap: 14px; }
+    .flow-step { display: none; }
+    .flow-step.active { display: flex; flex-direction: column; gap: 12px; }
+    .form-label {
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; display: block;
+    }
+    .form-input {
+      width: 100%; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm);
+      padding: 12px 14px; font-size: 15px; color: var(--cream);
+      font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: rgba(181,162,58,0.55); }
+    .form-input::placeholder { color: var(--muted); }
+    .form-input.phone-input { font-size: 20px; font-weight: 600; letter-spacing: 0.05em; text-align: center; }
+    .btn-primary {
+      width: 100%; padding: 14px; border-radius: var(--radius-sm);
+      background: var(--gold); color: var(--charcoal);
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      border: none; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover  { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary {
+      width: 100%; padding: 12px; border-radius: var(--radius-sm);
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-family: inherit;
+      border: 1px solid var(--border-dim); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { border-color: rgba(181,162,58,0.3); color: var(--gold); }
+    .flow-hint { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+    .returning-card {
+      background: rgba(181,162,58,0.08);
+      border: 1px solid rgba(181,162,58,0.3);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+    .returning-name { font-size: 16px; font-weight: 700; color: var(--cream); }
+    .returning-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .returning-bottles {
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(181,162,58,0.15);
+      font-size: 12px; color: var(--muted);
+    }
+    .returning-bottles strong { color: var(--gold); font-size: 18px; }
+    .register-success { display: none; text-align: center; padding: 16px 0; }
+    .register-success .rs-icon { font-size: 42px; margin-bottom: 8px; }
+    .register-success h4 { font-size: 16px; font-weight: 700; color: var(--gold); }
+    .register-success p  { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+
+    /* Product panel */
+    .product-specs { display: flex; flex-direction: column; }
+    .spec-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+    .spec-row:last-child { border-bottom: none; }
+    .spec-key   { color: var(--muted); }
+    .spec-value { font-weight: 500; color: var(--cream); }
+    .giai-mono  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--olive-light); }
+
+    /* GIAI box */
+    .giai-box {
+      background: var(--surface);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .giai-title { font-size: 10px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .giai-row { display: flex; justify-content: space-between; padding: 4px 0; }
+    .giai-row .k { font-size: 11px; color: var(--muted); }
+    .giai-row .v { font-size: 11px; font-weight: 500; font-family: 'Courier New', monospace; color: var(--text); }
+
+    /* Footer */
+    footer {
+      background: rgba(10,12,7,0.8);
+      border-top: 1px solid var(--border-dim);
+      padding: 20px 16px;
+      text-align: center;
+    }
+    footer img { height: 28px; margin-bottom: 8px; opacity: 0.8; }
+    footer p { font-size: 11px; color: var(--muted); line-height: 1.9; }
+    footer a  { color: var(--olive-light); text-decoration: none; }
+
+    /* Animations */
+    .fade-1 { animation: fadeUp 0.3s ease-out 0.00s both; }
+    .fade-2 { animation: fadeUp 0.3s ease-out 0.07s both; }
+    .fade-3 { animation: fadeUp 0.3s ease-out 0.14s both; }
+    .fade-4 { animation: fadeUp 0.3s ease-out 0.21s both; }
+    .fade-5 { animation: fadeUp 0.3s ease-out 0.28s both; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <img class="header-logo-img" src="img/invig-logo.png" alt="Invig" />
+    <div class="header-right">
+      <span class="event-tag">GS1 Nordic Summit</span>
+      <div class="bottle-badge" id="header-bottle-num">Flaske #—</div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img class="hero-img" src="img/hero-bottle.jpg" alt="Carlsberg flaske" />
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="scan-badge">
+        <span class="scan-dot"></span>
+        <span>Tag skannet</span>
+      </div>
+      <h1 class="hero-title">Du har skannet<br><em id="hero-bottle-label">Flaske #—</em></h1>
+      <p class="hero-sub" id="hero-sub">Carlsberg Pilsner · GS1 Nordic Summit 2025</p>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- My beer strip (shown when user is registered) -->
+    <div class="my-beer-strip fade-1" id="my-beer-strip">
+      <div class="my-beer-icon">🍺</div>
+      <div class="my-beer-info">
+        <div class="my-beer-name" id="my-beer-name">—</div>
+        <div class="my-beer-sub" id="my-beer-sub">Dine registrerte flasker</div>
+      </div>
+      <div>
+        <div class="my-beer-count" id="my-beer-count">0</div>
+        <div class="my-beer-count-label">flasker</div>
+      </div>
+    </div>
+
+    <!-- Temperature strip -->
+    <div class="temp-strip fade-1">
+      <div>
+        <div class="temp-label">Temperatur nå</div>
+        <div class="temp-main">
+          <span class="temp-val" id="temp-val">4.2</span>
+          <span class="temp-unit">°C</span>
+        </div>
+      </div>
+      <div class="temp-bar-wrap">
+        <div class="temp-label">Optimal: 3–6 °C</div>
+        <div class="temp-bar-track">
+          <div class="temp-bar-fill" id="temp-bar" style="width:35%"></div>
+        </div>
+        <div class="temp-range"><span>0°</span><span>6°</span><span>12°</span></div>
+      </div>
+      <div class="temp-meta">
+        <div class="temp-label">Status</div>
+        <div class="temp-status temp-ok" id="temp-status">✓ Perfekt</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="action-grid fade-2">
+      <button class="action-btn highlight" onclick="togglePanel('panel-journey')">
+        <span class="ab-icon">🗺️</span>
+        <span class="ab-label">Se reisen</span>
+        <span class="ab-sub">Fra bryggeri til deg</span>
+      </button>
+      <button class="action-btn" onclick="togglePanel('panel-temp')">
+        <span class="ab-icon">🌡️</span>
+        <span class="ab-label">Temperaturlogg</span>
+        <span class="ab-sub">Hele kjølehistorikken</span>
+      </button>
+      <button class="action-btn" onclick="togglePanel('panel-drinkers')">
+        <span class="ab-icon">🍺</span>
+        <span class="ab-label">Hvem drakk den?</span>
+        <span class="ab-sub">Registrerte drikkere</span>
+      </button>
+      <button class="action-btn" onclick="togglePanel('panel-product')">
+        <span class="ab-icon">ℹ️</span>
+        <span class="ab-label">Om produktet</span>
+        <span class="ab-sub">Carlsberg Pilsner</span>
+      </button>
+    </div>
+
+    <!-- Panel: Journey (with IOTpallet API map) -->
+    <div class="panel fade-3" id="panel-journey">
+      <div class="panel-header" onclick="togglePanel('panel-journey')">
+        <h3>🗺️ Flaskens reise</h3>
+        <span class="panel-close">✕</span>
+      </div>
+      <div class="panel-body">
+        <div class="api-badge">📡 Live data · IOTpallet.no API</div>
+        <div class="map-container" id="map-container">
+          <div class="map-loading" id="map-loading">
+            <div style="font-size:24px;margin-bottom:6px;">🌍</div>
+            <div>Henter kartdata…</div>
+          </div>
+          <img class="map-img" id="map-img" src="img/journey-map.jpg" alt="Reisekart" style="display:none;" />
+        </div>
+        <div id="api-status" style="font-size:11px;color:var(--muted);margin-bottom:12px;display:none;"></div>
+        <div class="journey-steps" id="journey-steps"></div>
+      </div>
+    </div>
+
+    <!-- Panel: Temperature log -->
+    <div class="panel fade-3" id="panel-temp">
+      <div class="panel-header" onclick="togglePanel('panel-temp')">
+        <h3>🌡️ Temperaturlogg</h3>
+        <span class="panel-close">✕</span>
+      </div>
+      <div class="panel-body">
+        <img src="img/temp-chart.jpg" alt="Temperaturkurve" class="temp-log-img" />
+        <table class="temp-log-table">
+          <thead>
+            <tr><th>Tidspunkt</th><th>Lokasjon</th><th>Temp</th><th>Status</th></tr>
+          </thead>
+          <tbody id="temp-log-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Panel: Drinkers -->
+    <div class="panel fade-3" id="panel-drinkers">
+      <div class="panel-header" onclick="togglePanel('panel-drinkers')">
+        <h3>🍺 Hvem drakk den?</h3>
+        <span class="panel-close">✕</span>
+      </div>
+      <div class="panel-body">
+        <div class="drinker-header">
+          <div>
+            <div class="drinker-count" id="drinker-count">0</div>
+            <div class="drinker-label">registrerte drikkere</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:20px;font-weight:700;color:var(--muted)">/ 400</div>
+            <div class="drinker-label">flasker totalt</div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-label">
+            <span>Skannet på eventet</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="drinker-list" id="drinker-list"></div>
+        <button class="btn-primary" style="margin-top:14px;" onclick="togglePanel('panel-register')">
+          + Registrer meg som drikker
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel: Register (phone-first flow) -->
+    <div class="panel fade-3" id="panel-register">
+      <div class="panel-header" onclick="togglePanel('panel-register')">
+        <h3>✍️ Registrer deg</h3>
+        <span class="panel-close">✕</span>
+      </div>
+      <div class="panel-body">
+        <div id="register-main">
+          <div class="phone-flow">
+
+            <!-- Step 1: Enter phone -->
+            <div class="flow-step active" id="step-phone">
+              <div>
+                <label class="form-label" for="reg-phone">Ditt mobilnummer</label>
+                <input class="form-input phone-input" id="reg-phone" type="tel"
+                  placeholder="+47 000 00 000" autocomplete="tel"
+                  oninput="formatPhone(this)" />
+              </div>
+              <button class="btn-primary" onclick="checkPhone()">Fortsett →</button>
+              <p class="flow-hint">Vi bruker mobilnummeret ditt til å koble alle flaskene du skannet på eventet.</p>
+            </div>
+
+            <!-- Step 2a: Returning user – one-click confirm -->
+            <div class="flow-step" id="step-returning">
+              <div class="returning-card">
+                <div class="returning-name" id="ret-name">—</div>
+                <div class="returning-meta" id="ret-meta">—</div>
+                <div class="returning-bottles">
+                  Du har allerede registrert <strong id="ret-count">0</strong> flaske(r) på dette eventet.
+                  <div id="ret-bottle-list" style="margin-top:6px;font-size:11px;color:var(--muted);"></div>
+                </div>
+              </div>
+              <button class="btn-primary" onclick="confirmReturning()">🍺 Legg til denne flasken</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Bruk annet nummer</button>
+            </div>
+
+            <!-- Step 2b: New user – full registration -->
+            <div class="flow-step" id="step-new">
+              <div>
+                <label class="form-label" for="reg-name">Fullt navn</label>
+                <input class="form-input" id="reg-name" type="text" placeholder="Ola Nordmann" autocomplete="name" />
+              </div>
+              <div>
+                <label class="form-label" for="reg-company">Selskap / organisasjon</label>
+                <input class="form-input" id="reg-company" type="text" placeholder="Invig AS" autocomplete="organization" />
+              </div>
+              <div>
+                <label class="form-label" for="reg-role">Rolle</label>
+                <input class="form-input" id="reg-role" type="text" placeholder="Supply Chain Manager" />
+              </div>
+              <button class="btn-primary" onclick="registerNew()">🍺 Registrer min flaske</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Tilbake</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Success state -->
+        <div class="register-success" id="register-success">
+          <div class="rs-icon">🎉</div>
+          <h4>Registrert!</h4>
+          <p id="register-success-msg">Flaske #— er koblet til deg.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Product info -->
+    <div class="panel fade-4" id="panel-product">
+      <div class="panel-header" onclick="togglePanel('panel-product')">
+        <h3>ℹ️ Om produktet</h3>
+        <span class="panel-close">✕</span>
+      </div>
+      <div class="panel-body">
+        <div class="product-specs">
+          <div class="spec-row"><span class="spec-key">Produkt</span><span class="spec-value">Carlsberg Pilsner</span></div>
+          <div class="spec-row"><span class="spec-key">Produsent</span><span class="spec-value">Carlsberg Danmark A/S</span></div>
+          <div class="spec-row"><span class="spec-key">Volum</span><span class="spec-value">330 ml</span></div>
+          <div class="spec-row"><span class="spec-key">Alkohol</span><span class="spec-value">5.0% ABV</span></div>
+          <div class="spec-row"><span class="spec-key">Øltype</span><span class="spec-value">Lager / Pilsner</span></div>
+          <div class="spec-row"><span class="spec-key">Optimal serveringstemp.</span><span class="spec-value">3–6 °C</span></div>
+          <div class="spec-row"><span class="spec-key">Batch</span><span class="spec-value">GS1-NS-2025-B1</span></div>
+          <div class="spec-row"><span class="spec-key">Produksjonsdato</span><span class="spec-value">12. mai 2025</span></div>
+          <div class="spec-row"><span class="spec-key">Best før</span><span class="spec-value">12. november 2025</span></div>
+          <div class="spec-row"><span class="spec-key">GTIN</span><span class="spec-value giai-mono">05700050000018</span></div>
+          <div class="spec-row"><span class="spec-key">GIAI (denne flasken)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GIAI identity box -->
+    <div class="giai-box fade-5">
+      <div class="giai-title">📡 GS1 Digital Link · GIAI</div>
+      <div class="giai-row"><span class="k">Invig GCP-prefiks</span><span class="v">7073539</span></div>
+      <div class="giai-row"><span class="k">Flaske-referanse</span><span class="v" id="giai-ref">—</span></div>
+      <div class="giai-row"><span class="k">Full GIAI</span><span class="v" id="giai-full">—</span></div>
+      <div class="giai-row"><span class="k">GS1 AI</span><span class="v">(8004) <span id="giai-ai">—</span></span></div>
+      <div class="giai-row"><span class="k">Resolver</span><span class="v" id="giai-resolver">id.invig.no/8004/…</span></div>
+    </div>
+
+  </main>
+
+  <footer>
+    <img src="img/invig-logo.png" alt="Invig" />
+    <p>
+      <strong style="color:var(--olive-light)">GS1 Nordic Summit 2025</strong><br />
+      Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> ·
+      <a href="https://iotpallet.no" target="_blank">IOTpallet.no</a> ·
+      <a href="https://gs1.no" target="_blank">GS1 Norway</a><br />
+      <a href="mailto:sales@invig.no">sales@invig.no</a>
+    </p>
+  </footer>
+
+  <script>
+    /* =====================================================
+       GS1 Nordic Summit V2 – Database & Logic
+       
+       localStorage schema:
+         "gs1ns_users" → { [phone]: { name, company, role, registeredAt, bottles: [giai, ...] } }
+         "gs1ns_bottle_{giai}" → [{ phone, name, company, role, ts }, ...]
+       
+       Rules:
+         - First scan: enter phone → if new → full form → save user + bottle
+         - Return scan: enter phone → if known → one-click "add this bottle"
+         - A user can register multiple bottles; count shown in "my beer" strip
+         - A bottle can have multiple drinkers
+         - All data persists in localStorage across page loads
+       ===================================================== */
+
+    const INVIG_GCP = '7073539';
+    const GIAI_BASE = 70735390000;
+    const TOTAL     = 400;
+    const DB_USERS_KEY = 'gs1ns_users';
+
+    // ── URL parsing ──────────────────────────────────────
+    function getGIAI() {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('giai') || p.get('id') || null;
+    }
+    function bottleNumber(giai) {
+      const n = parseInt(giai, 10) - GIAI_BASE;
+      return (n >= 1 && n <= TOTAL) ? n : null;
+    }
+    function bottleKey(giai) { return `gs1ns_bottle_${giai}`; }
+
+    // ── Database helpers ─────────────────────────────────
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(DB_USERS_KEY) || '{}'); }
+      catch { return {}; }
+    }
+    function saveUsers(users) {
+      localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
+    }
+    function getBottleDrinkers(giai) {
+      try { return JSON.parse(localStorage.getItem(bottleKey(giai)) || '[]'); }
+      catch { return []; }
+    }
+    function saveBottleDrinkers(giai, list) {
+      localStorage.setItem(bottleKey(giai), JSON.stringify(list));
+    }
+
+    /** Register a user for a bottle. Returns updated user object. */
+    function registerUserForBottle(phone, name, company, role, giai) {
+      const users = getUsers();
+      const cleanPhone = phone.replace(/\s/g, '');
+
+      // Upsert user
+      if (!users[cleanPhone]) {
+        users[cleanPhone] = { name, company, role, registeredAt: Date.now(), bottles: [] };
+      }
+      const user = users[cleanPhone];
+
+      // Add bottle if not already registered
+      if (!user.bottles.includes(giai)) {
+        user.bottles.push(giai);
+      }
+      saveUsers(users);
+
+      // Add to bottle's drinker list if not already there
+      const drinkers = getBottleDrinkers(giai);
+      const alreadyThere = drinkers.some(d => d.phone === cleanPhone);
+      if (!alreadyThere) {
+        drinkers.push({ phone: cleanPhone, name: user.name, company: user.company, role: user.role, ts: Date.now() });
+        saveBottleDrinkers(giai, drinkers);
+      }
+      return user;
+    }
+
+    /** Get total unique bottles a phone number has registered */
+    function getUserBottleCount(phone) {
+      const users = getUsers();
+      const u = users[phone.replace(/\s/g, '')];
+      return u ? u.bottles.length : 0;
+    }
+
+    // ── Seeded pseudo-random (for mock data) ─────────────
+    function seededRand(seed) {
+      let s = seed;
+      return function() {
+        s = (s * 1664525 + 1013904223) & 0xFFFFFFFF;
+        return (s >>> 0) / 0xFFFFFFFF;
+      };
+    }
+
+    function genTemp(bottleNum) {
+      const r = seededRand(bottleNum * 7 + 3);
+      return Math.round((3.5 + r() * 2.5) * 10) / 10;
+    }
+
+    function genTempLog(bottleNum) {
+      const r = seededRand(bottleNum * 13);
+      const locs = ['Carlsberg bryggeri, DK','Kjølelager, Kastrup','Distribusjonssenter, Oslo','Kjølevogn, E6','Venue kjølerom','Bar-kjøler, Summit','Utlevert til gjest'];
+      const now = new Date();
+      return locs.map((loc, i) => {
+        const temp = Math.round((2.0 + i * 0.4 + r() * 0.8) * 10) / 10;
+        const hoursAgo = (locs.length - i) * 8 + Math.floor(r() * 4);
+        const d = new Date(now - hoursAgo * 3600000);
+        const timeStr = d.toLocaleString('no-NO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        return { time: timeStr, loc, temp, ok: temp <= 6.5 };
+      });
+    }
+
+    function genScannedCount(bottleNum) {
+      const r = seededRand(bottleNum * 3 + 11);
+      return Math.floor(r() * 180) + 40;
+    }
+
+    const MOCK_NAMES = [
+      { name: 'Ola Nordmann',    company: 'GS1 Norway',     role: 'Standards Director', emoji: '👨‍💼' },
+      { name: 'Ingrid Larsen',   company: 'Carlsberg Group', role: 'Supply Chain Lead',  emoji: '👩‍🔬' },
+      { name: 'Erik Svensson',   company: 'Invig AS',        role: 'CEO',                emoji: '👨‍💻' },
+      { name: 'Maja Andersen',   company: 'ASKO Norge',      role: 'Logistics Manager',  emoji: '👩‍💼' },
+      { name: 'Lars Pettersen',  company: 'Norgesgruppen',   role: 'IT Director',        emoji: '👨‍🏫' },
+      { name: 'Sofia Lindqvist', company: 'GS1 Sweden',      role: 'Product Manager',    emoji: '👩‍💻' },
+    ];
+
+    function genMockDrinkers(bottleNum) {
+      const r = seededRand(bottleNum * 17 + 5);
+      const count = Math.floor(r() * 3);
+      const list = []; const used = new Set();
+      for (let i = 0; i < count; i++) {
+        let idx; do { idx = Math.floor(r() * MOCK_NAMES.length); } while (used.has(idx));
+        used.add(idx);
+        const n = MOCK_NAMES[idx];
+        list.push({ ...n, bottles: Math.floor(r() * 4) + 1, isLocal: false });
+      }
+      return list;
+    }
+
+    // ── IOTpallet.no API ─────────────────────────────────
+    // Public endpoint: GET /api/track/{sscc}
+    // We use the GIAI as the SSCC for demo purposes.
+    async function fetchJourneyFromAPI(giai) {
+      try {
+        const resp = await fetch(`https://iotpallet.no/api/track/${giai}`, {
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch { return null; }
+    }
+
+    const JOURNEY_STEPS = [
+      { icon: '🏭', title: 'Carlsberg Bryggeri', meta: 'Fredericia, Danmark · 12. mai 2025', temp: '2.0°C', done: true },
+      { icon: '❄️', title: 'Kjølelager Kastrup', meta: 'København Lufthavn · 14. mai 2025', temp: '3.1°C', done: true },
+      { icon: '🚢', title: 'Distribusjonssenter Oslo', meta: 'Alnabru, Oslo · 16. mai 2025', temp: '3.8°C', done: true },
+      { icon: '🚛', title: 'Kjøletransport E6', meta: 'Oslo → Venue · 19. mai 2025', temp: '4.2°C', done: true },
+      { icon: '🏨', title: 'Venue kjølerom', meta: 'GS1 Nordic Summit, Oslo · 20. mai 2025', temp: '4.0°C', active: true },
+      { icon: '🍺', title: 'Utlevert til deg', meta: 'GS1 Nordic Summit · Nå', temp: null, done: false },
+    ];
+
+    // ── Render journey panel ─────────────────────────────
+    async function renderJourney(giai) {
+      const stepsEl = document.getElementById('journey-steps');
+      const mapImg  = document.getElementById('map-img');
+      const mapLoad = document.getElementById('map-loading');
+      const apiStat = document.getElementById('api-status');
+
+      // Try live API first
+      const apiData = await fetchJourneyFromAPI(giai);
+
+      if (apiData && apiData.route && apiData.route.length > 0) {
+        // Live API data available
+        mapLoad.style.display = 'none';
+        mapImg.style.display  = 'block';
+        apiStat.style.display = 'block';
+        apiStat.innerHTML = `✅ Live data fra IOTpallet.no · Sist oppdatert: ${new Date().toLocaleTimeString('no-NO')}`;
+
+        apiData.route.forEach((point, i) => {
+          const isLast = i === apiData.route.length - 1;
+          const dotClass = point.status === 'completed' ? 'done' : point.status === 'active' ? 'active' : 'future';
+          stepsEl.innerHTML += `
+            <div class="j-step">
+              <div class="j-left">
+                <div class="j-dot ${dotClass}">📍</div>
+                ${!isLast ? '<div class="j-line"></div>' : ''}
+              </div>
+              <div class="j-body">
+                <div class="j-title">${point.location || point.name || 'Ukjent lokasjon'}</div>
+                <div class="j-meta">${point.timestamp ? new Date(point.timestamp).toLocaleString('no-NO') : ''}</div>
+                ${point.temperature != null ? `<span class="j-temp">🌡 ${point.temperature}°C</span>` : ''}
+              </div>
+            </div>`;
+        });
+      } else {
+        // Fallback to mock data
+        mapLoad.style.display = 'none';
+        mapImg.style.display  = 'block';
+        apiStat.style.display = 'block';
+        apiStat.innerHTML = `ℹ️ Demo-data · Kobles til IOTpallet.no API ved live event`;
+
+        JOURNEY_STEPS.forEach((s, i) => {
+          const isLast = i === JOURNEY_STEPS.length - 1;
+          const dotClass = s.done ? 'done' : s.active ? 'active' : 'future';
+          stepsEl.innerHTML += `
+            <div class="j-step">
+              <div class="j-left">
+                <div class="j-dot ${dotClass}">${s.icon}</div>
+                ${!isLast ? '<div class="j-line"></div>' : ''}
+              </div>
+              <div class="j-body">
+                <div class="j-title">${s.title}</div>
+                <div class="j-meta">${s.meta}</div>
+                ${s.temp ? `<span class="j-temp">🌡 ${s.temp}</span>` : ''}
+              </div>
+            </div>`;
+        });
+      }
+    }
+
+    // ── Render drinkers list ─────────────────────────────
+    function renderDrinkers(giai, bottleNum) {
+      const localDrinkers = getBottleDrinkers(giai);
+      const mockDrinkers  = genMockDrinkers(bottleNum);
+      const scanned       = genScannedCount(bottleNum);
+
+      // Merge: local drinkers override mock ones with same name
+      const localNames = new Set(localDrinkers.map(d => d.name));
+      const merged = [
+        ...localDrinkers.map(d => ({ ...d, isLocal: true, bottles: getUserBottleCount(d.phone) })),
+        ...mockDrinkers.filter(d => !localNames.has(d.name))
+      ];
+
+      document.getElementById('drinker-count').textContent = merged.length;
+      const pctScanned = Math.round((scanned / TOTAL) * 100);
+      document.getElementById('progress-pct').textContent  = pctScanned + '%';
+      document.getElementById('progress-fill').style.width = pctScanned + '%';
+
+      const listEl = document.getElementById('drinker-list');
+      if (merged.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">Ingen har registrert seg ennå – vær den første!</div>`;
+      } else {
+        // Get current user's phone to highlight "me"
+        const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g,'');
+        merged.forEach(d => {
+          const isMe = myPhone && d.phone && d.phone.replace(/\s/g,'') === myPhone;
+          const emoji = d.emoji || '👤';
+          const bottleCount = d.bottles || 1;
+          listEl.innerHTML += `
+            <div class="drinker-row${isMe ? ' me' : ''}">
+              <div class="drinker-avatar">${isMe ? '⭐' : emoji}</div>
+              <div>
+                <div class="drinker-name">${d.name}${isMe ? ' (deg)' : ''}</div>
+                <div class="drinker-meta">${d.company || ''} · ${d.role || ''}</div>
+              </div>
+              <div class="drinker-num">🍺 ${bottleCount}</div>
+            </div>`;
+        });
+      }
+    }
+
+    // ── My beer strip ────────────────────────────────────
+    function updateMyBeerStrip() {
+      const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g,'');
+      if (!myPhone) return;
+      const users = getUsers();
+      const user  = users[myPhone];
+      if (!user) return;
+      const count = user.bottles.length;
+      document.getElementById('my-beer-name').textContent = user.name;
+      document.getElementById('my-beer-sub').textContent  = `${user.company || 'GS1 Nordic Summit'} · ${user.role || ''}`;
+      document.getElementById('my-beer-count').textContent = count;
+      document.getElementById('my-beer-strip').classList.add('visible');
+    }
+
+    // ── Main render ──────────────────────────────────────
+    function render() {
+      const giai = getGIAI();
+      const num  = giai ? bottleNumber(giai) : null;
+
+      const label = num ? `Flaske #${num}` : 'Flaske #—';
+      document.getElementById('header-bottle-num').textContent  = label;
+      document.getElementById('hero-bottle-label').textContent  = label;
+      document.getElementById('hero-sub').textContent =
+        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2025 · ${num} av ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2025';
+
+      if (giai) {
+        document.getElementById('giai-full').textContent     = giai;
+        document.getElementById('giai-ai').textContent       = giai;
+        document.getElementById('giai-ref').textContent      = num ? String(num).padStart(4,'0') : giai.slice(INVIG_GCP.length);
+        document.getElementById('giai-resolver').textContent = `id.invig.no/8004/${giai}`;
+        document.getElementById('product-giai').textContent  = giai;
+      }
+
+      if (!num) return;
+
+      // Temperature
+      const temp = genTemp(num);
+      document.getElementById('temp-val').textContent = temp.toFixed(1);
+      document.getElementById('temp-bar').style.width = Math.min(100, (temp / 12) * 100) + '%';
+      const statusEl = document.getElementById('temp-status');
+      if (temp <= 6)      { statusEl.textContent = '✓ Perfekt'; statusEl.className = 'temp-status temp-ok'; }
+      else if (temp <= 8) { statusEl.textContent = '⚠ Litt varm'; statusEl.className = 'temp-status temp-warn'; }
+      else                { statusEl.textContent = '✗ For varm'; statusEl.className = 'temp-status temp-hot'; }
+
+      // Temp log
+      const logRows = genTempLog(num);
+      const tbody = document.getElementById('temp-log-body');
+      logRows.forEach(row => {
+        tbody.innerHTML += `<tr>
+          <td>${row.time}</td><td>${row.loc}</td>
+          <td class="${row.ok?'t-ok':'t-warn'}">${row.temp}°C</td>
+          <td class="${row.ok?'t-ok':'t-warn'}">${row.ok?'✓ OK':'⚠ Høy'}</td>
+        </tr>`;
+      });
+
+      // Drinkers
+      renderDrinkers(giai, num);
+
+      // My beer strip
+      updateMyBeerStrip();
+
+      // Journey (async – loads when panel opens)
+      document.getElementById('panel-journey').addEventListener('click', function onFirstOpen() {
+        if (document.getElementById('journey-steps').innerHTML === '') {
+          renderJourney(giai);
+        }
+        this.removeEventListener('click', onFirstOpen);
+      }, { once: false });
+    }
+
+    // ── Panel toggle ─────────────────────────────────────
+    function togglePanel(id) {
+      const el = document.getElementById(id);
+      const wasOpen = el.classList.contains('open');
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+      if (!wasOpen) {
+        el.classList.add('open');
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+      }
+    }
+
+    // ── Phone flow ───────────────────────────────────────
+    function formatPhone(input) {
+      // Allow digits, +, spaces
+      input.value = input.value.replace(/[^\d+\s]/g, '');
+    }
+
+    function goStep(stepId) {
+      document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
+      document.getElementById(stepId).classList.add('active');
+    }
+
+    function checkPhone() {
+      const phone = document.getElementById('reg-phone').value.trim();
+      if (phone.replace(/[\s+]/g,'').length < 8) {
+        document.getElementById('reg-phone').focus();
+        document.getElementById('reg-phone').style.borderColor = 'rgba(224,80,80,0.6)';
+        setTimeout(() => document.getElementById('reg-phone').style.borderColor = '', 1500);
+        return;
+      }
+      const cleanPhone = phone.replace(/\s/g,'');
+      const users = getUsers();
+      const user  = users[cleanPhone];
+
+      if (user) {
+        // Returning user
+        document.getElementById('ret-name').textContent  = user.name;
+        document.getElementById('ret-meta').textContent  = `${user.company || ''} · ${user.role || ''}`;
+        document.getElementById('ret-count').textContent = user.bottles.length;
+        // Show bottle numbers
+        const giai = getGIAI();
+        const bottleNums = user.bottles.map(g => {
+          const n = bottleNumber(g);
+          return n ? `#${n}` : g;
+        });
+        document.getElementById('ret-bottle-list').textContent =
+          bottleNums.length > 0 ? 'Flasker: ' + bottleNums.join(', ') : '';
+        goStep('step-returning');
+      } else {
+        // New user
+        goStep('step-new');
+      }
+    }
+
+    function confirmReturning() {
+      const phone = document.getElementById('reg-phone').value.trim();
+      const giai  = getGIAI();
+      if (!giai) return;
+      const cleanPhone = phone.replace(/\s/g,'');
+      const users = getUsers();
+      const user  = users[cleanPhone];
+      if (!user) return;
+
+      registerUserForBottle(cleanPhone, user.name, user.company, user.role, giai);
+      localStorage.setItem('gs1ns_my_phone', cleanPhone);
+      showSuccess(user.name, giai);
+    }
+
+    function registerNew() {
+      const name    = document.getElementById('reg-name').value.trim();
+      const company = document.getElementById('reg-company').value.trim();
+      const role    = document.getElementById('reg-role').value.trim();
+      const phone   = document.getElementById('reg-phone').value.trim();
+      const giai    = getGIAI();
+
+      if (!name) { document.getElementById('reg-name').focus(); return; }
+      if (!giai)  return;
+
+      const cleanPhone = phone.replace(/\s/g,'');
+      registerUserForBottle(cleanPhone, name, company, role, giai);
+      localStorage.setItem('gs1ns_my_phone', cleanPhone);
+      showSuccess(name, giai);
+    }
+
+    function showSuccess(name, giai) {
+      const num = bottleNumber(giai);
+      const user = getUsers()[(localStorage.getItem('gs1ns_my_phone')||'').replace(/\s/g,'')];
+      const totalBottles = user ? user.bottles.length : 1;
+
+      document.getElementById('register-main').style.display   = 'none';
+      document.getElementById('register-success').style.display = 'block';
+      document.getElementById('register-success-msg').innerHTML =
+        `Flaske ${num ? '#'+num : ''} er koblet til <strong>${name}</strong>.<br>` +
+        `Du har nå registrert <strong>${totalBottles}</strong> flaske(r) på GS1 Nordic Summit. 🍺`;
+
+      // Refresh drinker list and my-beer strip
+      document.getElementById('drinker-list').innerHTML = '';
+      document.getElementById('drinker-count').textContent = '0';
+      renderDrinkers(giai, num);
+      updateMyBeerStrip();
+
+      setTimeout(() => {
+        document.getElementById('register-main').style.display   = 'block';
+        document.getElementById('register-success').style.display = 'none';
+        goStep('step-phone');
+        document.getElementById('reg-phone').value = '';
+        document.getElementById('reg-name').value  = '';
+        document.getElementById('reg-company').value = '';
+        document.getElementById('reg-role').value  = '';
+        togglePanel('panel-drinkers');
+      }, 3000);
+    }
+
+    render();
+  </script>
+</body>
+</html>
