@@ -437,7 +437,7 @@
       <div class="info-card" id="card-bottles">
         <div class="card-icon">🍺</div>
         <div class="card-label">Bottles</div>
-        <div class="card-value">2 000</div>
+        <div class="card-value">300</div>
         <div class="card-sub">unique GIAIs</div>
       </div>
       <div class="info-card" id="card-temp">
@@ -598,7 +598,7 @@ const STEPS = [
   { id: 'step-6', temp: '♻️',     phase: 'Bottle recycled & tracked' },
 ];
 
-const BOTTLE_NUMS = [1641, 1337, 1042, 1789, 1500, 1111, 1999];
+const BOTTLE_NUMS = [141, 37, 242, 189, 100, 211, 299]; // bottle #1–300
 let bottleIdx = 0;
 
 let currentStep = -1;
@@ -692,7 +692,7 @@ async function runAnimation() {
 
   // Pick a bottle number
   const bottleNum = BOTTLE_NUMS[bottleIdx % BOTTLE_NUMS.length];
-  const giai = '7073539' + (1000 + bottleNum);
+  const giai = '70735391' + String(bottleNum).padStart(3, '0'); // GIAI base 70735391001–70735391300
   bottleIdx++;
 
   // Position bottle at step 0
@@ -744,7 +744,7 @@ async function runAnimation() {
       qrReveal.classList.remove('show');
       await sleep(400);
     } else {
-      await sleep(i === 6 ? 2000 : 1400);
+      await sleep(i === 6 ? 300 : 1400);
     }
   }
 
