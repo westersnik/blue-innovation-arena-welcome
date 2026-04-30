@@ -1,385 +1,296 @@
-# GS1 Nordic Summit – Carlsberg Bottle Tracker
+# GS1 Nordic Summit 2025 — Digital Product Passport Demo
 
-**Invig Locate IT** · GS1 Digital Link demo · Keonn AdvanReader · Bifrost API
+A live beer-bottle tracking demo built for the **GS1 Nordic Summit 2025** at Radisson Blu Plaza Hotel, Oslo. Each Carlsberg bottle carries a GS1 GIAI encoded in a QR code. Guests scan the QR code to see the bottle's full cold-chain journey, register their name, and watch a live recycling leaderboard on the event display screen.
 
-Dette repoet inneholder landingssider og et event-dashboard for demonstrasjonen av GS1 Digital Link på GS1 Nordic Summit 2025. 300 Carlsberg-flasker er utstyrt med unike RFID-tagger og QR-koder. Deltakere skanner sin flaske, registrerer navn og selskap, og flasken spores fra bryggeri til pant via GS1 GIAI og Invig Bifrost API.
+**Live URLs**
 
----
-
-## Live URL-er
-
-| Side | URL | Formål |
+| Page | URL | Purpose |
 |---|---|---|
-| **Flaske-side (V2)** | `…/V2/?giai={GIAI}` | Vises når deltaker skanner QR-kode |
-| **Dashboard** | `…/dashboard.html` | Oversikt med leaderboard og RFID-feed |
-| **Storskjerm** | `…/storskjerm.html` | Ren display-side for TV/projektor |
+| Bottle scan (QR landing page) | https://gs1-nordic.invig.no/V2/?giai={GIAI} | Guest experience after scanning QR |
+| Event display screen | https://gs1-nordic.invig.no/storskjerm.html | TV/projector leaderboard |
+| Dashboard | https://gs1-nordic.invig.no/dashboard.html | Admin stats overview |
+| Animation test | https://gs1-nordic.invig.no/test.html | Confetti/animation test |
 
-Base URL: `https://westersnik.github.io/gs1-nordic-summit/`
-
-**Eksempel – flaske #1:**
+**Example — bottle #1:**
 ```
-https://westersnik.github.io/gs1-nordic-summit/V2/?giai=70735391641
+https://gs1-nordic.invig.no/V2/?giai=70735391641
 ```
 
 **GS1 Digital Link redirect (via Invig resolver):**
 ```
 https://id.invig.no/8004/70735391641
-  → https://westersnik.github.io/gs1-nordic-summit/V2/?giai=70735391641
+  → https://gs1-nordic.invig.no/V2/?giai=70735391641
 ```
 
 ---
 
-## Filstruktur
+## Repository Structure
 
 ```
 gs1-nordic-summit/ (gh-pages branch)
-├── index.html              # V1 – enkel landingsside
-├── dashboard.html          # Event-dashboard med leaderboard og RFID-feed
-├── storskjerm.html         # Storskjerm-display (TV/projektor)
-├── RFID-PANT-USERSTORY.md  # User stories og RFID-praksis
-├── README.md               # Denne filen
-└── V2/
-    ├── index.html          # V2 – dynamisk flaske-side med registrering
-    ├── bottles.json        # 300 flasker: EPC, GIAI, redirect-URL
-    └── img/
-        ├── invig-logo.png
-        ├── hero-bottle.jpg
-        ├── temp-chart.jpg
-        ├── journey-map.jpg
-        └── gs1-event-bg.jpg
+├── V2/
+│   ├── index.html          # QR landing page (main guest experience)
+│   └── data/
+│       ├── tracker-09.json # SmartPallet cache – odd bottles (SR-Tracker-09)
+│       └── tracker-03.json # SmartPallet cache – even bottles (SR-Tracker-03)
+├── storskjerm.html         # Event display screen (Supabase real-time)
+├── dashboard.html          # Admin/stats dashboard
+├── test.html               # Animation/confetti test
+├── generate_cache.py       # Script to regenerate SmartPallet cache files
+├── KEONN-SETUP.md          # Keonn AdvanReader configuration guide
+├── RFID-PANT-USERSTORY.md  # User stories and RFID background
+├── httpServer.py           # Local debug server for RFID testing
+├── CNAME                   # GitHub Pages custom domain (gs1-nordic.invig.no)
+└── README.md               # This file
 ```
 
 ---
 
-## Dataflyt
+## Architecture Overview
 
 ```
-[Carlsberg-flaske]
-    │
-    ├── QR-kode → https://id.invig.no/8004/{GIAI}
-    │       └── Invig GS1 Digital Link resolver
-    │               └── V2/index.html?giai={GIAI}
-    │                       └── Deltaker registrerer navn + selskap
-    │                               └── Lagres i localStorage (nå) / Bifrost (produksjon)
-    │
-    └── RFID-tag (EPC Gen2 UHF 865–868 MHz)
-            └── Tom flaske kastes i pant-beholder
-                    └── Keonn AdvanReader leser EPC
-                            └── EPC → GIAI (via bottles.json)
-                                    └── GIAI → bruker-oppslag
-                                            └── dashboard.html / storskjerm.html oppdateres
+Guest scans QR code on bottle
+        │
+        ▼
+V2/index.html  (GitHub Pages / gs1-nordic.invig.no)
+  ├── Reads GIAI from URL (?giai=70735391641)
+  ├── Fetches cold-chain telemetry from SmartPallet cache (V2/data/)
+  ├── Renders Leaflet map + temperature chart (Chart.js)
+  ├── Registers guest via Supabase (registrations table)
+  └── Shows other registered drinkers (Supabase query)
+
+Keonn AdvanReader (RFID at recycling station)
+  └── POST /api/rfid → gs1-nordic.invig.no (Manus backend)
+        └── Writes to Supabase rfid_events table
+
+storskjerm.html  (Event display screen)
+  ├── Subscribes to Supabase rfid_events (real-time INSERT via WebSocket)
+  ├── Subscribes to Supabase registrations (real-time INSERT)
+  └── Shows live recycling counter + milestone celebrations (confetti)
 ```
 
 ---
 
-## GS1 GIAI – Identifikasjonsstruktur
+## GS1 GIAI Identity Structure
 
-Hver flaske har en unik **GIAI (Global Individual Asset Identifier)** i henhold til GS1-standarden.
+Each bottle has a unique **GIAI (Global Individual Asset Identifier)** per the GS1 standard.
 
-| Felt | Verdi | Forklaring |
+| Field | Value | Description |
 |---|---|---|
-| GS1 Application Identifier | `8004` | Identifiserer GIAI i GS1 Digital Link |
-| GS1 Company Prefix (GCP) | `7073539` | Invig AS sitt GCP |
-| Asset reference | `1641`–`1940` | Unikt nummer per flaske (300 stk) |
-| Full GIAI (eksempel) | `70735391641` | GCP + asset reference |
-| GS1 elementstreng | `(8004) 70735391641` | Standard GS1-notasjon |
-| EPC (RFID, hex) | `3415AFBC0C00000000000669` | 96-bit EPC Gen2 encoding |
-| Redirect-URL | `https://id.invig.no/8004/70735391641` | GS1 Digital Link |
+| GS1 Application Identifier | `8004` | Identifies GIAI in GS1 Digital Link |
+| GS1 Company Prefix (GCP) | `7073539` | Invig AS GCP |
+| Asset reference | `1001`–`3000` | Unique bottle number (2000 bottles) |
+| Full GIAI (example) | `70735391641` | GCP + asset reference |
+| GS1 element string | `(8004) 70735391641` | Standard GS1 notation |
+| Resolver URL | `https://id.invig.no/8004/70735391641` | GS1 Digital Link |
 
-**EPC-encoding (GS1 GIAI-96):**
+**EPC encoding for RFID (GS1 GIAI-96):**
 ```
 Header    (8 bit):  34 hex  → GIAI-96
 Filter    (3 bit):  1
 Partition (3 bit):  5
 GCP      (24 bit):  7073539 → 0xAFBC0C
-Asset    (38 bit):  flaske-nummer
+Asset    (38 bit):  bottle number
 ```
-
-Alle 300 EPC/GIAI-par er tilgjengelige i [`V2/bottles.json`](V2/bottles.json).
 
 ---
 
-## Keonn AdvanReader – Integrasjon
+## Supabase Database Schema
 
-### REST API
+### `registrations` table
 
-Keonn AdvanReader eksponerer et REST API via **AdvanNet**-firmware. Dashboard og storskjerm poller dette endepunktet for å hente leste RFID-tagger.
-
-**Primært endepunkt:**
-```http
-GET http://{reader-ip}/rest/session/tags
-Accept: application/json
-```
-
-**Respons:**
-```json
-{
-  "tags": [
-    {
-      "epc": "3415AFBC0C00000000000669",
-      "rssi": -62,
-      "port": 1,
-      "ts": 1716300000000
-    }
-  ]
-}
-```
-
-**Alternative endepunkter (eldre firmware):**
-```
-GET http://{reader-ip}/api/inventory/tags
-GET http://{reader-ip}/rest/tags
-```
-
-Dashboardet prøver alle tre automatisk.
-
-### Konfigurere storskjerm mot leser
-
-Åpne storskjermen med reader-IP som URL-parameter:
-```
-storskjerm.html?reader=192.168.1.100&interval=3
-```
-
-| Parameter | Standard | Beskrivelse |
+| Column | Type | Description |
 |---|---|---|
-| `reader` | – | IP-adresse til Keonn AdvanReader |
-| `interval` | `3` | Polling-intervall i sekunder |
+| `id` | uuid | Primary key |
+| `phone` | text | Guest phone number |
+| `name` | text | Guest full name |
+| `company` | text | Guest company/organisation |
+| `giai` | text | Bottle GIAI scanned |
+| `registered_at` | timestamptz | Registration timestamp (UTC) |
 
-### CORS-proxy (nødvendig for produksjon)
+### `rfid_events` table
 
-Keonn AdvanReader returnerer ikke CORS-headere, noe som blokkerer direkte API-kall fra nettleseren. For produksjon anbefales en enkel proxy.
-
-**nginx (anbefalt):**
-```nginx
-server {
-    listen 8080;
-    location /rfid/ {
-        proxy_pass http://192.168.1.100/;
-        add_header Access-Control-Allow-Origin *;
-        add_header Access-Control-Allow-Methods "GET, OPTIONS";
-    }
-}
-```
-
-Oppdater deretter `readerIP` i `storskjerm.html` til `localhost:8080/rfid`.
-
----
-
-## Bifrost API – Integrasjonsguide
-
-[Invig Bifrost](https://invig.no) er Invig sin backend-plattform for asset-sporing. Når systemet kobles mot Bifrost, erstattes `localStorage` med persistent, delt lagring som fungerer på tvers av alle enheter og bevares etter eventet.
-
-Kontakt [sales@invig.no](mailto:sales@invig.no) for API-nøkkel og onboarding.
-
-### Autentisering
-
-```http
-Authorization: Bearer {BIFROST_API_KEY}
-Content-Type: application/json
-```
-
-### Endepunkter
-
-#### Hente asset-informasjon fra GIAI
-
-```http
-GET https://api.bifrost.invig.no/v1/assets/{giai}
-Authorization: Bearer {API_KEY}
-```
-
-**Respons:**
-```json
-{
-  "giai": "70735391641",
-  "name": "Carlsberg 330ml",
-  "type": "bottle",
-  "customer": "GS1 Nordic Summit",
-  "status": "active",
-  "location": {
-    "name": "Oslo Spektrum",
-    "lat": 59.9139,
-    "lon": 10.7522,
-    "ts": "2025-05-14T18:30:00Z"
-  },
-  "temperature": {
-    "current": 4.2,
-    "unit": "celsius",
-    "ts": "2025-05-14T18:28:00Z"
-  },
-  "journey": [
-    { "location": "Carlsberg Fredericia", "ts": "2025-05-10T08:00:00Z", "temp": 3.8 },
-    { "location": "Kastrup Lager",        "ts": "2025-05-12T14:00:00Z", "temp": 4.1 },
-    { "location": "Oslo Spektrum",        "ts": "2025-05-14T10:00:00Z", "temp": 4.2 }
-  ]
-}
-```
-
-#### Registrere en drikker på en flaske
-
-```http
-POST https://api.bifrost.invig.no/v1/assets/{giai}/registrations
-Authorization: Bearer {API_KEY}
-Content-Type: application/json
-
-{
-  "phone": "+4790000001",
-  "name": "Ola Nordmann",
-  "company": "GS1 Norway",
-  "ts": "2025-05-14T18:35:00Z"
-}
-```
-
-#### Registrere panting (RFID-avlesning fra Keonn)
-
-```http
-POST https://api.bifrost.invig.no/v1/assets/{giai}/events
-Authorization: Bearer {API_KEY}
-Content-Type: application/json
-
-{
-  "type": "recycled",
-  "epc": "3415AFBC0C00000000000669",
-  "reader_id": "advanreader-150-01",
-  "ts": "2025-05-14T20:10:00Z"
-}
-```
-
-#### Hente event-statistikk (for dashboard/storskjerm)
-
-```http
-GET https://api.bifrost.invig.no/v1/events/{event_id}/stats
-Authorization: Bearer {API_KEY}
-```
-
-**Respons:**
-```json
-{
-  "event_id": "gs1-nordic-summit-2025",
-  "total_bottles": 300,
-  "registered": 187,
-  "recycled": 142,
-  "recycle_rate": 0.76,
-  "top_recyclers": [
-    { "name": "Ola Nordmann", "company": "GS1 Norway", "count": 3 }
-  ]
-}
-```
-
-### Implementere Bifrost i V2/index.html
-
-Erstatt `lookupAsset()`-funksjonen:
-
-```js
-const BIFROST_API = 'https://api.bifrost.invig.no/v1';
-const API_KEY     = 'din-api-nøkkel-her';
-
-async function lookupAsset(giai) {
-  const resp = await fetch(`${BIFROST_API}/assets/${giai}`, {
-    headers: { Authorization: `Bearer ${API_KEY}` }
-  });
-  if (!resp.ok) return null;
-  return await resp.json();
-}
-
-async function registerDrinker(giai, phone, name, company) {
-  await fetch(`${BIFROST_API}/assets/${giai}/registrations`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ phone, name, company, ts: new Date().toISOString() })
-  });
-}
-```
-
-### Implementere Bifrost i storskjerm.html
-
-Erstatt `updateUI()` med API-kall:
-
-```js
-async function fetchStats() {
-  const resp = await fetch(
-    `${BIFROST_API}/events/gs1-nordic-summit-2025/stats`,
-    { headers: { Authorization: `Bearer ${API_KEY}` } }
-  );
-  return await resp.json();
-}
-
-// I updateUI():
-const stats = await fetchStats();
-document.getElementById('cnt-registered').textContent = stats.registered;
-document.getElementById('cnt-panted').textContent     = stats.recycled;
-document.getElementById('cnt-unique').textContent     = stats.total_bottles;
-document.getElementById('cnt-rate').textContent       =
-  Math.round(stats.recycle_rate * 100) + '%';
-```
-
----
-
-## localStorage-skjema (nåværende implementasjon)
-
-Inntil Bifrost er koblet til, brukes `localStorage` for lokal lagring i nettleseren.
-
-```
-gs1ns_users
-  └── { [telefon]: { name, company, registeredAt, bottles: [giai, ...] } }
-
-gs1ns_bottle_{giai}
-  └── [{ phone, name, company, ts }, ...]
-
-gs1ns_my_phone
-  └── "+4790000001"   (husker innlogget bruker)
-
-gs1ns_reader_ip
-  └── "192.168.1.100" (Keonn AdvanReader IP)
-
-gs1ns_poll_interval
-  └── "3"             (sekunder)
-```
-
-**Begrensning:** Data deles ikke mellom enheter. For delt state på tvers av deltakere og enheter må Bifrost API brukes.
-
----
-
-## RFID-praksis: UHF EPC Gen2 på glassflasker
-
-UHF RFID (865–868 MHz, EPC Gen2) fungerer utmerket på tomme glassflasker. Tomme flasker demper ikke RF-signalet – fravær av væske gir faktisk bedre lesbarhet enn fulle flasker.
-
-| Tilstand | Effekt på RFID | Anbefaling |
+| Column | Type | Description |
 |---|---|---|
-| Full glassflaske | Moderat demping | Fungerer, kortere rekkevidde |
-| Tom glassflaske | Ingen demping | Optimal lesbarhet |
-| Aluminiumsboks | Sterk blokkering | Ikke anbefalt for UHF |
+| `id` | uuid | Primary key |
+| `epc` | text | Raw EPC from RFID reader |
+| `giai` | text | Decoded GIAI |
+| `reader_id` | text | Keonn reader identifier |
+| `recycled_at` | timestamptz | Scan timestamp (UTC) |
 
-**Anbefalt tag-plassering:** Bunn av flasken, unna metallkapselen.  
-**Leserekkevidde i beholder:** 0,3–1,0 m med standard antenne.
+---
 
-Se [`RFID-PANT-USERSTORY.md`](RFID-PANT-USERSTORY.md) for fullstendig teknisk dokumentasjon og user stories.
+## SmartPallet Cold-Chain Data
+
+The map and temperature log in V2 use a **cache-first** strategy:
+
+1. The page fetches `V2/data/tracker-09.json` (odd bottles) or `tracker-03.json` (even bottles) immediately for instant render.
+2. It then attempts the live SmartPallet API in the background. If the API responds, it overwrites the cache data.
+3. If the live API is unavailable (404 or timeout), the cached data is used.
+
+The cache files contain a realistic fictive cold-chain journey ending at Radisson Blu Plaza, Oslo:
+
+| Date | Location | Temperature |
+|---|---|---|
+| 7 May | Carlsberg Brewery, Fredericia DK | 18.5°C |
+| 8 May | Cold Storage, Kastrup Airport DK | 3.9°C |
+| 9 May | Göteborg Distribution Hub, SE | 5.2°C |
+| 10 May | Fredrikstad Cold Terminal, NO | 4.3°C |
+| 11 May | Oslo Distribution Centre, Alnabru | 3.8°C |
+| 13 May | Refrigerated Transport, Oslo | 5.9°C |
+| 13–14 May | Venue Cold Room, Radisson Blu Plaza | 4.1°C |
+| 14 May | Handed to guest | 5.7°C |
+
+**Regenerating cache files before the event:**
+
+```bash
+python3 generate_cache.py
+git add V2/data/
+git commit -m "refresh SmartPallet cache for event day"
+git push origin gh-pages
+```
+
+---
+
+## Keonn AdvanReader Setup
+
+See **[KEONN-SETUP.md](./KEONN-SETUP.md)** for the full step-by-step configuration guide.
+
+**Quick summary:**
+
+1. Open AdvanNet web interface → `HTTPService` → `Add Connection`
+2. Set URL to: `https://gs1-nordic.invig.no/api/rfid`
+3. Set method: `POST`, content type: `application/json`
+4. Save and test with:
+
+```bash
+curl -X POST https://gs1-nordic.invig.no/api/rfid \
+  -H "Content-Type: application/json" \
+  -d '{"epc":"3074257BF400B000000006A9","reader_id":"keonn-01","timestamp":"2025-05-14T12:00:00Z"}'
+```
+
+The backend decodes the EPC to a GIAI and writes it to the `rfid_events` Supabase table. The `storskjerm.html` display screen picks this up in real-time via Supabase WebSocket subscription.
+
+---
+
+## Event Display Screen (storskjerm.html)
+
+Open `https://gs1-nordic.invig.no/storskjerm.html` on the event display monitor.
+
+- Connects to Supabase real-time via WebSocket on page load
+- Updates the recycled bottle counter live as RFID reads arrive
+- Shows a feed of the last 10 recycled bottles with guest names (looked up from `registrations`)
+- Triggers confetti celebrations at milestones: **10, 50, 100, 200, 300** bottles
+- Falls back to demo mode after 5 seconds if Supabase is unreachable
+
+---
+
+## V2 Landing Page Features
+
+The guest-facing QR landing page (`V2/index.html`) provides:
+
+| Panel | Content |
+|---|---|
+| **Temperature badge** | Current bottle temperature from SmartPallet cache |
+| **See the Journey** | Interactive Leaflet map of the full cold-chain route + timestamped steps |
+| **Temperature Log** | Chart.js line chart of temperature history + data table |
+| **Who Drank It?** | Other guests who scanned this bottle (from Supabase) |
+| **About the Product** | GS1 product data: GTIN, GIAI, batch, production/best-before dates |
+| **Registration flow** | Phone number → name/company → saved to Supabase |
+
+The page works **without a GIAI in the URL** (demo mode) — it shows the full journey and temperature log using the SR-Tracker-09 demo data.
+
+---
+
+## Deployment
+
+The site is deployed via **GitHub Pages** from the `gh-pages` branch with a custom domain.
+
+- Custom domain: `gs1-nordic.invig.no` (configured in `CNAME`)
+- The Manus backend app at `gs1-nordic.invig.no` handles all `/api/*` routes
+- Static files (HTML, JS, CSS, data) are served by GitHub Pages CDN
+
+**To deploy changes:**
+
+```bash
+git add .
+git commit -m "your message"
+git push origin gh-pages
+```
+
+GitHub Pages CDN propagates within approximately 60 seconds.
+
+---
+
+## Local Development
+
+**Regenerate SmartPallet cache:**
+```bash
+python3 generate_cache.py
+```
+
+**Test RFID endpoint locally:**
+```bash
+python3 httpServer.py   # starts on port 8080
+# Then configure Keonn to POST to http://<your-ip>:8080
+```
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Vanilla HTML/CSS/JS, Leaflet.js, Chart.js |
+| Maps | Leaflet + OpenStreetMap (no API key required) |
+| Real-time | Supabase JS client (WebSocket subscriptions) |
+| Backend API | Node.js + Express + tRPC (Manus app) |
+| Database | Supabase (PostgreSQL) |
+| RFID | Keonn AdvanReader → POST /api/rfid |
+| Hosting | GitHub Pages + Manus (custom domain `gs1-nordic.invig.no`) |
+| Cold-chain data | SmartPallet Bifrost API (with cache fallback) |
+| GS1 identity | GIAI (AI 8004), GS1 Digital Link |
+
+---
+
+## RFID on Glass Bottles
+
+UHF RFID (865–868 MHz, EPC Gen2) works well on empty glass bottles. Empty bottles do not attenuate the RF signal — the absence of liquid actually improves readability compared to full bottles.
+
+| Condition | RFID effect | Recommendation |
+|---|---|---|
+| Full glass bottle | Moderate attenuation | Works, shorter range |
+| Empty glass bottle | No attenuation | Optimal readability |
+| Aluminium can | Strong blocking | Not recommended for UHF |
+
+**Recommended tag placement:** Bottom of bottle, away from the metal cap.  
+**Read range in recycling bin:** 0.3–1.0 m with standard antenna.
+
+See [RFID-PANT-USERSTORY.md](./RFID-PANT-USERSTORY.md) for full technical documentation and user stories.
 
 ---
 
 ## Roadmap
 
-- [x] Bottle identity fra GIAI (300 flasker)
-- [x] EPC/GIAI-mapping fra Excel (bottles.json)
-- [x] Temperaturvisning og cold-chain reise
-- [x] Registreringsskjema med mobilnummer (navn + selskap)
-- [x] Gjenkjenning av returnerende brukere (ett klikk)
-- [x] Multi-flaske-telling per bruker
-- [x] Keonn AdvanReader REST API-integrasjon
-- [x] Event-dashboard med leaderboard
-- [x] Storskjerm-display (TV/projektor)
+- [x] Bottle identity from GIAI (2000 bottles)
+- [x] Temperature display and cold-chain journey (SmartPallet cache)
+- [x] Registration form with phone number (name + company)
+- [x] Returning user recognition (one-click re-register)
+- [x] Multi-bottle counting per user
+- [x] Keonn AdvanReader RFID integration (POST /api/rfid)
+- [x] Supabase real-time for storskjerm.html
+- [x] Supabase registration from V2/index.html
+- [x] Event display screen with milestone celebrations
 - [x] GS1 Digital Link resolver (id.invig.no)
-- [ ] Bifrost API-integrasjon (persistent, delt lagring)
-- [ ] Sanntids-temperatur fra IoT-sensor via Bifrost
-- [ ] WebSocket/SSE for push-oppdatering av storskjerm
-- [ ] CORS-proxy for Keonn AdvanReader i produksjon
-- [ ] Pant-verifisering mot Infinitum (Norsk Resirk)
+- [x] Custom domain (gs1-nordic.invig.no)
+- [x] Full English translation
+- [ ] Live SmartPallet API integration (when available)
+- [ ] CORS proxy for Keonn AdvanReader in production
+- [ ] Recycling verification against Infinitum (Norsk Resirk)
 
 ---
 
-## Kontakt
+## Contact
 
 **Invig AS**  
 [invig.no](https://invig.no) · [sales@invig.no](mailto:sales@invig.no)  

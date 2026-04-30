@@ -492,7 +492,6 @@
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
-        <div class="api-badge">📡 Live data · SmartPallet API</div>
         <div class="map-container" id="map-container">
           <div class="map-loading" id="map-loading">
             <div style="font-size:24px;margin-bottom:6px;">🌍</div>
@@ -500,7 +499,6 @@
           </div>
           <img class="map-img" id="map-img" src="img/journey-map.jpg" alt="Reisekart" style="display:none;" />
         </div>
-        <div id="api-status" style="font-size:11px;color:var(--muted);margin-bottom:12px;display:none;"></div>
         <div id="leaflet-map" style="width:100%;height:240px;border-radius:var(--radius-sm);overflow:hidden;margin-bottom:14px;display:none;"></div>
         <div class="journey-steps" id="journey-steps"></div>
       </div>
@@ -906,22 +904,17 @@
       const stepsEl  = document.getElementById('journey-steps');
       const mapLoad  = document.getElementById('map-loading');
       const mapImg   = document.getElementById('map-img');
-      const apiStat  = document.getElementById('api-status');
       const leafletEl = document.getElementById('leaflet-map');
       const num      = bottleNumber(giai);
       const device   = trackerForBottle(num || 1);
 
       // Hide loading spinner immediately – data comes from cache or API
       mapLoad.style.display = 'none';
-      apiStat.style.display = 'block';
-      apiStat.innerHTML = `⏳ Loading tracker data…`;
-
       // Fetch (cache-first, then live API)
       const data = await fetchSmartPalletTelemetry(device);
 
       if (data && data.journey && data.journey.length > 0) {
         // ── Live / cached data ──
-        apiStat.innerHTML = `✅ Live data · ${device} · Updated: ${new Date().toLocaleTimeString('en-GB')}`;
         mapImg.style.display = 'none';
 
         // Leaflet map – show current location marker (tracker is stationary during event)
@@ -1012,7 +1005,6 @@
       } else {
         // ── Fallback demo data ──
         mapImg.style.display  = 'block';
-        apiStat.innerHTML = `ℹ️ Demo data · Live tracker connects at event`;
         JOURNEY_STEPS.forEach((s, i) => {
           const isLast = i === JOURNEY_STEPS.length - 1;
           const dotClass = s.done ? 'done' : s.active ? 'active' : 'future';
@@ -1218,13 +1210,17 @@
         setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
         // Lazy-load panel content on first open
         const giai = new URLSearchParams(location.search).get('giai');
-        if (id === 'panel-journey' && !_journeyLoaded && giai) {
+        if (id === 'panel-journey' && !_journeyLoaded) {
           _journeyLoaded = true;
-          renderJourney(giai);
+          renderJourney(giai || null); // null = demo mode
         }
-        if (id === 'panel-temp' && !_tempChartLoaded && giai) {
+        if (id === 'panel-temp' && !_tempChartLoaded) {
           _tempChartLoaded = true;
-          renderTempChart(giai);
+          if (giai) renderTempChart(giai);
+          else {
+            // No GIAI – show demo chart with tracker-09 data
+            renderTempChart('70735391641');
+          }
         }
       }
     }
