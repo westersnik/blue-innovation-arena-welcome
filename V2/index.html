@@ -1069,6 +1069,8 @@
         else if (cur <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
         else               { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
       }
+    }
+
     // ── Render drinkers list ─────────────────────────────────────────
     async function renderDrinkers(giai, bottleNum) {
       const listEl = document.getElementById('drinker-list');
