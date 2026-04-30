@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Supabase JS client for real-time registration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     /* =====================================================
        GS1 Nordic Summit V2 – Invig Brand Edition
@@ -683,6 +685,46 @@
     const TOTAL     = 400;
     const DB_USERS_KEY = 'gs1ns_users';
 
+    // ── Supabase client (anon key, public read + insert registrations) ────────
+    const SUPABASE_URL  = 'https://spbfuhajwfadzvdidalk.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    /** Insert registration into Supabase (best-effort, falls back to localStorage) */
+    async function supabaseRegister(phone, name, company, giai) {
+      try {
+        const { error } = await sb.from('registrations').upsert(
+          { phone, name, company: company || null, giai },
+          { onConflict: 'phone,giai', ignoreDuplicates: true }
+        );
+        if (error) console.warn('[Supabase] register:', error.message);
+      } catch (e) { console.warn('[Supabase] register failed:', e); }
+    }
+
+    /** Load drinkers for a bottle from Supabase */
+    async function supabaseGetBottleDrinkers(giai) {
+      try {
+        const { data } = await sb
+          .from('registrations')
+          .select('name, company, registered_at')
+          .eq('giai', giai)
+          .order('registered_at', { ascending: true });
+        return data || [];
+      } catch { return []; }
+    }
+
+    /** Load all bottles for a phone from Supabase */
+    async function supabaseGetUserBottles(phone) {
+      try {
+        const { data } = await sb
+          .from('registrations')
+          .select('giai, name, company, registered_at')
+          .eq('phone', phone.replace(/[\s\-]/g, ''))
+          .order('registered_at', { ascending: true });
+        return data || [];
+      } catch { return []; }
+    }
+
     // ── URL parsing ──────────────────────────────────────
     function getGIAI() {
       const p = new URLSearchParams(window.location.search);
@@ -760,13 +802,13 @@
 
     function genTempLog(bottleNum) {
       const r = seededRand(bottleNum * 13);
-      const locs = ['Carlsberg bryggeri, DK','Kjølelager, Kastrup','Distribusjonssenter, Oslo','Kjølevogn, E6','Venue kjølerom','Bar-kjøler, Summit','Utlevert til gjest'];
+      const locs = ['Carlsberg Brewery, DK','Cold Storage Kastrup','Distribution Centre Oslo','Refrigerated Transport E6','Venue Cold Room','Bar Fridge, Summit','Handed to guest'];
       const now = new Date();
       return locs.map((loc, i) => {
         const temp = Math.round((2.0 + i * 0.4 + r() * 0.8) * 10) / 10;
         const hoursAgo = (locs.length - i) * 8 + Math.floor(r() * 4);
         const d = new Date(now - hoursAgo * 3600000);
-        const timeStr = d.toLocaleString('no-NO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const timeStr = d.toLocaleString('en-GB', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
         return { time: timeStr, loc, temp, ok: temp <= 6.5 };
       });
     }
@@ -1027,33 +1069,43 @@
         else if (cur <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
         else               { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
       }
-    }
+    // ── Render drinkers list ─────────────────────────────────────────
+    async function renderDrinkers(giai, bottleNum) {
+      const listEl = document.getElementById('drinker-list');
+      listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">Loading…</div>`;
 
-    // ── Render drinkers list ─────────────────────────────
-    function renderDrinkers(giai, bottleNum) {
-      const localDrinkers = getBottleDrinkers(giai);
-      const mockDrinkers  = genMockDrinkers(bottleNum);
-      const scanned       = genScannedCount(bottleNum);
+      // Fetch from Supabase (live), merge with localStorage
+      const [sbDrinkers, localDrinkers] = await Promise.all([
+        supabaseGetBottleDrinkers(giai),
+        Promise.resolve(getBottleDrinkers(giai))
+      ]);
 
-      // Merge: local drinkers override mock ones with same name
-      const localNames = new Set(localDrinkers.map(d => d.name));
+      // Merge: prefer Supabase data, supplement with localStorage
+      const seenNames = new Set(sbDrinkers.map(d => d.name));
       const merged = [
-        ...localDrinkers.map(d => ({ ...d, isLocal: true, bottles: getUserBottleCount(d.phone) })),
-        ...mockDrinkers.filter(d => !localNames.has(d.name))
+        ...sbDrinkers.map(d => ({ ...d, isLocal: false, bottles: 1 })),
+        ...localDrinkers.filter(d => !seenNames.has(d.name)).map(d => ({ ...d, isLocal: true, bottles: getUserBottleCount(d.phone) }))
       ];
 
-      document.getElementById('drinker-count').textContent = merged.length;
+      // If no real drinkers, show mock data for demo
+      const mockDrinkers  = genMockDrinkers(bottleNum);
+      const scanned       = genScannedCount(bottleNum);
+      const mockNames = new Set(merged.map(d => d.name));
+      const finalList = merged.length > 0
+        ? merged
+        : mockDrinkers.filter(d => !mockNames.has(d.name));
+
+      document.getElementById('drinker-count').textContent = finalList.length;
       const pctScanned = Math.round((scanned / TOTAL) * 100);
       document.getElementById('progress-pct').textContent  = pctScanned + '%';
       document.getElementById('progress-fill').style.width = pctScanned + '%';
 
-      const listEl = document.getElementById('drinker-list');
-      if (merged.length === 0) {
+      if (finalList.length === 0) {
         listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">No one has registered yet – be the first!</div>`;
       } else {
-        // Get current user's phone to highlight "me"
         const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g,'');
-        merged.forEach(d => {
+        listEl.innerHTML = '';
+        finalList.forEach(d => {
           const isMe = myPhone && d.phone && d.phone.replace(/\s/g,'') === myPhone;
           const emoji = d.emoji || '👤';
           const bottleCount = d.bottles || 1;
@@ -1061,7 +1113,7 @@
             <div class="drinker-row${isMe ? ' me' : ''}">
               <div class="drinker-avatar">${isMe ? '⭐' : emoji}</div>
               <div>
-                <div class="drinker-name">${d.name}${isMe ? ' (deg)' : ''}</div>
+                <div class="drinker-name">${d.name}${isMe ? ' (you)' : ''}</div>
                 <div class="drinker-meta">${d.company || ''}</div>
               </div>
               <div class="drinker-num">🍺 ${bottleCount}</div>
@@ -1070,7 +1122,7 @@
       }
     }
 
-    // ── My beer strip ────────────────────────────────────
+    // ── My beer strip ──────────────────────────────────────────
     function updateMyBeerStrip() {
       const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g,'');
       if (!myPhone) return;
@@ -1207,6 +1259,8 @@
 
       registerUserForBottle(cleanPhone, user.name, user.company, giai);
       localStorage.setItem('gs1ns_my_phone', cleanPhone);
+      // Also persist to Supabase (best-effort)
+      supabaseRegister(cleanPhone, user.name, user.company, giai);
       showSuccess(user.name, giai);
     }
 
@@ -1222,6 +1276,8 @@
       const cleanPhone = phone.replace(/\s/g,'');
       registerUserForBottle(cleanPhone, name, company, giai);
       localStorage.setItem('gs1ns_my_phone', cleanPhone);
+      // Also persist to Supabase (best-effort)
+      supabaseRegister(cleanPhone, name, company, giai);
       showSuccess(name, giai);
     }
 

@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <!-- Supabase JS client for real-time subscriptions -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -164,7 +166,7 @@
       font-size: 13px; color: var(--muted);
     }
 
-    /* ── Recent pant feed ── */
+    /* ── Recent recycling feed ── */
     .feed-wrap {
       flex: 1;
       background: var(--surface);
@@ -245,6 +247,53 @@
       100% { transform: scale(1); }
     }
     .pop { animation: numPop 0.4s ease-out; }
+
+    /* ── Milestone / celebration overlay ── */
+    .milestone-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.85);
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 24px;
+      text-align: center;
+    }
+    .milestone-overlay.show { display: flex; }
+    .milestone-emoji { font-size: 96px; animation: bounceIn 0.6s ease-out; }
+    .milestone-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(48px, 8vw, 96px);
+      color: var(--gold); line-height: 1.1;
+      animation: fadeInUp 0.5s 0.2s ease-out both;
+    }
+    .milestone-sub {
+      font-size: clamp(20px, 3vw, 36px);
+      color: var(--text); opacity: 0.85;
+      animation: fadeInUp 0.5s 0.35s ease-out both;
+    }
+    @keyframes bounceIn {
+      0%   { transform: scale(0.3); opacity: 0; }
+      60%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Confetti particles */
+    .confetti-wrap {
+      position: fixed; inset: 0; pointer-events: none; z-index: 10000;
+      overflow: hidden;
+    }
+    .confetti-particle {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
   </style>
 </head>
 <body>
@@ -258,7 +307,7 @@
     </div>
     <div class="live-pill" id="live-pill">
       <span class="live-dot demo" id="live-dot"></span>
-      <span id="live-label">Demo mode</span>
+      <span id="live-label">Connecting…</span>
     </div>
   </header>
 
@@ -301,7 +350,7 @@
     </div>
   </div>
 
-  <!-- Recent pant feed -->
+  <!-- Recent recycling feed -->
   <div class="feed-wrap">
     <div class="feed-header">
       <div class="feed-title">♻️ Recently Recycled</div>
@@ -330,34 +379,94 @@
 
 </div>
 
+<!-- Milestone celebration overlay -->
+<div class="milestone-overlay" id="milestone-overlay">
+  <div class="milestone-emoji" id="milestone-emoji">🎉</div>
+  <div class="milestone-title" id="milestone-title">Milestone!</div>
+  <div class="milestone-sub" id="milestone-sub"></div>
+</div>
+<div class="confetti-wrap" id="confetti-wrap"></div>
+
 <script>
   /* =====================================================
-     Reads data from:
-       1. localStorage (gs1ns_users, gs1ns_bottle_*) – QR registrations
-       2. Keonn AdvanReader REST API – RFID recycling
-       3. V2/bottles.json – EPC/GIAI mapping
-       4. SmartPallet Bifrost API – live temperature (SR-Tracker-09, SR-Tracker-03)
+     Storskjerm (Display Screen) – GS1 Nordic Summit 2025
      
-     Configure RFID reader via URL parameter:
-       storskjerm.html?reader=192.168.1.100&interval=3
+     Data sources:
+       1. Supabase real-time – rfid_events (recycling) + registrations (QR scans)
+       2. SmartPallet Bifrost API – live temperature (SR-Tracker-09, SR-Tracker-03)
+       3. Demo mode – simulated data when no live data arrives within 5s
      
-     Demo mode activates automatically if no reader IP is set.
-  =====================================================
+     Supabase project: spbfuhajwfadzvdidalk.supabase.co
+     Tables: rfid_events, registrations
+  ===================================================== */
 
-  let bottleMap   = new Map(); // epc → {giai, num}
-  let giaiMap     = new Map(); // giai → {epc, num}
-  let pantedEPCs  = new Set();
-  let pantedGIAIs = new Set();
-  let rfidEvents  = [];
-  let demoTimer   = null;
-  let demoIdx     = 0;
+  // ── Supabase config ──────────────────────────────────
+  const SUPABASE_URL  = 'https://spbfuhajwfadzvdidalk.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // ── State ────────────────────────────────────────────
+  let rfidEvents    = [];   // [{giai, num, name, company, ts}]
+  let registrations = [];   // [{name, company, giai_list, ts}]
+  let pantedGIAIs   = new Set();
+  let registeredSet = new Set(); // unique phones/ids
+  let uniqueGIAIs   = new Set(); // all scanned GIAIs from registrations
+  let milestoneShown = new Set();
+  let hasLiveData   = false;
+  let demoTimer     = null;
+  let demoIdx       = 0;
+
+  // ── Milestones ───────────────────────────────────────
+  const MILESTONES = [
+    { count: 10,  emoji: '🎯', title: '10 Bottles Recycled!',  sub: 'Great start – keep it going!' },
+    { count: 50,  emoji: '🌿', title: '50 Bottles Recycled!',  sub: 'The planet thanks you!' },
+    { count: 100, emoji: '🏆', title: '100 Bottles Recycled!', sub: 'Halfway to the goal!' },
+    { count: 200, emoji: '🚀', title: '200 Bottles Recycled!', sub: 'Incredible effort!' },
+    { count: 300, emoji: '🎊', title: 'All 300 Bottles!',      sub: '100% recycled – GS1 Nordic Summit legend!' },
+  ];
+
+  function checkMilestones(count) {
+    MILESTONES.forEach(m => {
+      if (count >= m.count && !milestoneShown.has(m.count)) {
+        milestoneShown.add(m.count);
+        showMilestone(m);
+      }
+    });
+  }
+
+  function showMilestone(m) {
+    document.getElementById('milestone-emoji').textContent = m.emoji;
+    document.getElementById('milestone-title').textContent = m.title;
+    document.getElementById('milestone-sub').textContent   = m.sub;
+    const overlay = document.getElementById('milestone-overlay');
+    overlay.classList.add('show');
+    spawnConfetti();
+    setTimeout(() => overlay.classList.remove('show'), 7000);
+  }
+
+  function spawnConfetti() {
+    const wrap = document.getElementById('confetti-wrap');
+    wrap.innerHTML = '';
+    const colors = ['#B5A23A','#5DBB63','#6BA3C7','#E8A838','#F0EBD8','#7A9A60'];
+    for (let i = 0; i < 80; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-particle';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.animationDuration = (2 + Math.random() * 3) + 's';
+      el.style.animationDelay    = (Math.random() * 1.5) + 's';
+      el.style.width  = (6 + Math.random() * 10) + 'px';
+      el.style.height = (6 + Math.random() * 10) + 'px';
+      wrap.appendChild(el);
+    }
+    setTimeout(() => { wrap.innerHTML = ''; }, 6000);
+  }
 
   // ── SmartPallet live temperature ──────────────────────
-  // SmartPallet API — preview URL (live data)
-  // Production: https://smartpallet.iotpallet.no/api/public/devices
   const SP_API = 'https://iot-logistics-flow.preview.emergentagent.com/api/public/devices';
   const SP_KEY = 'gs1-nordic-2026';
   const SP_WS  = 'wss://iot-logistics-flow.preview.emergentagent.com/api/ws/summit';
+
   async function fetchLiveTemp(device) {
     try {
       const r = await fetch(`${SP_API}/${device}/telemetry/latest?api_key=${SP_KEY}`,
@@ -391,7 +500,6 @@
         'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
   }
-  // WebSocket for real-time push (no polling needed)
   function connectTempWS() {
     let ws;
     try { ws = new WebSocket(SP_WS); } catch { return; }
@@ -401,113 +509,144 @@
         if (msg.type !== 'telemetry_update') return;
         const { device_id, data } = msg;
         const t = data.temperature;
-        if (device_id === '359404232146168') { // SR-Tracker-09
+        if (device_id === '359404232146168') {
           const el = document.getElementById('temp-09');
-          el.textContent = t.toFixed(1) + '\u00b0C';
+          el.textContent = t.toFixed(1) + '°C';
           el.style.color = tempColor(t);
         }
-        if (device_id === '359404232146614') { // SR-Tracker-03
+        if (device_id === '359404232146614') {
           const el = document.getElementById('temp-03');
-          el.textContent = t.toFixed(1) + '\u00b0C';
+          el.textContent = t.toFixed(1) + '°C';
           el.style.color = tempColor(t);
         }
         document.getElementById('temp-updated').textContent =
-          'Live \u00b7 ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          'Live · ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
       } catch {}
     };
-    ws.onclose = () => setTimeout(connectTempWS, 5000); // auto-reconnect
+    ws.onclose = () => setTimeout(connectTempWS, 5000);
     ws.onerror = () => ws.close();
   }
-
-  // Fetch live temps immediately via REST, then maintain WS for updates
   refreshLiveTemps();
   connectTempWS();
-  // Fallback REST poll every 5 min in case WS drops
   setInterval(refreshLiveTemps, 300000);
 
-  // ── URL params ──────────────────────────────────────
-  const params     = new URLSearchParams(location.search);
-  const readerIP   = params.get('reader') || localStorage.getItem('gs1ns_reader_ip') || '';
-  const pollSec    = parseInt(params.get('interval') || localStorage.getItem('gs1ns_poll_interval') || '3', 10);
+  // ── Supabase: load initial data ───────────────────────
+  async function loadInitialData() {
+    // Load rfid_events (columns: epc, giai, reader_id, recycled_at)
+    const { data: rfid } = await sb
+      .from('rfid_events')
+      .select('giai, epc, recycled_at')
+      .order('recycled_at', { ascending: false })
+      .limit(50);
 
-  // ── Load bottle map ──────────────────────────────────
-  async function loadBottles() {
-    try {
-      const r = await fetch('V2/bottles.json');
-      const d = await r.json();
-      d.forEach(b => {
-        bottleMap.set(b.epc.toUpperCase(), { giai: b.giai, num: b.num });
-        giaiMap.set(b.giai, { epc: b.epc.toUpperCase(), num: b.num });
-      });
-    } catch(e) { console.warn('bottles.json not loaded:', e); }
-  }
-
-  // ── localStorage helpers ─────────────────────────────
-  function getUsers() {
-    try { return JSON.parse(localStorage.getItem('gs1ns_users') || '{}'); }
-    catch { return {}; }
-  }
-  function getUserForGIAI(giai) {
-    try {
-      const list = JSON.parse(localStorage.getItem(`gs1ns_bottle_${giai}`) || '[]');
-      return list[0] || null;
-    } catch { return null; }
-  }
-  function getAllUsers() {
-    const u = getUsers();
-    return Object.entries(u).map(([phone, d]) => ({ phone, ...d }));
-  }
-
-  // ── RFID polling ─────────────────────────────────────
-  async function pollReader() {
-    if (!readerIP) return;
-    const endpoints = [
-      `http://${readerIP}/rest/session/tags`,
-      `http://${readerIP}/api/inventory/tags`,
-      `http://${readerIP}/rest/tags`,
-    ];
-    for (const url of endpoints) {
-      try {
-        const r = await fetch(url, { signal: AbortSignal.timeout(3000), headers: { Accept: 'application/json' } });
-        if (!r.ok) continue;
-        const data = await r.json();
-        const tags = data.tags || data.inventory || data.epcs || [];
-        if (Array.isArray(tags)) {
-          setLive(true);
-          processTags(tags.map(t => ({ epc: (t.epc || t.EPC || '').toUpperCase(), ts: t.ts || Date.now() })));
-          return;
+    if (rfid && rfid.length > 0) {
+      hasLiveData = true;
+      rfid.forEach(r => {
+        if (!pantedGIAIs.has(r.giai)) {
+          pantedGIAIs.add(r.giai);
+          // Derive bottle number from GIAI (GIAI_BASE = 70735390000)
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735390000) : null;
+          rfidEvents.push({
+            giai: r.giai,
+            num: (num >= 1 && num <= 400) ? num : null,
+            name: null,   // name/company come from registrations join
+            company: null,
+            ts: new Date(r.recycled_at || Date.now()).getTime()
+          });
         }
-      } catch {}
+      });
+      rfidEvents.sort((a, b) => b.ts - a.ts);
+
+      // Enrich rfid events with registration data
+      await enrichRfidEvents();
     }
-    setLive(false);
+
+    // Load registrations (columns: phone, name, company, giai, registered_at)
+    const { data: regs } = await sb
+      .from('registrations')
+      .select('name, company, phone, giai, registered_at')
+      .order('registered_at', { ascending: false });
+
+    if (regs && regs.length > 0) {
+      hasLiveData = true;
+      regs.forEach(r => {
+        registeredSet.add(r.phone || r.name);
+        if (r.giai) uniqueGIAIs.add(r.giai);
+      });
+      // Store registrations for enrichment
+      window._regs = regs;
+    }
+
+    updateUI();
+    setLive(hasLiveData);
   }
 
-  function processTags(tags) {
-    let changed = false;
-    tags.forEach(({ epc, ts }) => {
-      if (!epc || pantedEPCs.has(epc)) return;
-      const b = bottleMap.get(epc);
-      if (!b) return;
-      pantedEPCs.add(epc);
-      pantedGIAIs.add(b.giai);
-      changed = true;
-      const who = getUserForGIAI(b.giai);
-      rfidEvents.unshift({ epc, giai: b.giai, num: b.num, name: who?.name || null, company: who?.company || null, ts: ts || Date.now() });
-      if (rfidEvents.length > 50) rfidEvents.pop();
+  // ── Enrich rfid events with registration name/company ───────────────────
+  async function enrichRfidEvents() {
+    const regs = window._regs || [];
+    const giaiToReg = {};
+    regs.forEach(r => { if (r.giai) giaiToReg[r.giai] = r; });
+    rfidEvents.forEach(e => {
+      if (!e.name && e.giai && giaiToReg[e.giai]) {
+        e.name    = giaiToReg[e.giai].name;
+        e.company = giaiToReg[e.giai].company;
+      }
     });
-    if (changed) updateUI();
+  }
+
+  // ── Supabase: real-time subscriptions ────────────────
+  function subscribeRealtime() {
+    // Subscribe to new rfid_events (recycling)
+    sb.channel('rfid-events-channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
+        const r = payload.new;
+        if (!pantedGIAIs.has(r.giai)) {
+          hasLiveData = true;
+          pantedGIAIs.add(r.giai);
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735390000) : null;
+          // Look up registration for this bottle
+          const regs = window._regs || [];
+          const reg = regs.find(x => x.giai === r.giai);
+          rfidEvents.unshift({
+            giai: r.giai,
+            num: (num >= 1 && num <= 400) ? num : null,
+            name: reg?.name || null,
+            company: reg?.company || null,
+            ts: new Date(r.recycled_at || Date.now()).getTime()
+          });
+          if (rfidEvents.length > 50) rfidEvents.pop();
+          updateUI();
+          setLive(true);
+        }
+      })
+      .subscribe();
+
+    // Subscribe to new registrations
+    sb.channel('registrations-channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations' }, (payload) => {
+        const r = payload.new;
+        hasLiveData = true;
+        registeredSet.add(r.phone || r.name);
+        if (r.giai) uniqueGIAIs.add(r.giai);
+        // Cache for rfid enrichment
+        if (!window._regs) window._regs = [];
+        window._regs.push(r);
+        updateUI();
+        setLive(true);
+      })
+      .subscribe();
   }
 
   // ── Demo simulation ──────────────────────────────────
   const DEMO_BOTTLES = [
-    { epc: '3415AFBC0C00000000000669', giai: '70735391641', num: 1 },
-    { epc: '3415AFBC0C0000000000066A', giai: '70735391642', num: 2 },
-    { epc: '3415AFBC0C0000000000066B', giai: '70735391643', num: 3 },
-    { epc: '3415AFBC0C0000000000066C', giai: '70735391644', num: 4 },
-    { epc: '3415AFBC0C0000000000066D', giai: '70735391645', num: 5 },
-    { epc: '3415AFBC0C0000000000066E', giai: '70735391646', num: 6 },
-    { epc: '3415AFBC0C0000000000066F', giai: '70735391647', num: 7 },
-    { epc: '3415AFBC0C00000000000670', giai: '70735391648', num: 8 },
+    { giai: '70735391641', num: 1 },
+    { giai: '70735391642', num: 2 },
+    { giai: '70735391643', num: 3 },
+    { giai: '70735391644', num: 4 },
+    { giai: '70735391645', num: 5 },
+    { giai: '70735391646', num: 6 },
+    { giai: '70735391647', num: 7 },
+    { giai: '70735391648', num: 8 },
   ];
   const DEMO_NAMES = [
     { name: 'Ola Nordmann',   company: 'GS1 Norway' },
@@ -520,40 +659,40 @@
     { name: 'Kari Moe',       company: 'GS1 Sweden' },
   ];
 
-  function seedDemoUsers() {
-    const users = getUsers();
-    if (Object.keys(users).length > 0) return;
-    DEMO_NAMES.forEach((n, i) => {
-      const phone = `+4790000000${i}`;
-      const b = DEMO_BOTTLES[i];
-      users[phone] = { name: n.name, company: n.company, role: 'Deltaker', registeredAt: Date.now(), bottles: b ? [b.giai] : [] };
-      if (b) localStorage.setItem(`gs1ns_bottle_${b.giai}`, JSON.stringify([{ phone, name: n.name, company: n.company, ts: Date.now() }]));
-    });
-    localStorage.setItem('gs1ns_users', JSON.stringify(users));
-  }
-
   function startDemo() {
-    seedDemoUsers();
+    // Seed demo registrations
+    DEMO_NAMES.forEach((n, i) => {
+      registeredSet.add('demo-' + i);
+      const b = DEMO_BOTTLES[i];
+      if (b) uniqueGIAIs.add(b.giai);
+    });
     updateUI();
     demoTimer = setInterval(() => {
       if (demoIdx >= DEMO_BOTTLES.length) { clearInterval(demoTimer); return; }
-      const b = DEMO_BOTTLES[demoIdx++];
-      processTags([{ epc: b.epc, ts: Date.now() }]);
+      const b = DEMO_BOTTLES[demoIdx];
+      const n = DEMO_NAMES[demoIdx];
+      demoIdx++;
+      if (!pantedGIAIs.has(b.giai)) {
+        pantedGIAIs.add(b.giai);
+        rfidEvents.unshift({ giai: b.giai, num: b.num, name: n.name, company: n.company, ts: Date.now() });
+        if (rfidEvents.length > 50) rfidEvents.pop();
+        updateUI();
+      }
     }, 3000);
   }
 
-  // ── UI ───────────────────────────────────────────────
+  // ── UI helpers ───────────────────────────────────────
   function setLive(online) {
     const dot   = document.getElementById('live-dot');
     const label = document.getElementById('live-label');
     if (online) {
-      dot.className   = 'live-dot';
+      dot.className = 'live-dot';
       dot.style.background = '';
-      label.textContent = `Live · AdvanReader`;
+      label.textContent = 'Live · Supabase';
       document.getElementById('live-pill').style.borderColor = 'rgba(93,187,99,0.3)';
     } else {
       dot.className = 'live-dot demo';
-      label.textContent = 'Kobler til leser…';
+      label.textContent = 'Demo mode';
     }
   }
 
@@ -564,10 +703,9 @@
   }
 
   function updateUI() {
-    const users      = getAllUsers();
-    const registered = users.length;
+    const registered = registeredSet.size;
     const panted     = pantedGIAIs.size;
-    const unique     = new Set(users.flatMap(u => u.bottles || [])).size;
+    const unique     = uniqueGIAIs.size;
     const rate       = unique > 0 ? Math.round((panted / unique) * 100) : 0;
     const pct        = Math.round((panted / 300) * 100);
 
@@ -581,31 +719,32 @@
     setVal('cnt-rate',       rate + '%');
     setVal('pant-pct',       pct + '%');
     document.getElementById('pant-fill').style.width  = pct + '%';
-    document.getElementById('pant-left').textContent  = `${panted} flasker pantet`;
-    document.getElementById('pant-right').textContent = `${panted} av 300 flasker pantet`;
-    document.getElementById('feed-count').textContent = `${panted} i dag`;
+    document.getElementById('pant-left').textContent  = `${panted} bottles recycled`;
+    document.getElementById('pant-right').textContent = `${panted} of 300 bottles recycled`;
+    document.getElementById('feed-count').textContent = `${panted} today`;
 
+    checkMilestones(panted);
     renderFeed();
   }
 
   function renderFeed() {
     const body = document.getElementById('feed-body');
     if (rfidEvents.length === 0) {
-      body.innerHTML = '<div class="feed-empty">Ingen flasker pantet ennå – kast din flaske i beholderen!</div>';
+      body.innerHTML = '<div class="feed-empty">No bottles recycled yet – drop your bottle in the bin!</div>';
       return;
     }
     const MAX_ROWS = 5;
+    const emojis = ['♻️','🍺','🌿','🎯','⭐'];
     body.innerHTML = rfidEvents.slice(0, MAX_ROWS).map((e, i) => {
-      const time = new Date(e.ts).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const emojis = ['♻️','🍺','🌿','🎯','⭐'];
+      const time = new Date(e.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       return `<div class="feed-row" style="animation-delay:${i*0.05}s">
         <div class="feed-icon">${emojis[i % emojis.length]}</div>
         <div class="feed-info">
-          <div class="feed-name">${e.name || 'Ukjent drikker'}</div>
+          <div class="feed-name">${e.name || 'Unknown drinker'}</div>
           <div class="feed-detail">${e.company || ''} · GIAI ${e.giai}</div>
         </div>
         <div class="feed-bottle">
-          <div class="feed-num">Flaske #${e.num}</div>
+          <div class="feed-num">Bottle #${e.num}</div>
           <div class="feed-time">${time}</div>
         </div>
       </div>`;
@@ -614,17 +753,16 @@
 
   // ── Init ─────────────────────────────────────────────
   async function init() {
-    await loadBottles();
-    if (readerIP) {
-      setLive(false);
-      pollReader();
-      setInterval(pollReader, pollSec * 1000);
-    } else {
-      startDemo();
-    }
-    updateUI();
-    // Sync QR registrations every 8s
-    setInterval(updateUI, 8000);
+    await loadInitialData();
+    subscribeRealtime();
+
+    // Start demo if no live data arrives within 5 seconds
+    setTimeout(() => {
+      if (!hasLiveData) {
+        setLive(false);
+        startDemo();
+      }
+    }, 5000);
   }
 
   init();
