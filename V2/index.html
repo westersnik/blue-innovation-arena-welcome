@@ -893,12 +893,12 @@
     let _tempChart  = null;
 
     const JOURNEY_STEPS = [
-      { icon: '🏭', title: 'Carlsberg Brewery', meta: 'Fredericia, Denmark · 12 May 2025', temp: '2.0°C', done: true },
-      { icon: '❄️', title: 'Cold Storage Kastrup', meta: 'Copenhagen Airport · 14 May 2025', temp: '3.1°C', done: true },
-      { icon: '🚢', title: 'Distribution Centre Oslo', meta: 'Alnabru, Oslo · 16 May 2025', temp: '3.8°C', done: true },
-      { icon: '🚛', title: 'Refrigerated Transport E6', meta: 'Oslo → Venue · 19 May 2025', temp: '4.2°C', done: true },
-      { icon: '🏨', title: 'Venue Cold Room', meta: 'GS1 Nordic Summit, Oslo · 20 May 2025', temp: '4.0°C', active: true },
-      { icon: '🍺', title: 'Handed to you', meta: 'GS1 Nordic Summit · Now', temp: null, done: false },
+      { icon: '🏭', title: 'Carlsberg Brewery', meta: 'Fredericia, Denmark · 7 May 2025', temp: '18.5°C', done: true },
+      { icon: '❄️', title: 'Cold Storage Kastrup', meta: 'Copenhagen Airport · 8 May 2025', temp: '3.9°C', done: true },
+      { icon: '🚛', title: 'Distribution Centre Oslo', meta: 'Alnabru, Oslo · 11 May 2025', temp: '3.8°C', done: true },
+      { icon: '🚚', title: 'Refrigerated Transport', meta: 'Oslo city centre · 13 May 2025', temp: '5.9°C', done: true },
+      { icon: '🏨', title: 'Venue Cold Room', meta: 'Radisson Blu Plaza, Oslo · 13 May 2025', temp: '4.0°C', active: true },
+      { icon: '🍺', title: 'Handed to you', meta: 'Radisson Blu Plaza · Now', temp: null, done: false },
     ];
 
     // ── Render journey panel (SmartPallet Bifrost) ──────────
@@ -929,31 +929,56 @@
         const lon = data.location && data.location.lon ? data.location.lon : (data.journey[data.journey.length-1]?.longitude);
         if (lat && lon && typeof L !== 'undefined') {
           leafletEl.style.display = 'block';
-          if (!_leafletMap) {
-            _leafletMap = L.map('leaflet-map').setView([lat, lon], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '© OpenStreetMap'
-            }).addTo(_leafletMap);
-          } else {
-            _leafletMap.setView([lat, lon], 13);
-          }
-          // Draw route if multiple unique positions exist
+
+          // Collect unique route points
           const uniquePoints = [];
           const seen = new Set();
           data.journey.forEach(j => {
             if (!j.latitude || !j.longitude) return;
-            const key = `${j.latitude.toFixed(4)},${j.longitude.toFixed(4)}`;
+            const key = `${j.latitude.toFixed(3)},${j.longitude.toFixed(3)}`;
             if (!seen.has(key)) { seen.add(key); uniquePoints.push([j.latitude, j.longitude]); }
           });
-          if (uniquePoints.length > 1) {
-            L.polyline(uniquePoints, { color: '#B5A23A', weight: 3, opacity: 0.85 }).addTo(_leafletMap);
+
+          if (!_leafletMap) {
+            _leafletMap = L.map('leaflet-map');
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap'
+            }).addTo(_leafletMap);
+          } else {
+            // Clear old layers except tile layer
+            _leafletMap.eachLayer(layer => {
+              if (!(layer instanceof L.TileLayer)) _leafletMap.removeLayer(layer);
+            });
           }
-          // Current location marker
-          L.marker([lat, lon])
+
+          if (uniquePoints.length > 1) {
+            // Draw full route polyline
+            const polyline = L.polyline(uniquePoints, { color: '#B5A23A', weight: 3, opacity: 0.85 }).addTo(_leafletMap);
+            // Fit map to show entire route
+            _leafletMap.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+
+            // Start marker (brewery)
+            const startPt = uniquePoints[0];
+            L.circleMarker(startPt, { radius: 6, color: '#5C6E45', fillColor: '#5C6E45', fillOpacity: 1 })
+              .addTo(_leafletMap)
+              .bindPopup(`🏭 ${data.journey[0].location_name || 'Origin'}`);
+          } else {
+            _leafletMap.setView([lat, lon], 14);
+          }
+
+          // Current / end location marker (venue)
+          const venueIcon = L.divIcon({
+            html: '<div style="background:#B5A23A;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.4)">🍺</div>',
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          });
+          const lastLoc = data.journey[data.journey.length - 1];
+          L.marker([lat, lon], { icon: venueIcon })
             .addTo(_leafletMap)
-            .bindPopup(`<b>${device}</b><br>🌡 ${data.temperature.current.toFixed(1)}°C<br>📍 Current location`)
-            .openPopup();
-          setTimeout(() => _leafletMap.invalidateSize(), 200);
+            .bindPopup(`<b>${lastLoc.location_name || device}</b><br>🌡 ${data.temperature.current.toFixed(1)}°C`);
+
+          setTimeout(() => _leafletMap.invalidateSize(), 300);
         }
 
         // Journey steps – deduplicate by temperature change, show up to 6 steps
@@ -970,7 +995,7 @@
         sampled.forEach((j, i) => {
           const isLast = i === sampled.length - 1;
           const ts = new Date(j.timestamp).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-          const locStr = (j.latitude && j.longitude) ? `${j.latitude.toFixed(4)}°N, ${j.longitude.toFixed(4)}°E` : device;
+          const locStr = j.location_name || ((j.latitude && j.longitude) ? `${j.latitude.toFixed(4)}°N, ${j.longitude.toFixed(4)}°E` : device);
           stepsEl.innerHTML += `
             <div class="j-step">
               <div class="j-left">

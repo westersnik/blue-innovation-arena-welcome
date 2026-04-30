@@ -1,1 +1,317 @@
-{"device_id":"359404232146614","name":"SR-Tracker-03","grai":"urn:epc:id:grai:7070123.00.000003","type":null,"status":"active","location":{"lat":59.77176179,"lon":10.85534252,"ts":"2026-04-30T05:19:01.678000+00:00"},"temperature":{"current":23.06,"unit":"celsius","ts":"2026-04-30T05:19:01.678000+00:00"},"journey":[{"timestamp":"2026-04-25T05:19:16.935000+00:00","temperature":22.93,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-28T05:19:07.268000+00:00","temperature":23.25,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-30T05:19:01.678000+00:00","temperature":23.06,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-30T05:19:01.678000+00:00","temperature":23.06,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-30T05:19:01.678000+00:00","temperature":23.06,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-30T05:19:01.678000+00:00","temperature":23.06,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252},{"timestamp":"2026-04-30T05:19:01.678000+00:00","temperature":23.06,"battery_level":100,"latitude":59.77176179,"longitude":10.85534252}],"total_readings":36,"period_hours":168}
+{
+  "device_id": "dev-sr-tracker-03",
+  "name": "SR-Tracker-03",
+  "grai": "urn:epc:id:grai:7070123.00.000003",
+  "type": null,
+  "status": "active",
+  "location": {
+    "lat": 59.91262484,
+    "lon": 10.75600623,
+    "ts": "2025-05-14T13:00:00.000000+00:00"
+  },
+  "temperature": {
+    "current": 5.36,
+    "unit": "celsius",
+    "ts": "2025-05-14T13:00:00.000000+00:00"
+  },
+  "journey": [
+    {
+      "timestamp": "2025-05-07T14:00:00.000000+00:00",
+      "temperature": 18.28,
+      "battery_level": 100,
+      "latitude": 55.56095999,
+      "longitude": 9.7518941,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-07T16:00:00.000000+00:00",
+      "temperature": 18.53,
+      "battery_level": 103,
+      "latitude": 55.5604298,
+      "longitude": 9.75172688,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-07T18:00:00.000000+00:00",
+      "temperature": 8.12,
+      "battery_level": 98,
+      "latitude": 55.56067289,
+      "longitude": 9.75172724,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-07T20:00:00.000000+00:00",
+      "temperature": 8.02,
+      "battery_level": 98,
+      "latitude": 55.56091348,
+      "longitude": 9.75206153,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-07T22:00:00.000000+00:00",
+      "temperature": 4.54,
+      "battery_level": 99,
+      "latitude": 55.56041828,
+      "longitude": 9.75213588,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-08T04:00:00.000000+00:00",
+      "temperature": 4.3,
+      "battery_level": 101,
+      "latitude": 55.59517564,
+      "longitude": 11.20421348,
+      "location_name": "Carlsberg Brewery, Fredericia DK"
+    },
+    {
+      "timestamp": "2025-05-08T10:00:00.000000+00:00",
+      "temperature": 3.78,
+      "battery_level": 96,
+      "latitude": 55.63007712,
+      "longitude": 12.65616897,
+      "location_name": "Cold Storage, Kastrup Airport DK"
+    },
+    {
+      "timestamp": "2025-05-08T15:00:00.000000+00:00",
+      "temperature": 3.68,
+      "battery_level": 96,
+      "latitude": 55.62991274,
+      "longitude": 12.65634607,
+      "location_name": "Cold Storage, Kastrup Airport DK"
+    },
+    {
+      "timestamp": "2025-05-08T20:00:00.000000+00:00",
+      "temperature": 3.65,
+      "battery_level": 96,
+      "latitude": 55.63004553,
+      "longitude": 12.65613794,
+      "location_name": "Cold Storage, Kastrup Airport DK"
+    },
+    {
+      "timestamp": "2025-05-09T02:00:00.000000+00:00",
+      "temperature": 3.82,
+      "battery_level": 94,
+      "latitude": 56.66924107,
+      "longitude": 12.31534253,
+      "location_name": "Cold Storage, Kastrup Airport DK"
+    },
+    {
+      "timestamp": "2025-05-09T08:00:00.000000+00:00",
+      "temperature": 5.06,
+      "battery_level": 89,
+      "latitude": 57.70894954,
+      "longitude": 11.97487609,
+      "location_name": "G\u00f6teborg Distribution Hub, SE"
+    },
+    {
+      "timestamp": "2025-05-09T11:00:00.000000+00:00",
+      "temperature": 5.19,
+      "battery_level": 92,
+      "latitude": 57.70889993,
+      "longitude": 11.97452743,
+      "location_name": "G\u00f6teborg Distribution Hub, SE"
+    },
+    {
+      "timestamp": "2025-05-09T14:00:00.000000+00:00",
+      "temperature": 5.03,
+      "battery_level": 92,
+      "latitude": 57.70901424,
+      "longitude": 11.97431335,
+      "location_name": "G\u00f6teborg Distribution Hub, SE"
+    },
+    {
+      "timestamp": "2025-05-09T20:00:00.000000+00:00",
+      "temperature": 5.01,
+      "battery_level": 86,
+      "latitude": 58.4626196,
+      "longitude": 11.45370086,
+      "location_name": "G\u00f6teborg Distribution Hub, SE"
+    },
+    {
+      "timestamp": "2025-05-10T02:00:00.000000+00:00",
+      "temperature": 4.52,
+      "battery_level": 89,
+      "latitude": 59.2165821,
+      "longitude": 10.93303219,
+      "location_name": "Fredrikstad Cold Terminal, NO"
+    },
+    {
+      "timestamp": "2025-05-10T08:00:00.000000+00:00",
+      "temperature": 4.4,
+      "battery_level": 88,
+      "latitude": 59.56844837,
+      "longitude": 10.8716123,
+      "location_name": "Fredrikstad Cold Terminal, NO"
+    },
+    {
+      "timestamp": "2025-05-10T14:00:00.000000+00:00",
+      "temperature": 3.81,
+      "battery_level": 80,
+      "latitude": 59.91998529,
+      "longitude": 10.8101568,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-10T20:00:00.000000+00:00",
+      "temperature": 3.8,
+      "battery_level": 83,
+      "latitude": 59.91979504,
+      "longitude": 10.80996385,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-11T02:00:00.000000+00:00",
+      "temperature": 4.03,
+      "battery_level": 77,
+      "latitude": 59.92012891,
+      "longitude": 10.80999643,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-11T08:00:00.000000+00:00",
+      "temperature": 3.78,
+      "battery_level": 77,
+      "latitude": 59.9202699,
+      "longitude": 10.81006246,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-11T14:00:00.000000+00:00",
+      "temperature": 4.07,
+      "battery_level": 76,
+      "latitude": 59.91984627,
+      "longitude": 10.80990354,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-11T20:00:00.000000+00:00",
+      "temperature": 4.03,
+      "battery_level": 75,
+      "latitude": 59.91910121,
+      "longitude": 10.7949232,
+      "location_name": "Oslo Distribution Centre, Alnabru NO"
+    },
+    {
+      "timestamp": "2025-05-12T02:00:00.000000+00:00",
+      "temperature": 6.09,
+      "battery_level": 76,
+      "latitude": 59.91821038,
+      "longitude": 10.77976978,
+      "location_name": "Refrigerated Transport, Oslo city centre"
+    },
+    {
+      "timestamp": "2025-05-12T08:00:00.000000+00:00",
+      "temperature": 5.95,
+      "battery_level": 78,
+      "latitude": 59.91526291,
+      "longitude": 10.7679289,
+      "location_name": "Refrigerated Transport, Oslo city centre"
+    },
+    {
+      "timestamp": "2025-05-12T14:00:00.000000+00:00",
+      "temperature": 4.08,
+      "battery_level": 71,
+      "latitude": 59.91268636,
+      "longitude": 10.7560492,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-12T20:00:00.000000+00:00",
+      "temperature": 4.44,
+      "battery_level": 74,
+      "latitude": 59.91219029,
+      "longitude": 10.75604239,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-13T02:00:00.000000+00:00",
+      "temperature": 4.13,
+      "battery_level": 69,
+      "latitude": 59.91265384,
+      "longitude": 10.75598622,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-13T08:00:00.000000+00:00",
+      "temperature": 4.12,
+      "battery_level": 69,
+      "latitude": 59.91247677,
+      "longitude": 10.7557968,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-13T14:00:00.000000+00:00",
+      "temperature": 3.71,
+      "battery_level": 67,
+      "latitude": 59.91244923,
+      "longitude": 10.75622722,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-13T20:00:00.000000+00:00",
+      "temperature": 4.12,
+      "battery_level": 68,
+      "latitude": 59.91249892,
+      "longitude": 10.75595957,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-14T02:00:00.000000+00:00",
+      "temperature": 4.12,
+      "battery_level": 61,
+      "latitude": 59.91211473,
+      "longitude": 10.75566344,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-14T05:00:00.000000+00:00",
+      "temperature": 3.89,
+      "battery_level": 63,
+      "latitude": 59.9122654,
+      "longitude": 10.75613048,
+      "location_name": "Venue Cold Room, Radisson Blu Plaza Oslo"
+    },
+    {
+      "timestamp": "2025-05-14T08:00:00.000000+00:00",
+      "temperature": 5.16,
+      "battery_level": 59,
+      "latitude": 59.9126811,
+      "longitude": 10.75607737,
+      "location_name": "Bar Fridge, GS1 Nordic Summit"
+    },
+    {
+      "timestamp": "2025-05-14T09:30:00.000000+00:00",
+      "temperature": 5.16,
+      "battery_level": 61,
+      "latitude": 59.91264083,
+      "longitude": 10.75590653,
+      "location_name": "Bar Fridge, GS1 Nordic Summit"
+    },
+    {
+      "timestamp": "2025-05-14T11:00:00.000000+00:00",
+      "temperature": 5.37,
+      "battery_level": 58,
+      "latitude": 59.91263865,
+      "longitude": 10.75599875,
+      "location_name": "Bar Fridge, GS1 Nordic Summit"
+    },
+    {
+      "timestamp": "2025-05-14T12:00:00.000000+00:00",
+      "temperature": 5.03,
+      "battery_level": 61,
+      "latitude": 59.91221224,
+      "longitude": 10.75620544,
+      "location_name": "Bar Fridge, GS1 Nordic Summit"
+    },
+    {
+      "timestamp": "2025-05-14T13:00:00.000000+00:00",
+      "temperature": 5.36,
+      "battery_level": 59,
+      "latitude": 59.91262484,
+      "longitude": 10.75600623,
+      "location_name": "Handed to guest \u00b7 Radisson Blu Plaza Oslo"
+    }
+  ],
+  "total_readings": 37,
+  "period_hours": 168
+}
