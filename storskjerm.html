@@ -353,8 +353,11 @@
   let demoIdx     = 0;
 
   // ── SmartPallet live temperature ──────────────────────
-  const SP_API = 'https://smartpallet.iotpallet.no/api/public/devices';
+  // SmartPallet API — preview URL (live data)
+  // Production: https://smartpallet.iotpallet.no/api/public/devices
+  const SP_API = 'https://iot-logistics-flow.preview.emergentagent.com/api/public/devices';
   const SP_KEY = 'gs1-nordic-2026';
+  const SP_WS  = 'wss://iot-logistics-flow.preview.emergentagent.com/api/ws/summit';
   async function fetchLiveTemp(device) {
     try {
       const r = await fetch(`${SP_API}/${device}/telemetry/latest?api_key=${SP_KEY}`,
@@ -388,9 +391,39 @@
         'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
   }
-  // Fetch live temps immediately and then every 60s
+  // WebSocket for real-time push (no polling needed)
+  function connectTempWS() {
+    let ws;
+    try { ws = new WebSocket(SP_WS); } catch { return; }
+    ws.onmessage = (evt) => {
+      try {
+        const msg = JSON.parse(evt.data);
+        if (msg.type !== 'telemetry_update') return;
+        const { device_id, data } = msg;
+        const t = data.temperature;
+        if (device_id === '359404232146168') { // SR-Tracker-09
+          const el = document.getElementById('temp-09');
+          el.textContent = t.toFixed(1) + '\u00b0C';
+          el.style.color = tempColor(t);
+        }
+        if (device_id === '359404232146614') { // SR-Tracker-03
+          const el = document.getElementById('temp-03');
+          el.textContent = t.toFixed(1) + '\u00b0C';
+          el.style.color = tempColor(t);
+        }
+        document.getElementById('temp-updated').textContent =
+          'Live \u00b7 ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      } catch {}
+    };
+    ws.onclose = () => setTimeout(connectTempWS, 5000); // auto-reconnect
+    ws.onerror = () => ws.close();
+  }
+
+  // Fetch live temps immediately via REST, then maintain WS for updates
   refreshLiveTemps();
-  setInterval(refreshLiveTemps, 60000);
+  connectTempWS();
+  // Fallback REST poll every 5 min in case WS drops
+  setInterval(refreshLiveTemps, 300000);
 
   // ── URL params ──────────────────────────────────────
   const params     = new URLSearchParams(location.search);

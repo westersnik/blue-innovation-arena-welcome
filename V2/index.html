@@ -801,7 +801,9 @@
     // ── SmartPallet Bifrost API ──────────────────────────
     // Devices: SR-Tracker-09, SR-Tracker-03
     // CORS enabled – works directly from GitHub Pages
-    const SMARTPALLET_API = 'https://smartpallet.iotpallet.no/api/public/devices';
+    // SmartPallet API — preview URL (live data)
+    // Production: https://smartpallet.iotpallet.no/api/public/devices
+    const SMARTPALLET_API = 'https://iot-logistics-flow.preview.emergentagent.com/api/public/devices';
     const SMARTPALLET_KEY = 'gs1-nordic-2026';
     // Assign tracker based on bottle number (odd → 09, even → 03)
     function trackerForBottle(num) {
