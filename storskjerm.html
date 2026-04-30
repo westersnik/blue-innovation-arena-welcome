@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GS1 Nordic Summit – Pant-display</title>
+  <title>GS1 Nordic Summit – Recycling Display</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet" />
@@ -258,81 +258,91 @@
     </div>
     <div class="live-pill" id="live-pill">
       <span class="live-dot demo" id="live-dot"></span>
-      <span id="live-label">Demo-modus</span>
+      <span id="live-label">Demo mode</span>
     </div>
   </header>
 
   <!-- Counter grid -->
   <div class="counter-grid">
     <div class="counter-card gold">
-      <div class="counter-label">Registrerte drikkere</div>
+      <div class="counter-label">Registered Drinkers</div>
       <div class="counter-value gold" id="cnt-registered">0</div>
-      <div class="counter-sub">Skannet QR-kode</div>
+      <div class="counter-sub">Scanned QR code</div>
     </div>
     <div class="counter-card green">
-      <div class="counter-label">Pantet flasker</div>
+      <div class="counter-label">Recycled Bottles</div>
       <div class="counter-value green" id="cnt-panted">0</div>
-      <div class="counter-sub">Lest av RFID-leser</div>
+      <div class="counter-sub">Read by RFID reader</div>
     </div>
     <div class="counter-card amber">
-      <div class="counter-label">Unike flasker skannet</div>
+      <div class="counter-label">Unique Bottles Scanned</div>
       <div class="counter-value amber" id="cnt-unique">0</div>
-      <div class="counter-sub">Av 300 totalt</div>
+      <div class="counter-sub">Of 300 total</div>
     </div>
     <div class="counter-card blue">
-      <div class="counter-label">Pant-rate</div>
+      <div class="counter-label">Recycle Rate</div>
       <div class="counter-value blue" id="cnt-rate">0%</div>
-      <div class="counter-sub">Registrert → pantet</div>
+      <div class="counter-sub">Registered → recycled</div>
     </div>
   </div>
 
   <!-- Progress bar -->
   <div class="progress-wrap">
     <div class="progress-header">
-      <span class="progress-title">🍺 Pant-fremgang – GS1 Nordic Summit 2025</span>
+      <span class="progress-title">🍺 Recycling Progress – GS1 Nordic Summit 2025</span>
       <span class="progress-pct" id="pant-pct">0%</span>
     </div>
     <div class="progress-track">
       <div class="progress-fill" id="pant-fill" style="width:0%"></div>
     </div>
     <div class="progress-labels">
-      <span id="pant-left">0 flasker pantet</span>
-      <span id="pant-right">0 av 300 flasker pantet</span>
+      <span id="pant-left">0 bottles recycled</span>
+      <span id="pant-right">0 of 300 bottles recycled</span>
     </div>
   </div>
 
   <!-- Recent pant feed -->
   <div class="feed-wrap">
     <div class="feed-header">
-      <div class="feed-title">♻️ Nylig pantet</div>
-      <span class="feed-count" id="feed-count">0 i dag</span>
+      <div class="feed-title">♻️ Recently Recycled</div>
+      <span class="feed-count" id="feed-count">0 today</span>
     </div>
     <div class="feed-body" id="feed-body">
-      <div class="feed-empty">Ingen flasker pantet ennå – kast din flaske i beholderen!</div>
+      <div class="feed-empty">No bottles recycled yet – drop your bottle in the bin!</div>
+    </div>
+  </div>
+
+  <!-- Live temperature strip (SmartPallet) -->
+  <div id="temp-strip" style="display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border-dim);border-radius:12px;padding:10px 20px;flex-shrink:0;">
+    <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Live Temperature</span>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span style="font-size:13px;color:var(--text);">SR-Tracker-09: <strong id="temp-09" style="color:var(--blue);">--</strong></span>
+      <span style="font-size:13px;color:var(--text);">SR-Tracker-03: <strong id="temp-03" style="color:var(--blue);">--</strong></span>
+      <span style="font-size:11px;color:var(--muted);" id="temp-updated"></span>
     </div>
   </div>
 
   <!-- Footer -->
   <footer>
     <img src="V2/img/invig-logo.png" alt="Invig" />
-    <span>Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> · GS1 Digital Link · Keonn AdvanReader</span>
+    <span>Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> · GS1 Digital Link · Keonn AdvanReader · SmartPallet</span>
   </footer>
 
 </div>
 
 <script>
   /* =====================================================
-     Storskjerm – Pant-display
-     Leser data fra:
-       1. localStorage (gs1ns_users, gs1ns_bottle_*) – QR-registreringer
-       2. Keonn AdvanReader REST API – RFID-panting
-       3. V2/bottles.json – EPC/GIAI-mapping
+     Reads data from:
+       1. localStorage (gs1ns_users, gs1ns_bottle_*) – QR registrations
+       2. Keonn AdvanReader REST API – RFID recycling
+       3. V2/bottles.json – EPC/GIAI mapping
+       4. SmartPallet Bifrost API – live temperature (SR-Tracker-09, SR-Tracker-03)
      
-     Konfigurer RFID-leser via URL-parameter:
+     Configure RFID reader via URL parameter:
        storskjerm.html?reader=192.168.1.100&interval=3
      
-     Demo-modus aktiveres automatisk hvis ingen reader-IP er satt.
-  ===================================================== */
+     Demo mode activates automatically if no reader IP is set.
+  =====================================================
 
   let bottleMap   = new Map(); // epc → {giai, num}
   let giaiMap     = new Map(); // giai → {epc, num}
@@ -341,6 +351,46 @@
   let rfidEvents  = [];
   let demoTimer   = null;
   let demoIdx     = 0;
+
+  // ── SmartPallet live temperature ──────────────────────
+  const SP_API = 'https://smartpallet.iotpallet.no/api/public/devices';
+  const SP_KEY = 'gs1-nordic-2026';
+  async function fetchLiveTemp(device) {
+    try {
+      const r = await fetch(`${SP_API}/${device}/telemetry/latest?api_key=${SP_KEY}`,
+        { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }
+  function tempColor(t) {
+    if (t <= 6) return 'var(--green)';
+    if (t <= 8) return 'var(--amber)';
+    return '#e63946';
+  }
+  async function refreshLiveTemps() {
+    const [d09, d03] = await Promise.all([
+      fetchLiveTemp('SR-Tracker-09'),
+      fetchLiveTemp('SR-Tracker-03')
+    ]);
+    if (d09) {
+      const el = document.getElementById('temp-09');
+      el.textContent = d09.temperature.toFixed(1) + '°C';
+      el.style.color = tempColor(d09.temperature);
+    }
+    if (d03) {
+      const el = document.getElementById('temp-03');
+      el.textContent = d03.temperature.toFixed(1) + '°C';
+      el.style.color = tempColor(d03.temperature);
+    }
+    if (d09 || d03) {
+      document.getElementById('temp-updated').textContent =
+        'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+  // Fetch live temps immediately and then every 60s
+  refreshLiveTemps();
+  setInterval(refreshLiveTemps, 60000);
 
   // ── URL params ──────────────────────────────────────
   const params     = new URLSearchParams(location.search);

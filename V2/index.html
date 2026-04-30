@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>GS1 Nordic Summit – Din Carlsberg</title>
-  <meta name="description" content="Du har skannet en unik Carlsberg-flaske på GS1 Nordic Summit. Se dens reise, temperaturlogg og hvem som drakk den." />
+  <title>GS1 Nordic Summit – Your Carlsberg</title>
+  <meta name="description" content="You have scanned a unique Carlsberg bottle at GS1 Nordic Summit. See its journey, temperature log, and who drank it." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"><\/script>
   <style>
     /* =====================================================
        GS1 Nordic Summit V2 – Invig Brand Edition
@@ -21,7 +24,9 @@
          --charcoal:    #1C1F17  (near-black background)
         DB: localStorage key "gs1ns_users" → {phone: {name, company, bottles:[]}}
            localStorage key "gs1ns_bottle_{giai}" → [{phone, name, company, ts}]
-       API: https://iotpallet.no/api/track/{sscc} (public, no auth)
+       API: SmartPallet Bifrost — https://smartpallet.iotpallet.no/api/public/devices/{name}/telemetry
+       Devices: SR-Tracker-09 (31 readings), SR-Tracker-03 (33 readings)
+       API key: gs1-nordic-2026
        GIAI range: 70735390001–70735390400
        ===================================================== */
 
@@ -458,42 +463,43 @@
     <div class="action-grid fade-2">
       <button class="action-btn highlight" onclick="togglePanel('panel-journey')">
         <span class="ab-icon">🗺️</span>
-        <span class="ab-label">Se reisen</span>
-        <span class="ab-sub">Fra bryggeri til deg</span>
+        <span class="ab-label">See the Journey</span>
+        <span class="ab-sub">From brewery to you</span>
       </button>
       <button class="action-btn" onclick="togglePanel('panel-temp')">
         <span class="ab-icon">🌡️</span>
-        <span class="ab-label">Temperaturlogg</span>
-        <span class="ab-sub">Hele kjølehistorikken</span>
+        <span class="ab-label">Temperature Log</span>
+        <span class="ab-sub">Full cold chain history</span>
       </button>
       <button class="action-btn" onclick="togglePanel('panel-drinkers')">
         <span class="ab-icon">🍺</span>
-        <span class="ab-label">Hvem drakk den?</span>
-        <span class="ab-sub">Registrerte drikkere</span>
+        <span class="ab-label">Who Drank It?</span>
+        <span class="ab-sub">Registered drinkers</span>
       </button>
       <button class="action-btn" onclick="togglePanel('panel-product')">
         <span class="ab-icon">ℹ️</span>
-        <span class="ab-label">Om produktet</span>
+        <span class="ab-label">About the Product</span>
         <span class="ab-sub">Carlsberg Pilsner</span>
       </button>
     </div>
 
-    <!-- Panel: Journey (with IOTpallet API map) -->
+    <!-- Panel: Journey (with SmartPallet live map) -->
     <div class="panel fade-3" id="panel-journey">
       <div class="panel-header" onclick="togglePanel('panel-journey')">
-        <h3>🗺️ Flaskens reise</h3>
+        <h3>🗺️ Bottle Journey</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
-        <div class="api-badge">📡 Live data · IOTpallet.no API</div>
+        <div class="api-badge">📡 Live data · SmartPallet API</div>
         <div class="map-container" id="map-container">
           <div class="map-loading" id="map-loading">
             <div style="font-size:24px;margin-bottom:6px;">🌍</div>
-            <div>Henter kartdata…</div>
+            <div>Loading map data…</div>
           </div>
           <img class="map-img" id="map-img" src="img/journey-map.jpg" alt="Reisekart" style="display:none;" />
         </div>
         <div id="api-status" style="font-size:11px;color:var(--muted);margin-bottom:12px;display:none;"></div>
+        <div id="leaflet-map" style="width:100%;height:240px;border-radius:var(--radius-sm);overflow:hidden;margin-bottom:14px;display:none;"></div>
         <div class="journey-steps" id="journey-steps"></div>
       </div>
     </div>
@@ -501,14 +507,14 @@
     <!-- Panel: Temperature log -->
     <div class="panel fade-3" id="panel-temp">
       <div class="panel-header" onclick="togglePanel('panel-temp')">
-        <h3>🌡️ Temperaturlogg</h3>
+        <h3>🌡️ Temperature Log</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
-        <img src="img/temp-chart.jpg" alt="Temperaturkurve" class="temp-log-img" />
+        <canvas id="temp-chart-canvas" style="width:100%;max-height:180px;margin-bottom:14px;"></canvas>
         <table class="temp-log-table">
           <thead>
-            <tr><th>Tidspunkt</th><th>Lokasjon</th><th>Temp</th><th>Status</th></tr>
+            <tr><th>Time</th><th>Location</th><th>Temp</th><th>Status</th></tr>
           </thead>
           <tbody id="temp-log-body"></tbody>
         </table>
@@ -518,23 +524,23 @@
     <!-- Panel: Drinkers -->
     <div class="panel fade-3" id="panel-drinkers">
       <div class="panel-header" onclick="togglePanel('panel-drinkers')">
-        <h3>🍺 Hvem drakk den?</h3>
+        <h3>🍺 Who Drank It?</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
         <div class="drinker-header">
           <div>
             <div class="drinker-count" id="drinker-count">0</div>
-            <div class="drinker-label">registrerte drikkere</div>
+            <div class="drinker-label">registered drinkers</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:20px;font-weight:700;color:var(--muted)">/ 400</div>
-            <div class="drinker-label">flasker totalt</div>
+            <div class="drinker-label">bottles total</div>
           </div>
         </div>
         <div class="progress-wrap">
           <div class="progress-label">
-            <span>Skannet på eventet</span>
+            <span>Scanned at event</span>
             <span id="progress-pct">0%</span>
           </div>
           <div class="progress-track">
@@ -543,7 +549,7 @@
         </div>
         <div class="drinker-list" id="drinker-list"></div>
         <button class="btn-primary" style="margin-top:14px;" onclick="togglePanel('panel-register')">
-          + Registrer meg som drikker
+          + Register as a drinker
         </button>
       </div>
     </div>
@@ -551,7 +557,7 @@
     <!-- Panel: Register (phone-first flow) -->
     <div class="panel fade-3" id="panel-register">
       <div class="panel-header" onclick="togglePanel('panel-register')">
-        <h3>✍️ Registrer deg</h3>
+        <h3>✍️ Register</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
@@ -650,7 +656,7 @@
     <p>
       <strong style="color:var(--olive-light)">GS1 Nordic Summit 2025</strong><br />
       Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> ·
-      <a href="https://iotpallet.no" target="_blank">IOTpallet.no</a> ·
+      <a href="https://smartpallet.iotpallet.no" target="_blank">SmartPallet</a> ·
       <a href="https://gs1.no" target="_blank">GS1 Norway</a><br />
       <a href="mailto:sales@invig.no">sales@invig.no</a>
     </p>
@@ -792,69 +798,115 @@
       return list;
     }
 
-    // ── IOTpallet.no API ─────────────────────────────────
-    // Public endpoint: GET /api/track/{sscc}
-    // We use the GIAI as the SSCC for demo purposes.
-    async function fetchJourneyFromAPI(giai) {
+    // ── SmartPallet Bifrost API ──────────────────────────
+    // Devices: SR-Tracker-09, SR-Tracker-03
+    // CORS enabled – works directly from GitHub Pages
+    const SMARTPALLET_API = 'https://smartpallet.iotpallet.no/api/public/devices';
+    const SMARTPALLET_KEY = 'gs1-nordic-2026';
+    // Assign tracker based on bottle number (odd → 09, even → 03)
+    function trackerForBottle(num) {
+      return num % 2 === 1 ? 'SR-Tracker-09' : 'SR-Tracker-03';
+    }
+    async function fetchSmartPalletTelemetry(deviceName, hours = 168) {
       try {
-        const resp = await fetch(`https://iotpallet.no/api/track/${giai}`, {
-          headers: { 'Accept': 'application/json' },
-          signal: AbortSignal.timeout(5000)
-        });
+        const resp = await fetch(
+          `${SMARTPALLET_API}/${deviceName}/telemetry?hours=${hours}&api_key=${SMARTPALLET_KEY}`,
+          { signal: AbortSignal.timeout(8000) }
+        );
         if (!resp.ok) return null;
         return await resp.json();
       } catch { return null; }
     }
+    async function fetchSmartPalletLatest(deviceName) {
+      try {
+        const resp = await fetch(
+          `${SMARTPALLET_API}/${deviceName}/telemetry/latest?api_key=${SMARTPALLET_KEY}`,
+          { signal: AbortSignal.timeout(5000) }
+        );
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch { return null; }
+    }
+    let _leafletMap = null;
+    let _tempChart  = null;
 
     const JOURNEY_STEPS = [
-      { icon: '🏭', title: 'Carlsberg Bryggeri', meta: 'Fredericia, Danmark · 12. mai 2025', temp: '2.0°C', done: true },
-      { icon: '❄️', title: 'Kjølelager Kastrup', meta: 'København Lufthavn · 14. mai 2025', temp: '3.1°C', done: true },
-      { icon: '🚢', title: 'Distribusjonssenter Oslo', meta: 'Alnabru, Oslo · 16. mai 2025', temp: '3.8°C', done: true },
-      { icon: '🚛', title: 'Kjøletransport E6', meta: 'Oslo → Venue · 19. mai 2025', temp: '4.2°C', done: true },
-      { icon: '🏨', title: 'Venue kjølerom', meta: 'GS1 Nordic Summit, Oslo · 20. mai 2025', temp: '4.0°C', active: true },
-      { icon: '🍺', title: 'Utlevert til deg', meta: 'GS1 Nordic Summit · Nå', temp: null, done: false },
+      { icon: '🏭', title: 'Carlsberg Brewery', meta: 'Fredericia, Denmark · 12 May 2025', temp: '2.0°C', done: true },
+      { icon: '❄️', title: 'Cold Storage Kastrup', meta: 'Copenhagen Airport · 14 May 2025', temp: '3.1°C', done: true },
+      { icon: '🚢', title: 'Distribution Centre Oslo', meta: 'Alnabru, Oslo · 16 May 2025', temp: '3.8°C', done: true },
+      { icon: '🚛', title: 'Refrigerated Transport E6', meta: 'Oslo → Venue · 19 May 2025', temp: '4.2°C', done: true },
+      { icon: '🏨', title: 'Venue Cold Room', meta: 'GS1 Nordic Summit, Oslo · 20 May 2025', temp: '4.0°C', active: true },
+      { icon: '🍺', title: 'Handed to you', meta: 'GS1 Nordic Summit · Now', temp: null, done: false },
     ];
 
-    // ── Render journey panel ─────────────────────────────
+    // ── Render journey panel (SmartPallet Bifrost) ──────────
     async function renderJourney(giai) {
-      const stepsEl = document.getElementById('journey-steps');
-      const mapImg  = document.getElementById('map-img');
-      const mapLoad = document.getElementById('map-loading');
-      const apiStat = document.getElementById('api-status');
+      const stepsEl  = document.getElementById('journey-steps');
+      const mapLoad  = document.getElementById('map-loading');
+      const mapImg   = document.getElementById('map-img');
+      const apiStat  = document.getElementById('api-status');
+      const leafletEl = document.getElementById('leaflet-map');
+      const num      = bottleNumber(giai);
+      const device   = trackerForBottle(num || 1);
 
-      // Try live API first
-      const apiData = await fetchJourneyFromAPI(giai);
+      // Fetch live telemetry
+      const data = await fetchSmartPalletTelemetry(device);
 
-      if (apiData && apiData.route && apiData.route.length > 0) {
-        // Live API data available
-        mapLoad.style.display = 'none';
-        mapImg.style.display  = 'block';
-        apiStat.style.display = 'block';
-        apiStat.innerHTML = `✅ Live data fra IOTpallet.no · Sist oppdatert: ${new Date().toLocaleTimeString('no-NO')}`;
+      mapLoad.style.display = 'none';
+      apiStat.style.display = 'block';
 
-        apiData.route.forEach((point, i) => {
-          const isLast = i === apiData.route.length - 1;
-          const dotClass = point.status === 'completed' ? 'done' : point.status === 'active' ? 'active' : 'future';
+      if (data && data.journey && data.journey.length > 0) {
+        // ── Live data ──
+        apiStat.innerHTML = `✅ Live data · ${device} · Updated: ${new Date().toLocaleTimeString('en-GB')}`;
+        mapImg.style.display = 'none';
+
+        // Leaflet map
+        const geoPoints = data.journey.filter(j => j.latitude && j.longitude);
+        if (geoPoints.length > 0 && typeof L !== 'undefined') {
+          leafletEl.style.display = 'block';
+          if (!_leafletMap) {
+            _leafletMap = L.map('leaflet-map').setView([data.location.lat, data.location.lon], 9);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap'
+            }).addTo(_leafletMap);
+          } else {
+            _leafletMap.setView([data.location.lat, data.location.lon], 9);
+          }
+          const coords = geoPoints.map(j => [j.latitude, j.longitude]);
+          L.polyline(coords, { color: '#B5A23A', weight: 3, opacity: 0.85 }).addTo(_leafletMap);
+          L.marker([data.location.lat, data.location.lon])
+            .addTo(_leafletMap)
+            .bindPopup(`<b>${device}</b><br>${data.temperature.current}°C`);
+          // Fix map size after panel opens
+          setTimeout(() => _leafletMap.invalidateSize(), 200);
+        }
+
+        // Journey steps from telemetry readings
+        const step = Math.max(1, Math.floor(data.journey.length / 5));
+        const sampled = data.journey.filter((_, i) => i % step === 0).slice(0, 6);
+        sampled.forEach((j, i) => {
+          const isLast = i === sampled.length - 1;
+          const ts = new Date(j.timestamp).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+          const lat = j.latitude ? j.latitude.toFixed(4) : null;
+          const lon = j.longitude ? j.longitude.toFixed(4) : null;
+          const locStr = lat ? `${lat}, ${lon}` : device;
           stepsEl.innerHTML += `
             <div class="j-step">
               <div class="j-left">
-                <div class="j-dot ${dotClass}">📍</div>
+                <div class="j-dot ${isLast ? 'active' : 'done'}">📍</div>
                 ${!isLast ? '<div class="j-line"></div>' : ''}
               </div>
               <div class="j-body">
-                <div class="j-title">${point.location || point.name || 'Ukjent lokasjon'}</div>
-                <div class="j-meta">${point.timestamp ? new Date(point.timestamp).toLocaleString('no-NO') : ''}</div>
-                ${point.temperature != null ? `<span class="j-temp">🌡 ${point.temperature}°C</span>` : ''}
+                <div class="j-title">${locStr}</div>
+                <div class="j-meta">${ts} · Battery ${j.battery_level ? j.battery_level.toFixed(0) : '?'}%</div>
+                <span class="j-temp">🌡 ${j.temperature.toFixed(1)}°C</span>
               </div>
             </div>`;
         });
       } else {
-        // Fallback to mock data
-        mapLoad.style.display = 'none';
+        // ── Fallback demo data ──
         mapImg.style.display  = 'block';
-        apiStat.style.display = 'block';
-        apiStat.innerHTML = `ℹ️ Demo-data · Kobles til IOTpallet.no API ved live event`;
-
+        apiStat.innerHTML = `ℹ️ Demo data · Live tracker connects at event`;
         JOURNEY_STEPS.forEach((s, i) => {
           const isLast = i === JOURNEY_STEPS.length - 1;
           const dotClass = s.done ? 'done' : s.active ? 'active' : 'future';
@@ -871,6 +923,70 @@
               </div>
             </div>`;
         });
+      }
+    }
+
+    // ── Render temperature chart (SmartPallet Bifrost) ───────
+    async function renderTempChart(giai) {
+      const num    = bottleNumber(giai);
+      const device = trackerForBottle(num || 1);
+      const data   = await fetchSmartPalletTelemetry(device);
+
+      if (data && data.journey && data.journey.length > 0) {
+        // Destroy old chart if exists
+        if (_tempChart) { _tempChart.destroy(); _tempChart = null; }
+
+        const labels = data.journey.map(j =>
+          new Date(j.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        );
+        const temps = data.journey.map(j => j.temperature);
+
+        const ctx = document.getElementById('temp-chart-canvas').getContext('2d');
+        _tempChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Temperature (°C)',
+              data: temps,
+              borderColor: '#B5A23A',
+              backgroundColor: 'rgba(181,162,58,0.08)',
+              tension: 0.3,
+              pointRadius: 2,
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { color: '#8A9070', maxTicksLimit: 6 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+              y: { ticks: { color: '#8A9070', callback: v => v + '°C' }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: false }
+            }
+          }
+        });
+
+        // Fill table with live readings (last 10)
+        const tbody = document.getElementById('temp-log-body');
+        tbody.innerHTML = '';
+        const recent = data.journey.slice(-10).reverse();
+        recent.forEach(j => {
+          const ts  = new Date(j.timestamp).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+          const ok  = j.temperature <= 6;
+          const warn = j.temperature <= 8;
+          const cls = ok ? 't-ok' : warn ? 't-warn' : 't-hot';
+          const lbl = ok ? '✓ OK' : warn ? '⚠ Warm' : '✗ Too hot';
+          tbody.innerHTML += `<tr><td>${ts}</td><td>${device}</td><td class="${cls}">${j.temperature.toFixed(1)}°C</td><td class="${cls}">${lbl}</td></tr>`;
+        });
+
+        // Update hero temperature badge with live value
+        const cur = data.temperature.current;
+        document.getElementById('temp-val').textContent = cur.toFixed(1);
+        document.getElementById('temp-bar').style.width = Math.min(100, (cur / 12) * 100) + '%';
+        const statusEl = document.getElementById('temp-status');
+        if (cur <= 6)      { statusEl.textContent = '✓ Perfect'; statusEl.className = 'temp-status temp-ok'; }
+        else if (cur <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
+        else               { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
       }
     }
 
@@ -950,25 +1066,17 @@
 
       if (!num) return;
 
-      // Temperature
+      // Temperature – seed with deterministic value; live API updates it async
       const temp = genTemp(num);
       document.getElementById('temp-val').textContent = temp.toFixed(1);
       document.getElementById('temp-bar').style.width = Math.min(100, (temp / 12) * 100) + '%';
       const statusEl = document.getElementById('temp-status');
-      if (temp <= 6)      { statusEl.textContent = '✓ Perfekt'; statusEl.className = 'temp-status temp-ok'; }
-      else if (temp <= 8) { statusEl.textContent = '⚠ Litt varm'; statusEl.className = 'temp-status temp-warn'; }
-      else                { statusEl.textContent = '✗ For varm'; statusEl.className = 'temp-status temp-hot'; }
+      if (temp <= 6)      { statusEl.textContent = '✓ Perfect'; statusEl.className = 'temp-status temp-ok'; }
+      else if (temp <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
+      else                { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
 
-      // Temp log
-      const logRows = genTempLog(num);
-      const tbody = document.getElementById('temp-log-body');
-      logRows.forEach(row => {
-        tbody.innerHTML += `<tr>
-          <td>${row.time}</td><td>${row.loc}</td>
-          <td class="${row.ok?'t-ok':'t-warn'}">${row.temp}°C</td>
-          <td class="${row.ok?'t-ok':'t-warn'}">${row.ok?'✓ OK':'⚠ Høy'}</td>
-        </tr>`;
-      });
+      // Fetch live temperature in background and update hero badge + chart
+      renderTempChart(giai);
 
       // Drinkers
       renderDrinkers(giai, num);
@@ -977,12 +1085,22 @@
       updateMyBeerStrip();
 
       // Journey (async – loads when panel opens)
-      document.getElementById('panel-journey').addEventListener('click', function onFirstOpen() {
-        if (document.getElementById('journey-steps').innerHTML === '') {
+      let journeyLoaded = false;
+      document.getElementById('panel-journey').addEventListener('click', function() {
+        if (!journeyLoaded) {
+          journeyLoaded = true;
           renderJourney(giai);
         }
-        this.removeEventListener('click', onFirstOpen);
-      }, { once: false });
+      });
+
+      // Temperature chart (async – loads when panel opens)
+      let tempChartLoaded = false;
+      document.getElementById('panel-temp').addEventListener('click', function() {
+        if (!tempChartLoaded) {
+          tempChartLoaded = true;
+          // Chart already loaded by renderTempChart above; just ensure table is populated
+        }
+      });
     }
 
     // ── Panel toggle ─────────────────────────────────────
