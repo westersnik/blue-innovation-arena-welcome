@@ -404,20 +404,20 @@
     <img class="header-logo-img" src="img/invig-logo.png" alt="Invig" />
     <div class="header-right">
       <span class="event-tag">GS1 Nordic Summit</span>
-      <div class="bottle-badge" id="header-bottle-num">Flaske #—</div>
+          <div class="bottle-badge" id="header-bottle-num">Bottle #—</div>
     </div>
   </header>
 
   <!-- Hero -->
   <div class="hero">
-    <img class="hero-img" src="img/hero-bottle.jpg" alt="Carlsberg flaske" />
+    <img class="hero-img" src="img/hero-bottle.jpg" alt="Carlsberg bottle" />
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="scan-badge">
         <span class="scan-dot"></span>
-        <span>Tag skannet</span>
+          <span>Tag scanned</span>
       </div>
-      <h1 class="hero-title">Du har skannet<br><em id="hero-bottle-label">Flaske #—</em></h1>
+      <h1 class="hero-title">You scanned<br><em id="hero-bottle-label">Bottle #—</em></h1>
       <p class="hero-sub" id="hero-sub">Carlsberg Pilsner · GS1 Nordic Summit 2025</p>
     </div>
   </div>
@@ -429,18 +429,18 @@
       <div class="my-beer-icon">🍺</div>
       <div class="my-beer-info">
         <div class="my-beer-name" id="my-beer-name">—</div>
-        <div class="my-beer-sub" id="my-beer-sub">Dine registrerte flasker</div>
+        <div class="my-beer-sub" id="my-beer-sub">Your registered bottles</div>
       </div>
       <div>
         <div class="my-beer-count" id="my-beer-count">0</div>
-        <div class="my-beer-count-label">flasker</div>
+        <div class="my-beer-count-label">bottles</div>
       </div>
     </div>
 
     <!-- Temperature strip -->
     <div class="temp-strip fade-1">
       <div>
-        <div class="temp-label">Temperatur nå</div>
+        <div class="temp-label">Temperature now</div>
         <div class="temp-main">
           <span class="temp-val" id="temp-val">4.2</span>
           <span class="temp-unit">°C</span>
@@ -455,7 +455,7 @@
       </div>
       <div class="temp-meta">
         <div class="temp-label">Status</div>
-        <div class="temp-status temp-ok" id="temp-status">✓ Perfekt</div>
+        <div class="temp-status temp-ok" id="temp-status">✓ Perfect</div>
       </div>
     </div>
 
@@ -567,13 +567,13 @@
             <!-- Step 1: Enter phone -->
             <div class="flow-step active" id="step-phone">
               <div>
-                <label class="form-label" for="reg-phone">Ditt mobilnummer</label>
+                <label class="form-label" for="reg-phone">Your mobile number</label>
                 <input class="form-input phone-input" id="reg-phone" type="tel"
                   placeholder="+47 000 00 000" autocomplete="tel"
                   oninput="formatPhone(this)" />
               </div>
-              <button class="btn-primary" onclick="checkPhone()">Fortsett →</button>
-              <p class="flow-hint">Vi bruker mobilnummeret ditt til å koble alle flaskene du skannet på eventet.</p>
+              <button class="btn-primary" onclick="checkPhone()">Continue →</button>
+              <p class="flow-hint">We use your mobile number to link all the bottles you scan at the event.</p>
             </div>
 
             <!-- Step 2a: Returning user – one-click confirm -->
@@ -582,26 +582,26 @@
                 <div class="returning-name" id="ret-name">—</div>
                 <div class="returning-meta" id="ret-meta">—</div>
                 <div class="returning-bottles">
-                  Du har allerede registrert <strong id="ret-count">0</strong> flaske(r) på dette eventet.
+                  You have already registered <strong id="ret-count">0</strong> bottle(s) at this event.
                   <div id="ret-bottle-list" style="margin-top:6px;font-size:11px;color:var(--muted);"></div>
                 </div>
               </div>
-              <button class="btn-primary" onclick="confirmReturning()">🍺 Legg til denne flasken</button>
-              <button class="btn-secondary" onclick="goStep('step-phone')">← Bruk annet nummer</button>
+              <button class="btn-primary" onclick="confirmReturning()">🍺 Add this bottle</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Use a different number</button>
             </div>
 
             <!-- Step 2b: New user – full registration -->
             <div class="flow-step" id="step-new">
               <div>
-                <label class="form-label" for="reg-name">Fullt navn</label>
+                <label class="form-label" for="reg-name">Full name</label>
                 <input class="form-input" id="reg-name" type="text" placeholder="Ola Nordmann" autocomplete="name" />
               </div>
               <div>
-                <label class="form-label" for="reg-company">Selskap / organisasjon</label>
+                <label class="form-label" for="reg-company">Company / organisation</label>
                 <input class="form-input" id="reg-company" type="text" placeholder="Invig AS" autocomplete="organization" />
               </div>
-              <button class="btn-primary" onclick="registerNew()">🍺 Registrer min flaske</button>
-              <button class="btn-secondary" onclick="goStep('step-phone')">← Tilbake</button>
+              <button class="btn-primary" onclick="registerNew()">🍺 Register my bottle</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Back</button>
             </div>
 
           </div>
@@ -610,8 +610,8 @@
         <!-- Success state -->
         <div class="register-success" id="register-success">
           <div class="rs-icon">🎉</div>
-          <h4>Registrert!</h4>
-          <p id="register-success-msg">Flaske #— er koblet til deg.</p>
+          <h4>Registered!</h4>
+          <p id="register-success-msg">Bottle #— has been linked to you.</p>
         </div>
       </div>
     </div>
@@ -624,17 +624,17 @@
       </div>
       <div class="panel-body">
         <div class="product-specs">
-          <div class="spec-row"><span class="spec-key">Produkt</span><span class="spec-value">Carlsberg Pilsner</span></div>
-          <div class="spec-row"><span class="spec-key">Produsent</span><span class="spec-value">Carlsberg Danmark A/S</span></div>
-          <div class="spec-row"><span class="spec-key">Volum</span><span class="spec-value">330 ml</span></div>
-          <div class="spec-row"><span class="spec-key">Alkohol</span><span class="spec-value">5.0% ABV</span></div>
-          <div class="spec-row"><span class="spec-key">Øltype</span><span class="spec-value">Lager / Pilsner</span></div>
-          <div class="spec-row"><span class="spec-key">Optimal serveringstemp.</span><span class="spec-value">3–6 °C</span></div>
+          <div class="spec-row"><span class="spec-key">Product</span><span class="spec-value">Carlsberg Pilsner</span></div>
+          <div class="spec-row"><span class="spec-key">Producer</span><span class="spec-value">Carlsberg Danmark A/S</span></div>
+          <div class="spec-row"><span class="spec-key">Volume</span><span class="spec-value">330 ml</span></div>
+          <div class="spec-row"><span class="spec-key">Alcohol</span><span class="spec-value">5.0% ABV</span></div>
+          <div class="spec-row"><span class="spec-key">Beer type</span><span class="spec-value">Lager / Pilsner</span></div>
+          <div class="spec-row"><span class="spec-key">Optimal serving temp.</span><span class="spec-value">3–6 °C</span></div>
           <div class="spec-row"><span class="spec-key">Batch</span><span class="spec-value">GS1-NS-2025-B1</span></div>
-          <div class="spec-row"><span class="spec-key">Produksjonsdato</span><span class="spec-value">12. mai 2025</span></div>
-          <div class="spec-row"><span class="spec-key">Best før</span><span class="spec-value">12. november 2025</span></div>
+          <div class="spec-row"><span class="spec-key">Production date</span><span class="spec-value">12 May 2025</span></div>
+          <div class="spec-row"><span class="spec-key">Best before</span><span class="spec-value">12 November 2025</span></div>
           <div class="spec-row"><span class="spec-key">GTIN</span><span class="spec-value giai-mono">05700050000018</span></div>
-          <div class="spec-row"><span class="spec-key">GIAI (denne flasken)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
+          <div class="spec-row"><span class="spec-key">GIAI (this bottle)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
         </div>
       </div>
     </div>
@@ -642,8 +642,8 @@
     <!-- GIAI identity box -->
     <div class="giai-box fade-5">
       <div class="giai-title">📡 GS1 Digital Link · GIAI</div>
-      <div class="giai-row"><span class="k">Invig GCP-prefiks</span><span class="v">7073539</span></div>
-      <div class="giai-row"><span class="k">Flaske-referanse</span><span class="v" id="giai-ref">—</span></div>
+      <div class="giai-row"><span class="k">Invig GCP prefix</span><span class="v">7073539</span></div>
+      <div class="giai-row"><span class="k">Bottle reference</span><span class="v" id="giai-ref">—</span></div>
       <div class="giai-row"><span class="k">Full GIAI</span><span class="v" id="giai-full">—</span></div>
       <div class="giai-row"><span class="k">GS1 AI</span><span class="v">(8004) <span id="giai-ai">—</span></span></div>
       <div class="giai-row"><span class="k">Resolver</span><span class="v" id="giai-resolver">id.invig.no/8004/…</span></div>
@@ -805,19 +805,32 @@
     // Production: https://smartpallet.iotpallet.no/api/public/devices
     const SMARTPALLET_API = 'https://iot-logistics-flow.preview.emergentagent.com/api/public/devices';
     const SMARTPALLET_KEY = 'gs1-nordic-2026';
+    // Static cache files (loaded instantly, refreshed in background)
+    const CACHE_09 = 'data/tracker-09.json';
+    const CACHE_03 = 'data/tracker-03.json';
     // Assign tracker based on bottle number (odd → 09, even → 03)
     function trackerForBottle(num) {
       return num % 2 === 1 ? 'SR-Tracker-09' : 'SR-Tracker-03';
     }
+    function cacheForTracker(deviceName) {
+      return deviceName === 'SR-Tracker-09' ? CACHE_09 : CACHE_03;
+    }
     async function fetchSmartPalletTelemetry(deviceName, hours = 168) {
+      // 1. Try cache first for instant render
+      let cached = null;
+      try {
+        const cr = await fetch(cacheForTracker(deviceName));
+        if (cr.ok) cached = await cr.json();
+      } catch {}
+      // 2. Try live API (background refresh)
       try {
         const resp = await fetch(
           `${SMARTPALLET_API}/${deviceName}/telemetry?hours=${hours}&api_key=${SMARTPALLET_KEY}`,
           { signal: AbortSignal.timeout(8000) }
         );
-        if (!resp.ok) return null;
-        return await resp.json();
-      } catch { return null; }
+        if (resp.ok) return await resp.json();
+      } catch {}
+      return cached;
     }
     async function fetchSmartPalletLatest(deviceName) {
       try {
@@ -825,9 +838,14 @@
           `${SMARTPALLET_API}/${deviceName}/telemetry/latest?api_key=${SMARTPALLET_KEY}`,
           { signal: AbortSignal.timeout(5000) }
         );
-        if (!resp.ok) return null;
-        return await resp.json();
-      } catch { return null; }
+        if (resp.ok) return await resp.json();
+      } catch {}
+      // Fallback to cache
+      try {
+        const cr = await fetch(cacheForTracker(deviceName));
+        if (cr.ok) { const d = await cr.json(); return d; }
+      } catch {}
+      return null;
     }
     let _leafletMap = null;
     let _tempChart  = null;
@@ -851,47 +869,66 @@
       const num      = bottleNumber(giai);
       const device   = trackerForBottle(num || 1);
 
-      // Fetch live telemetry
-      const data = await fetchSmartPalletTelemetry(device);
-
+      // Hide loading spinner immediately – data comes from cache or API
       mapLoad.style.display = 'none';
       apiStat.style.display = 'block';
+      apiStat.innerHTML = `⏳ Loading tracker data…`;
+
+      // Fetch (cache-first, then live API)
+      const data = await fetchSmartPalletTelemetry(device);
 
       if (data && data.journey && data.journey.length > 0) {
-        // ── Live data ──
+        // ── Live / cached data ──
         apiStat.innerHTML = `✅ Live data · ${device} · Updated: ${new Date().toLocaleTimeString('en-GB')}`;
         mapImg.style.display = 'none';
 
-        // Leaflet map
-        const geoPoints = data.journey.filter(j => j.latitude && j.longitude);
-        if (geoPoints.length > 0 && typeof L !== 'undefined') {
+        // Leaflet map – show current location marker (tracker is stationary during event)
+        const lat = data.location && data.location.lat ? data.location.lat : (data.journey[data.journey.length-1]?.latitude);
+        const lon = data.location && data.location.lon ? data.location.lon : (data.journey[data.journey.length-1]?.longitude);
+        if (lat && lon && typeof L !== 'undefined') {
           leafletEl.style.display = 'block';
           if (!_leafletMap) {
-            _leafletMap = L.map('leaflet-map').setView([data.location.lat, data.location.lon], 9);
+            _leafletMap = L.map('leaflet-map').setView([lat, lon], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '© OpenStreetMap'
             }).addTo(_leafletMap);
           } else {
-            _leafletMap.setView([data.location.lat, data.location.lon], 9);
+            _leafletMap.setView([lat, lon], 13);
           }
-          const coords = geoPoints.map(j => [j.latitude, j.longitude]);
-          L.polyline(coords, { color: '#B5A23A', weight: 3, opacity: 0.85 }).addTo(_leafletMap);
-          L.marker([data.location.lat, data.location.lon])
+          // Draw route if multiple unique positions exist
+          const uniquePoints = [];
+          const seen = new Set();
+          data.journey.forEach(j => {
+            if (!j.latitude || !j.longitude) return;
+            const key = `${j.latitude.toFixed(4)},${j.longitude.toFixed(4)}`;
+            if (!seen.has(key)) { seen.add(key); uniquePoints.push([j.latitude, j.longitude]); }
+          });
+          if (uniquePoints.length > 1) {
+            L.polyline(uniquePoints, { color: '#B5A23A', weight: 3, opacity: 0.85 }).addTo(_leafletMap);
+          }
+          // Current location marker
+          L.marker([lat, lon])
             .addTo(_leafletMap)
-            .bindPopup(`<b>${device}</b><br>${data.temperature.current}°C`);
-          // Fix map size after panel opens
+            .bindPopup(`<b>${device}</b><br>🌡 ${data.temperature.current.toFixed(1)}°C<br>📍 Current location`)
+            .openPopup();
           setTimeout(() => _leafletMap.invalidateSize(), 200);
         }
 
-        // Journey steps from telemetry readings
-        const step = Math.max(1, Math.floor(data.journey.length / 5));
-        const sampled = data.journey.filter((_, i) => i % step === 0).slice(0, 6);
+        // Journey steps – deduplicate by temperature change, show up to 6 steps
+        stepsEl.innerHTML = '';
+        const deduped = [];
+        let lastTemp = null;
+        data.journey.forEach(j => {
+          if (lastTemp === null || Math.abs(j.temperature - lastTemp) >= 0.5) {
+            deduped.push(j); lastTemp = j.temperature;
+          }
+        });
+        const step = Math.max(1, Math.floor(deduped.length / 5));
+        const sampled = deduped.filter((_, i) => i % step === 0).slice(0, 6);
         sampled.forEach((j, i) => {
           const isLast = i === sampled.length - 1;
           const ts = new Date(j.timestamp).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
-          const lat = j.latitude ? j.latitude.toFixed(4) : null;
-          const lon = j.longitude ? j.longitude.toFixed(4) : null;
-          const locStr = lat ? `${lat}, ${lon}` : device;
+          const locStr = (j.latitude && j.longitude) ? `${j.latitude.toFixed(4)}°N, ${j.longitude.toFixed(4)}°E` : device;
           stepsEl.innerHTML += `
             <div class="j-step">
               <div class="j-left">
@@ -900,7 +937,7 @@
               </div>
               <div class="j-body">
                 <div class="j-title">${locStr}</div>
-                <div class="j-meta">${ts} · Battery ${j.battery_level ? j.battery_level.toFixed(0) : '?'}%</div>
+                <div class="j-meta">${ts} · Battery ${j.battery_level != null ? j.battery_level.toFixed(0) : '?'}%</div>
                 <span class="j-temp">🌡 ${j.temperature.toFixed(1)}°C</span>
               </div>
             </div>`;
@@ -1012,7 +1049,7 @@
 
       const listEl = document.getElementById('drinker-list');
       if (merged.length === 0) {
-        listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">Ingen har registrert seg ennå – vær den første!</div>`;
+        listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">No one has registered yet – be the first!</div>`;
       } else {
         // Get current user's phone to highlight "me"
         const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g,'');
@@ -1052,11 +1089,11 @@
       const giai = getGIAI();
       const num  = giai ? bottleNumber(giai) : null;
 
-      const label = num ? `Flaske #${num}` : 'Flaske #—';
+      const label = num ? `Bottle #${num}` : 'Bottle #—';
       document.getElementById('header-bottle-num').textContent  = label;
       document.getElementById('hero-bottle-label').textContent  = label;
       document.getElementById('hero-sub').textContent =
-        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2025 · ${num} av ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2025';
+        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2025 · ${num} of ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2025';
 
       if (giai) {
         document.getElementById('giai-full').textContent     = giai;
@@ -1151,7 +1188,7 @@
           return n ? `#${n}` : g;
         });
         document.getElementById('ret-bottle-list').textContent =
-          bottleNums.length > 0 ? 'Flasker: ' + bottleNums.join(', ') : '';
+          bottleNums.length > 0 ? 'Bottles: ' + bottleNums.join(', ') : '';
         goStep('step-returning');
       } else {
         // New user
@@ -1196,8 +1233,8 @@
       document.getElementById('register-main').style.display   = 'none';
       document.getElementById('register-success').style.display = 'block';
       document.getElementById('register-success-msg').innerHTML =
-        `Flaske ${num ? '#'+num : ''} er koblet til <strong>${name}</strong>.<br>` +
-        `Du har nå registrert <strong>${totalBottles}</strong> flaske(r) på GS1 Nordic Summit. 🍺`;
+        `Bottle ${num ? '#'+num : ''} has been linked to <strong>${name}</strong>.<br>` +
+        `You have now registered <strong>${totalBottles}</strong> bottle(s) at GS1 Nordic Summit. 🍺`;
 
       // Refresh drinker list and my-beer strip
       document.getElementById('drinker-list').innerHTML = '';
