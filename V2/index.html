@@ -1202,26 +1202,13 @@
       // My beer strip
       updateMyBeerStrip();
 
-      // Journey (async – loads when panel opens)
-      let journeyLoaded = false;
-      document.getElementById('panel-journey').addEventListener('click', function() {
-        if (!journeyLoaded) {
-          journeyLoaded = true;
-          renderJourney(giai);
-        }
-      });
-
-      // Temperature chart (async – loads when panel opens)
-      let tempChartLoaded = false;
-      document.getElementById('panel-temp').addEventListener('click', function() {
-        if (!tempChartLoaded) {
-          tempChartLoaded = true;
-          // Chart already loaded by renderTempChart above; just ensure table is populated
-        }
-      });
+      // Journey and temp chart panels are now loaded lazily via togglePanel()
     }
 
     // ── Panel toggle ─────────────────────────────────────
+    let _journeyLoaded = false;
+    let _tempChartLoaded = false;
+
     function togglePanel(id) {
       const el = document.getElementById(id);
       const wasOpen = el.classList.contains('open');
@@ -1229,6 +1216,16 @@
       if (!wasOpen) {
         el.classList.add('open');
         setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+        // Lazy-load panel content on first open
+        const giai = new URLSearchParams(location.search).get('giai');
+        if (id === 'panel-journey' && !_journeyLoaded && giai) {
+          _journeyLoaded = true;
+          renderJourney(giai);
+        }
+        if (id === 'panel-temp' && !_tempChartLoaded && giai) {
+          _tempChartLoaded = true;
+          renderTempChart(giai);
+        }
       }
     }
 
