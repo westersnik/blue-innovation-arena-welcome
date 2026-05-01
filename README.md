@@ -13,13 +13,13 @@ A live beer-bottle tracking demo built for the **GS1 Nordic Summit 2025** at Rad
 
 **Example — bottle #1:**
 ```
-https://gs1-nordic.invig.no/V2/?giai=70735391141
+https://gs1-nordic.invig.no/V2/?giai=70735391141&demo=1
 ```
 
 **GS1 Digital Link redirect (via Invig resolver):**
 ```
 https://id.invig.no/8004/70735391141
-  → https://gs1-nordic.invig.no/V2/?giai=70735391141
+  → https://gs1-nordic.invig.no/V2/?giai=70735391141&demo=1
 ```
 
 ---
