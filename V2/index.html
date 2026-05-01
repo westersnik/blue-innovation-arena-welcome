@@ -503,7 +503,7 @@
           <span>Tag scanned</span>
       </div>
       <h1 class="hero-title">You scanned<br><em id="hero-bottle-label">Bottle #—</em></h1>
-      <p class="hero-sub" id="hero-sub">Carlsberg Pilsner · GS1 Nordic Summit 2025</p>
+      <p class="hero-sub" id="hero-sub">Carlsberg Pilsner · GS1 Nordic Summit 2026</p>
     </div>
   </div>
 
@@ -713,9 +713,9 @@
           <div class="spec-row"><span class="spec-key">Alcohol</span><span class="spec-value">5.0% ABV</span></div>
           <div class="spec-row"><span class="spec-key">Beer type</span><span class="spec-value">Lager / Pilsner</span></div>
           <div class="spec-row"><span class="spec-key">Optimal serving temp.</span><span class="spec-value">3–6 °C</span></div>
-          <div class="spec-row"><span class="spec-key">Batch</span><span class="spec-value">GS1-NS-2025-B1</span></div>
-          <div class="spec-row"><span class="spec-key">Production date</span><span class="spec-value">12 May 2025</span></div>
-          <div class="spec-row"><span class="spec-key">Best before</span><span class="spec-value">12 November 2025</span></div>
+          <div class="spec-row"><span class="spec-key">Batch</span><span class="spec-value">GS1-NS-2026-B1</span></div>
+          <div class="spec-row"><span class="spec-key">Production date</span><span class="spec-value">14 May 2026</span></div>
+          <div class="spec-row"><span class="spec-key">Best before</span><span class="spec-value">14 November 2026</span></div>
           <div class="spec-row"><span class="spec-key">GTIN</span><span class="spec-value giai-mono">05700050000018</span></div>
           <div class="spec-row"><span class="spec-key">GIAI (this bottle)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
         </div>
@@ -737,7 +737,7 @@
   <footer>
     <img src="img/invig-logo.png" alt="Invig" />
     <p>
-      <strong style="color:var(--olive-light)">GS1 Nordic Summit 2025</strong><br />
+      <strong style="color:var(--olive-light)">GS1 Nordic Summit 2026</strong><br />
       Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> ·
       <a href="https://smartpallet.iotpallet.no" target="_blank">SmartPallet</a> ·
       <a href="https://gs1.no" target="_blank">GS1 Norway</a><br />
@@ -762,8 +762,8 @@
        ===================================================== */
 
     const INVIG_GCP = '7073539';
-    const GIAI_BASE = 70735390000;
-    const TOTAL     = 400;
+    const GIAI_BASE = 70735391000;  // bottles 70735391001–70735391300
+    const TOTAL     = 300;
     const DB_USERS_KEY = 'gs1ns_users';
 
     // ── Supabase client (anon key, public read + insert registrations) ────────
@@ -974,11 +974,11 @@
     let _tempChart  = null;
 
     const JOURNEY_STEPS = [
-      { icon: '🏭', title: 'Carlsberg Brewery', meta: 'Fredericia, Denmark · 7 May 2025', temp: '18.5°C', done: true },
-      { icon: '❄️', title: 'Cold Storage Kastrup', meta: 'Copenhagen Airport · 8 May 2025', temp: '3.9°C', done: true },
-      { icon: '🚛', title: 'Distribution Centre Oslo', meta: 'Alnabru, Oslo · 11 May 2025', temp: '3.8°C', done: true },
-      { icon: '🚚', title: 'Refrigerated Transport', meta: 'Oslo city centre · 13 May 2025', temp: '5.9°C', done: true },
-      { icon: '🏨', title: 'Venue Cold Room', meta: 'Radisson Blu Plaza, Oslo · 13 May 2025', temp: '4.0°C', active: true },
+      { icon: '🏭', title: 'Carlsberg Brewery', meta: 'Fredericia, Denmark · 7 May 2026', temp: '18.5°C', done: true },
+      { icon: '❄️', title: 'Cold Storage Kastrup', meta: 'Copenhagen Airport · 8 May 2026', temp: '3.9°C', done: true },
+      { icon: '🚛', title: 'Distribution Centre Oslo', meta: 'Alnabru, Oslo · 11 May 2026', temp: '3.8°C', done: true },
+      { icon: '🚚', title: 'Refrigerated Transport', meta: 'Oslo city centre · 13 May 2026', temp: '5.9°C', done: true },
+      { icon: '🏨', title: 'Venue Cold Room', meta: 'Radisson Blu Plaza, Oslo · 13 May 2026', temp: '4.0°C', active: true },
       { icon: '🍺', title: 'Handed to you', meta: 'Radisson Blu Plaza · Now', temp: null, done: false },
     ];
 
@@ -1247,7 +1247,7 @@
       document.getElementById('header-bottle-num').textContent  = label;
       document.getElementById('hero-bottle-label').textContent  = label;
       document.getElementById('hero-sub').textContent =
-        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2025 · ${num} of ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2025';
+        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2026 · ${num} of ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2026';
 
       if (giai) {
         document.getElementById('giai-full').textContent     = giai;
@@ -1415,7 +1415,8 @@
     render();
 
     // ── Registration popup ──────────────────────────────────────────
-    (function initRegPopup() {
+    // Run after DOM is fully parsed (popup HTML is below this script block)
+    setTimeout(function initRegPopup() {
       const giai = getGIAI();
       if (!giai) return; // no bottle scanned, skip popup
 
@@ -1483,7 +1484,7 @@
           }, 300);
         }
       }
-    })();
+    }, 0);
   </script>
 
   <!-- Registration popup overlay -->
