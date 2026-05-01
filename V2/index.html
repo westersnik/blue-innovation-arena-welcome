@@ -360,6 +360,89 @@
     .register-success h4 { font-size: 16px; font-weight: 700; color: var(--gold); }
     .register-success p  { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
 
+    /* ── Registration popup ── */
+    #reg-popup-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.72);
+      z-index: 500;
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #reg-popup-overlay.show {
+      opacity: 1; pointer-events: all;
+    }
+    #reg-popup-card {
+      background: var(--surface);
+      border: 1px solid rgba(181,162,58,0.35);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 32px;
+      width: 100%; max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.34,1.2,0.64,1);
+    }
+    #reg-popup-overlay.show #reg-popup-card {
+      transform: translateY(0);
+    }
+    .popup-drag-handle {
+      width: 40px; height: 4px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 2px;
+      margin: 0 auto 18px;
+    }
+    .popup-beer-icon {
+      font-size: 3rem; text-align: center; margin-bottom: 10px;
+    }
+    .popup-title {
+      font-size: 1.25rem; font-weight: 700;
+      color: var(--gold); text-align: center; margin-bottom: 6px;
+    }
+    .popup-sub {
+      font-size: 0.82rem; color: var(--muted);
+      text-align: center; line-height: 1.5; margin-bottom: 20px;
+    }
+    .popup-sub strong { color: var(--cream); }
+    .popup-phone-row {
+      display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .popup-phone-row input {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-sm);
+      padding: 13px 14px;
+      font-size: 1.1rem; font-weight: 600;
+      color: var(--cream); font-family: inherit;
+      outline: none; text-align: center;
+      letter-spacing: 0.05em;
+      transition: border-color 0.15s;
+    }
+    .popup-phone-row input:focus { border-color: rgba(181,162,58,0.6); }
+    .popup-phone-row input::placeholder { color: var(--muted); font-weight: 400; font-size: 0.95rem; }
+    .popup-btn {
+      width: 100%; padding: 14px;
+      background: var(--gold); color: #1a1d14;
+      font-size: 1rem; font-weight: 700;
+      border: none; border-radius: var(--radius-sm);
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 10px;
+    }
+    .popup-btn:hover { opacity: 0.9; }
+    .popup-btn:active { transform: scale(0.98); }
+    .popup-skip {
+      width: 100%; padding: 10px;
+      background: transparent; color: var(--muted);
+      font-size: 0.8rem; border: none;
+      cursor: pointer; font-family: inherit;
+    }
+    .popup-skip:hover { color: var(--cream); }
+    .popup-error {
+      font-size: 0.78rem; color: #e05050;
+      text-align: center; min-height: 18px; margin-bottom: 6px;
+    }
+
     /* Product panel */
     .product-specs { display: flex; flex-direction: column; }
     .spec-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
@@ -1330,6 +1413,104 @@
     }
 
     render();
+
+    // ── Registration popup ──────────────────────────────────────────
+    (function initRegPopup() {
+      const giai = getGIAI();
+      if (!giai) return; // no bottle scanned, skip popup
+
+      // Check if this bottle is already registered by this user
+      const myPhone = (localStorage.getItem('gs1ns_my_phone') || '').replace(/\s/g, '');
+      if (myPhone) {
+        const users = getUsers();
+        const user = users[myPhone];
+        if (user && user.bottles && user.bottles.includes(giai)) return; // already registered
+      }
+
+      // Show popup after a short delay so the page renders first
+      const overlay = document.getElementById('reg-popup-overlay');
+      const input   = document.getElementById('popup-phone-input');
+      const errEl   = document.getElementById('popup-error');
+      const num     = bottleNumber(giai);
+
+      // Update bottle number in popup
+      document.getElementById('popup-bottle-num').textContent = num ? `Bottle #${num}` : 'your bottle';
+
+      setTimeout(() => overlay.classList.add('show'), 900);
+
+      // Close on overlay background click
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) dismissPopup();
+      });
+
+      function dismissPopup() {
+        overlay.classList.remove('show');
+      }
+      window._dismissRegPopup = dismissPopup;
+
+      // Submit handler
+      document.getElementById('popup-submit-btn').addEventListener('click', submitPopup);
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submitPopup(); });
+
+      async function submitPopup() {
+        errEl.textContent = '';
+        const raw = input.value.trim();
+        if (!raw || raw.replace(/[\s\d+]/g, '').length > 0 || raw.replace(/\D/g,'').length < 8) {
+          errEl.textContent = 'Please enter a valid phone number (min 8 digits)';
+          input.focus();
+          return;
+        }
+        const phone = raw.replace(/\s/g, '');
+
+        // Pre-fill the main registration form and auto-advance
+        document.getElementById('reg-phone').value = phone;
+        dismissPopup();
+
+        // Check if returning user
+        const users = getUsers();
+        const existing = users[phone];
+        if (existing) {
+          // Returning user — link bottle directly
+          localStorage.setItem('gs1ns_my_phone', phone);
+          confirmReturning(phone, giai);
+        } else {
+          // New user — open register panel with phone pre-filled
+          togglePanel('panel-register');
+          // Advance to name step automatically
+          setTimeout(() => {
+            document.getElementById('reg-phone').value = phone;
+            checkPhone(phone);
+          }, 300);
+        }
+      }
+    })();
   </script>
+
+  <!-- Registration popup overlay -->
+  <div id="reg-popup-overlay">
+    <div id="reg-popup-card">
+      <div class="popup-drag-handle"></div>
+      <div class="popup-beer-icon">🍺</div>
+      <div class="popup-title">Claim <span id="popup-bottle-num">your bottle</span>!</div>
+      <div class="popup-sub">
+        Enter your phone number to register this beer as yours.<br>
+        <strong>Your bottle. Your journey. Your data.</strong>
+      </div>
+      <div class="popup-error" id="popup-error"></div>
+      <div class="popup-phone-row">
+        <input
+          id="popup-phone-input"
+          type="tel"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="+47 000 00 000"
+          maxlength="20"
+        />
+      </div>
+      <button class="popup-btn" id="popup-submit-btn">🍺 Claim this beer</button>
+      <button class="popup-skip" onclick="window._dismissRegPopup && window._dismissRegPopup()">Skip for now</button>
+    </div>
+  </div>
+
 </body>
 </html>
