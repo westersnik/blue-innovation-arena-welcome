@@ -13,13 +13,13 @@ A live beer-bottle tracking demo built for the **GS1 Nordic Summit 2025** at Rad
 
 **Example — bottle #1:**
 ```
-https://gs1-nordic.invig.no/V2/?giai=70735391641
+https://gs1-nordic.invig.no/V2/?giai=70735391141
 ```
 
 **GS1 Digital Link redirect (via Invig resolver):**
 ```
-https://id.invig.no/8004/70735391641
-  → https://gs1-nordic.invig.no/V2/?giai=70735391641
+https://id.invig.no/8004/70735391141
+  → https://gs1-nordic.invig.no/V2/?giai=70735391141
 ```
 
 ---
@@ -53,7 +53,7 @@ Guest scans QR code on bottle
         │
         ▼
 V2/index.html  (GitHub Pages / gs1-nordic.invig.no)
-  ├── Reads GIAI from URL (?giai=70735391641)
+  ├── Reads GIAI from URL (?giai=70735391141)
   ├── Fetches cold-chain telemetry from SmartPallet cache (V2/data/)
   ├── Renders Leaflet map + temperature chart (Chart.js)
   ├── Registers guest via Supabase (registrations table)
@@ -80,9 +80,9 @@ Each bottle has a unique **GIAI (Global Individual Asset Identifier)** per the G
 | GS1 Application Identifier | `8004` | Identifies GIAI in GS1 Digital Link |
 | GS1 Company Prefix (GCP) | `7073539` | Invig AS GCP |
 | Asset reference | `1001`–`3000` | Unique bottle number (2000 bottles) |
-| Full GIAI (example) | `70735391641` | GCP + asset reference |
-| GS1 element string | `(8004) 70735391641` | Standard GS1 notation |
-| Resolver URL | `https://id.invig.no/8004/70735391641` | GS1 Digital Link |
+| Full GIAI (example) | `70735391141` | GCP + asset reference |
+| GS1 element string | `(8004) 70735391141` | Standard GS1 notation |
+| Resolver URL | `https://id.invig.no/8004/70735391141` | GS1 Digital Link |
 
 **EPC encoding for RFID (GS1 GIAI-96):**
 ```

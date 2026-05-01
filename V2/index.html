@@ -813,7 +813,8 @@
     }
     function bottleNumber(giai) {
       const n = parseInt(giai, 10) - GIAI_BASE;
-      return (n >= 1 && n <= TOTAL) ? n : null;
+      // Accept any positive bottle reference (allows demo GIAIs outside the 300-bottle range)
+      return n >= 1 ? n : null;
     }
     function bottleKey(giai) { return `gs1ns_bottle_${giai}`; }
 
@@ -1302,7 +1303,7 @@
           if (giai) renderTempChart(giai);
           else {
             // No GIAI – show demo chart with tracker-09 data
-            renderTempChart('70735391641');
+            renderTempChart('70735391141');
           }
         }
       }

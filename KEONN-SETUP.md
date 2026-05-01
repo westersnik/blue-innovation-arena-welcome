@@ -306,7 +306,7 @@ curl https://gs1-nordic.invig.no/api/stats
   "phone": "+4712345678",
   "name": "Ola Normann",
   "company": "GS1 Norway",
-  "giai": "70735391641"
+  "giai": "70735391141"
 }
 ```
 
