@@ -544,11 +544,11 @@
       rfid.forEach(r => {
         if (!pantedGIAIs.has(r.giai)) {
           pantedGIAIs.add(r.giai);
-          // Derive bottle number from GIAI (GIAI_BASE = 70735390000)
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735390000) : null;
+          // Derive bottle number from GIAI (GIAI_BASE = 70735391000)
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
           rfidEvents.push({
             giai: r.giai,
-            num: (num >= 1 && num <= 400) ? num : null,
+            num: (num >= 1 && num <= 300) ? num : null,
             name: null,   // name/company come from registrations join
             company: null,
             ts: new Date(r.recycled_at || Date.now()).getTime()
@@ -603,13 +603,13 @@
         if (!pantedGIAIs.has(r.giai)) {
           hasLiveData = true;
           pantedGIAIs.add(r.giai);
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735390000) : null;
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
           // Look up registration for this bottle
           const regs = window._regs || [];
           const reg = regs.find(x => x.giai === r.giai);
           rfidEvents.unshift({
             giai: r.giai,
-            num: (num >= 1 && num <= 400) ? num : null,
+            num: (num >= 1 && num <= 300) ? num : null,
             name: reg?.name || null,
             company: reg?.company || null,
             ts: new Date(r.recycled_at || Date.now()).getTime()
