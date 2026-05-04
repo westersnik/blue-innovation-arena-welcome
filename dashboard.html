@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     /* =====================================================
        GS1 Nordic Summit – Pant-leaderboard / Dashboard
@@ -417,27 +418,23 @@
       </div>
     </div>
 
-    <!-- Config panel -->
+    <!-- Supabase status + demo panel -->
     <div class="config-panel">
       <div class="config-header" onclick="toggleConfig()">
-        <h3>⚙️ Keonn AdvanReader – konfigurasjon</h3>
+        <h3>⚙️ Tilkobling – Supabase Realtime</h3>
         <span id="config-arrow" style="color:var(--muted);font-size:16px;">▼</span>
       </div>
       <div class="config-body" id="config-body">
         <div class="config-row">
-          <label class="config-label" for="reader-ip">IP-adresse til AdvanReader</label>
-          <input class="config-input" id="reader-ip" type="text" placeholder="192.168.1.100" />
-          <div class="config-hint">
-            Keonn AdvanReader REST API: <code style="color:var(--olive-light)">GET http://{ip}/rest/session/tags</code><br/>
-            Returnerer JSON med leste EPC-koder. Polling hvert 3. sekund.
+          <div class="config-hint" style="padding:10px 12px;background:rgba(93,187,99,0.06);border-radius:8px;border:1px solid rgba(93,187,99,0.2);">
+            <strong style="color:var(--green)">✅ Automatisk tilkobling</strong><br/>
+            Dashboardet kobler seg automatisk til Supabase Realtime og mottar RFID-hendelser direkte fra AdvanReader.<br/><br/>
+            <strong style="color:var(--gold)">AdvanReader → Supabase Edge Function:</strong><br/>
+            <code style="color:var(--olive-light);font-size:11px;">https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/rfid-relay</code><br/><br/>
+            Ingen IP-konfigurasjon nødvendig her. Se <strong>KEONN-SETUP.md</strong> for AdvanReader-oppsett.
           </div>
         </div>
-        <div class="config-row">
-          <label class="config-label" for="poll-interval">Polling-intervall (sekunder)</label>
-          <input class="config-input" id="poll-interval" type="number" value="3" min="1" max="60" />
-        </div>
         <div class="config-actions">
-          <button class="btn-save" onclick="saveConfig()">💾 Koble til leser</button>
           <button class="btn-demo" onclick="startDemo()">🎭 Kjør demo</button>
         </div>
         <div class="config-hint" style="padding:8px;background:rgba(181,162,58,0.06);border-radius:8px;border:1px solid rgba(181,162,58,0.15);">
@@ -519,41 +516,103 @@
       return Object.entries(users).map(([phone, u]) => ({ phone, ...u }));
     }
 
+    // ── Supabase config ──────────────────────────────────
+    const SUPABASE_URL  = 'https://spbfuhajwfadzvdidalk.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwYmZ1aGFqd2ZhZHp2ZGlkYWxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxMDIzNjksImV4cCI6MjA2MTY3ODM2OX0.Ks3lLsLBIHYIjGM3rBLVFmxbFGLW_9JJyJqzpxJqVIc';
+    let supabaseClient  = null;
+
     // ── State ────────────────────────────────────────────
     let pantedEPCs  = new Set();
     let pantedGIAIs = new Set();
     let rfidEvents  = [];
-    let readerIP    = localStorage.getItem('gs1ns_reader_ip') || '';
-    let pollInterval = parseInt(localStorage.getItem('gs1ns_poll_interval') || '3', 10);
-    let pollTimer   = null;
     let demoTimer   = null;
     let isDemoMode  = false;
 
-    // ── Keonn AdvanReader API polling ────────────────────
-    async function pollReader() {
-      if (!readerIP) return;
-      const urls = [
-        `http://${readerIP}/rest/session/tags`,
-        `http://${readerIP}/api/inventory/tags`,
-        `http://${readerIP}/rest/tags`,
-      ];
-      for (const url of urls) {
-        try {
-          const resp = await fetch(url, {
-            signal: AbortSignal.timeout(3000),
-            headers: { 'Accept': 'application/json' }
-          });
-          if (!resp.ok) continue;
-          const data = await resp.json();
-          const tags = data.tags || data.inventory || data.epcs || [];
-          if (Array.isArray(tags)) {
-            setLiveStatus(true);
-            processTags(tags.map(t => ({ epc: (t.epc || t.EPC || '').toUpperCase(), ts: t.ts || Date.now() })));
-            return;
-          }
-        } catch {}
+    // ── Supabase Realtime ─────────────────────────────────
+    async function initSupabase() {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+      // Load initial rfid_events from Supabase
+      const { data: events } = await supabaseClient
+        .from('rfid_events')
+        .select('epc, giai, reader_id, recycled_at')
+        .order('recycled_at', { ascending: false })
+        .limit(100);
+
+      if (events && events.length > 0) {
+        setLiveStatus(true);
+        events.forEach(e => processSupabaseEvent(e));
+        updateAll();
       }
-      setLiveStatus(false);
+
+      // Load initial registrations
+      const { data: regs } = await supabaseClient
+        .from('registrations')
+        .select('phone, name, company, giai, registered_at');
+      if (regs) {
+        regs.forEach(r => {
+          // Merge into localStorage so leaderboard works
+          try {
+            const users = JSON.parse(localStorage.getItem('gs1ns_users') || '{}');
+            if (!users[r.phone]) {
+              users[r.phone] = { name: r.name, company: r.company, registeredAt: new Date(r.registered_at).getTime(), bottles: [] };
+            }
+            if (r.giai && !users[r.phone].bottles.includes(r.giai)) {
+              users[r.phone].bottles.push(r.giai);
+            }
+            localStorage.setItem('gs1ns_users', JSON.stringify(users));
+          } catch {}
+        });
+        updateAll();
+      }
+
+      // Subscribe to new rfid_events
+      supabaseClient
+        .channel('rfid-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, payload => {
+          if (!isDemoMode) {
+            setLiveStatus(true);
+            processSupabaseEvent(payload.new);
+            updateAll();
+          }
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') setLiveStatus(true);
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') setLiveStatus(false);
+        });
+
+      // Subscribe to new registrations
+      supabaseClient
+        .channel('reg-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations' }, payload => {
+          const r = payload.new;
+          try {
+            const users = JSON.parse(localStorage.getItem('gs1ns_users') || '{}');
+            if (!users[r.phone]) {
+              users[r.phone] = { name: r.name, company: r.company, registeredAt: new Date(r.registered_at).getTime(), bottles: [] };
+            }
+            if (r.giai && !users[r.phone].bottles.includes(r.giai)) {
+              users[r.phone].bottles.push(r.giai);
+            }
+            localStorage.setItem('gs1ns_users', JSON.stringify(users));
+          } catch {}
+          updateAll();
+        })
+        .subscribe();
+    }
+
+    function processSupabaseEvent(e) {
+      const epc  = (e.epc  || '').toUpperCase();
+      const giai = e.giai  || '';
+      const ts   = e.recycled_at ? new Date(e.recycled_at).getTime() : Date.now();
+      if (!epc || pantedEPCs.has(epc)) return;
+      const bottle = bottleMap.get(epc) || { epc, giai, num: giai ? (parseInt(giai) - 70735391000) : '?' };
+      pantedEPCs.add(epc);
+      pantedGIAIs.add(giai || epc);
+      const who = getUserForGIAI(giai);
+      rfidEvents.unshift({ epc, giai, num: bottle.num, name: who ? who.name : null, company: who ? who.company : null, ts });
+      if (rfidEvents.length > 100) rfidEvents.pop();
+      addTickerItem(bottle, who, ts);
     }
 
     function processTags(tags) {
@@ -647,7 +706,7 @@
       } else if (online) {
         dot.className   = 'live-dot';
         dot.style.background = '';
-        label.textContent = 'Live · AdvanReader';
+        label.textContent = 'Live · Supabase Realtime';
       } else {
         dot.className   = 'live-dot offline';
         label.textContent = 'Leser ikke tilkoblet';
@@ -735,7 +794,7 @@
     function renderRFIDFeed() {
       const feed = document.getElementById('rfid-feed-body');
       if (rfidEvents.length === 0) {
-        feed.innerHTML = '<div class="rfid-empty">Venter på RFID-leser… Konfigurer IP-adressen nedenfor, eller kjør demo.</div>';
+        feed.innerHTML = '<div class="rfid-empty">Kobler til Supabase Realtime… RFID-hendelser vises her når flasker pantes.</div>';
         return;
       }
       feed.innerHTML = rfidEvents.slice(0, 30).map(e => {
@@ -748,8 +807,7 @@
         </div>`;
       }).join('');
     }
-
-    // ── Config ───────────────────────────────────────────
+    // ── Config ────────────────────────────────────────────
     function toggleConfig() {
       const body  = document.getElementById('config-body');
       const arrow = document.getElementById('config-arrow');
@@ -757,48 +815,35 @@
       arrow.textContent = body.classList.contains('hidden') ? '▶' : '▼';
     }
 
-    function saveConfig() {
-      readerIP     = document.getElementById('reader-ip').value.trim();
-      pollInterval = parseInt(document.getElementById('poll-interval').value, 10) || 3;
-      localStorage.setItem('gs1ns_reader_ip', readerIP);
-      localStorage.setItem('gs1ns_poll_interval', String(pollInterval));
-      if (pollTimer) clearInterval(pollTimer);
-      if (readerIP) {
-        pollReader();
-        pollTimer = setInterval(pollReader, pollInterval * 1000);
-        setLiveStatus(false);
-        document.getElementById('live-label').textContent = `Kobler til ${readerIP}…`;
-      }
-    }
-
     function refreshAll() {
-      if (readerIP) pollReader();
       updateAll();
     }
-
-    // ── Init ─────────────────────────────────────────────
+    // ── Init ───────────────────────────────────────────────
     async function init() {
       await loadBottles();
-
-      // Restore config
-      const savedIP = localStorage.getItem('gs1ns_reader_ip') || '';
-      const savedInterval = localStorage.getItem('gs1ns_poll_interval') || '3';
-      document.getElementById('reader-ip').value     = savedIP;
-      document.getElementById('poll-interval').value = savedInterval;
-
-      if (savedIP) {
-        readerIP     = savedIP;
-        pollInterval = parseInt(savedInterval, 10);
-        pollReader();
-        pollTimer = setInterval(pollReader, pollInterval * 1000);
-      }
-
       updateAll();
-
-      // Auto-refresh leaderboard every 10s (picks up new QR registrations)
-      setInterval(updateAll, 10000);
+      // Connect to Supabase Realtime for live RFID events and registrations
+      await initSupabase();
+      // Also poll Supabase every 30s as fallback
+      setInterval(async () => {
+        if (!isDemoMode && supabaseClient) {
+          const { data } = await supabaseClient
+            .from('registrations')
+            .select('phone, name, company, giai, registered_at');
+          if (data) {
+            data.forEach(r => {
+              try {
+                const users = JSON.parse(localStorage.getItem('gs1ns_users') || '{}');
+                if (!users[r.phone]) users[r.phone] = { name: r.name, company: r.company, registeredAt: new Date(r.registered_at).getTime(), bottles: [] };
+                if (r.giai && !users[r.phone].bottles.includes(r.giai)) users[r.phone].bottles.push(r.giai);
+                localStorage.setItem('gs1ns_users', JSON.stringify(users));
+              } catch {}
+            });
+            updateAll();
+          }
+        }
+      }, 30000);
     }
-
     init();
   </script>
 </body>
