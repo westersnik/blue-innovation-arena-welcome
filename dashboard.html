@@ -606,7 +606,7 @@
       const giai = e.giai  || '';
       const ts   = e.recycled_at ? new Date(e.recycled_at).getTime() : Date.now();
       if (!epc || pantedEPCs.has(epc)) return;
-      const bottle = bottleMap.get(epc) || { epc, giai, num: giai ? (parseInt(giai) - 70735391000) : '?' };
+      const bottle = bottleMap.get(epc) || { epc, giai, num: giai ? (parseInt(giai) - 70735391640) : '?' };
       pantedEPCs.add(epc);
       pantedGIAIs.add(giai || epc);
       const who = getUserForGIAI(giai);
@@ -639,7 +639,7 @@
 
     // ── Demo mode ────────────────────────────────────────
     const DEMO_BOTTLES = [
-      { epc: '3415AFBC0C00000000000669', giai: '70735391141', num: 1 },
+      { epc: '3415AFBC0C00000000000669', giai: '70735391641', num: 1 },
       { epc: '3415AFBC0C0000000000066A', giai: '70735391642', num: 2 },
       { epc: '3415AFBC0C0000000000066B', giai: '70735391643', num: 3 },
       { epc: '3415AFBC0C0000000000066C', giai: '70735391644', num: 4 },

@@ -4,7 +4,7 @@
  * Accepts POST from Keonn AdvanReader (SimpleHTTPService) and writes
  * EPC tag reads to the rfid_events table using the service role key.
  *
- * Only EPC codes that decode to a valid event GIAI (70735391001–70735391300)
+ * Only EPC codes that decode to a valid event GIAI (70735391641–70735391940)
  * are accepted. All other tags are silently ignored.
  *
  * Supported body formats:
@@ -25,9 +25,9 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const EVENT_KEY = Deno.env.get('RFID_EVENT_KEY') ?? 'gs1nordic2026'; // optional shared secret
 
-// Valid GIAI range for this event: 70735391001–70735391300 (300 Carlsberg bottles)
-const GIAI_MIN = 70735391001n;
-const GIAI_MAX = 70735391300n;
+// Valid GIAI range for this event: 70735391641–70735391940 (300 Carlsberg bottles)
+const GIAI_MIN = 70735391641n;
+const GIAI_MAX = 70735391940n;
 
 // GS1 GIAI-96 EPC → GIAI conversion
 // GS1 TDS 1.13 Table 14-3:

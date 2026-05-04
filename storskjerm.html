@@ -536,8 +536,8 @@
     const { data: rfid } = await sb
       .from('rfid_events')
       .select('giai, epc, recycled_at')
-      .gte('giai', '70735391001')
-      .lte('giai', '70735391300')
+      .gte('giai', '70735391641')
+      .lte('giai', '70735391940')
       .order('recycled_at', { ascending: false })
       .limit(300);
 
@@ -546,8 +546,8 @@
       rfid.forEach(r => {
         if (!pantedGIAIs.has(r.giai)) {
           pantedGIAIs.add(r.giai);
-          // Derive bottle number from GIAI (GIAI_BASE = 70735391000)
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
+          // Derive bottle number from GIAI (GIAI_BASE = 70735391640)
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735391640) : null;
           rfidEvents.push({
             giai: r.giai,
             num: (num >= 1 && num <= 300) ? num : null,
@@ -602,7 +602,7 @@
     sb.channel('rfid-events-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
         const r = payload.new;
-        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
+        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735391640) : null;
         if (!pantedGIAIs.has(r.giai) && rNum >= 1 && rNum <= 300) {
           hasLiveData = true;
           pantedGIAIs.add(r.giai);
@@ -642,14 +642,14 @@
 
   // ── Demo simulation ──────────────────────────────────
   const DEMO_BOTTLES = [
-    { giai: '70735391041', num: 41 },
-    { giai: '70735391099', num: 99 },
-    { giai: '70735391142', num: 142 },
-    { giai: '70735391200', num: 200 },
-    { giai: '70735391250', num: 250 },
-    { giai: '70735391077', num: 77 },
-    { giai: '70735391188', num: 188 },
-    { giai: '70735391033', num: 33 },
+    { giai: '70735391681', num: 41 },
+    { giai: '70735391739', num: 99 },
+    { giai: '70735391782', num: 142 },
+    { giai: '70735391840', num: 200 },
+    { giai: '70735391890', num: 250 },
+    { giai: '70735391717', num: 77 },
+    { giai: '70735391828', num: 188 },
+    { giai: '70735391673', num: 33 },
   ];
   const DEMO_NAMES = [
     { name: 'Ola Nordmann',   company: 'GS1 Norway' },
