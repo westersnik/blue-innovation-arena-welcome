@@ -248,81 +248,100 @@
     }
     .pop { animation: numPop 0.4s ease-out; }
 
-    /* ── Milestone / celebration overlay ── */
-    /* ── Feedback toast (duplicate / invalid) ── */
-    .feedback-toast {
+    /* ── Popup overlays (recycled / unregistered / milestone) ── */
+    .popup-overlay {
       position: fixed;
-      bottom: 48px; right: 48px;
-      z-index: 9998;
-      background: rgba(30,35,25,0.97);
-      border: 1.5px solid var(--border-dim);
-      border-radius: 16px;
-      padding: 18px 28px;
-      display: flex; align-items: center; gap: 18px;
-      min-width: 320px; max-width: 480px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-      transform: translateY(120px); opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
-      pointer-events: none;
-    }
-    .feedback-toast.show {
-      transform: translateY(0); opacity: 1;
-    }
-    .feedback-toast.success   { border-color: rgba(93,187,99,0.6); }
-    .feedback-toast.invalid   { border-color: rgba(200,80,80,0.5); }
-    .feedback-icon { font-size: 36px; flex-shrink: 0; }
-    .feedback-body { display: flex; flex-direction: column; gap: 4px; }
-    .feedback-title {
-      font-size: 18px; font-weight: 700; color: var(--text);
-    }
-    .feedback-sub {
-      font-size: 14px; color: var(--muted);
-    }
-
-    .milestone-overlay {
-      display: none;
-      position: fixed; inset: 0; z-index: 9999;
+      inset: 0;
       background: rgba(0,0,0,0.85);
-      align-items: center; justify-content: center;
-      flex-direction: column; gap: 24px;
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .popup-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .popup-card {
+      background: #1a2a1b;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 480px;
+      width: 100%;
       text-align: center;
+      position: relative;
+      transform: scale(0.85) translateY(20px);
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 1px solid rgba(255,255,255,0.1);
     }
-    .milestone-overlay.show { display: flex; }
-    .milestone-emoji { font-size: 96px; animation: bounceIn 0.6s ease-out; }
-    .milestone-title {
+    .popup-overlay.active .popup-card { transform: scale(1) translateY(0); }
+    .popup-card.recycled      { border-color: rgba(74,222,128,0.4); }
+    .popup-card.unregistered  { border-color: rgba(239,68,68,0.4); }
+    .popup-card.milestone-card{ border-color: rgba(139,92,246,0.5); }
+    .popup-card.invalid-card  { border-color: rgba(239,68,68,0.4); }
+    .popup-emoji-ring {
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 3rem;
+    }
+    .popup-emoji-ring.green  { background: rgba(74,222,128,0.15);  border: 2px solid rgba(74,222,128,0.4); }
+    .popup-emoji-ring.red    { background: rgba(239,68,68,0.15);   border: 2px solid rgba(239,68,68,0.4); }
+    .popup-emoji-ring.purple { background: rgba(139,92,246,0.15);  border: 2px solid rgba(139,92,246,0.5); }
+    .popup-title {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(48px, 8vw, 96px);
-      color: var(--gold); line-height: 1.1;
-      animation: fadeInUp 0.5s 0.2s ease-out both;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 10px; line-height: 1.1;
     }
-    .milestone-sub {
-      font-size: clamp(20px, 3vw, 36px);
-      color: var(--text); opacity: 0.85;
-      animation: fadeInUp 0.5s 0.35s ease-out both;
+    .popup-title.green  { color: #4ade80; }
+    .popup-title.red    { color: #f87171; }
+    .popup-title.purple { color: #c4b5fd; }
+    .popup-name    { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .popup-company { font-size: 1rem; color: rgba(255,255,255,0.5); margin-bottom: 20px; }
+    .popup-message { font-size: 1rem; color: rgba(255,255,255,0.75); line-height: 1.6; margin-bottom: 28px; }
+    .popup-bottle-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px; padding: 8px 18px;
+      font-size: 0.9rem; color: rgba(255,255,255,0.7);
+      margin-bottom: 24px;
     }
-    @keyframes bounceIn {
+    .popup-close {
+      display: block; width: 100%; padding: 16px;
+      border: none; border-radius: 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.05rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .popup-close:active { opacity: 0.8; }
+    .popup-close.green  { background: #166534; color: #fff; }
+    .popup-close.red    { background: #7f1d1d; color: #fff; }
+    .popup-close.purple { background: #4c1d95; color: #fff; }
+    /* Pulse ring animations */
+    @keyframes pulse-green {
+      0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
+      70%  { box-shadow: 0 0 0 18px rgba(74,222,128,0); }
+      100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+    }
+    .pulse-green { animation: pulse-green 1.5s infinite; }
+    @keyframes bounce-in {
       0%   { transform: scale(0.3); opacity: 0; }
-      60%  { transform: scale(1.15); }
-      100% { transform: scale(1); opacity: 1; }
+      60%  { transform: scale(1.1); opacity: 1; }
+      80%  { transform: scale(0.95); }
+      100% { transform: scale(1); }
     }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    /* Confetti particles */
-    .confetti-wrap {
-      position: fixed; inset: 0; pointer-events: none; z-index: 10000;
-      overflow: hidden;
-    }
-    .confetti-particle {
-      position: absolute;
-      width: 10px; height: 10px;
-      border-radius: 2px;
-      animation: confettiFall linear forwards;
-    }
-    @keyframes confettiFall {
-      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    .bounce-in { animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    /* Canvas confetti */
+    #confetti-canvas {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 10000;
     }
   </style>
 </head>
@@ -409,22 +428,56 @@
 
 </div>
 
-<!-- Feedback toast for duplicate / invalid scans -->
-<div class="feedback-toast" id="feedback-toast">
-  <span class="feedback-icon" id="feedback-icon">⚠️</span>
-  <div class="feedback-body">
-    <div class="feedback-title" id="feedback-title">Already recycled</div>
-    <div class="feedback-sub" id="feedback-sub"></div>
+<!-- POPUP: Bottle recycled (registered user) -->
+<div class="popup-overlay" id="popup-recycled" onclick="closePopup('popup-recycled')">
+  <div class="popup-card recycled" onclick="event.stopPropagation()">
+    <div class="popup-emoji-ring green pulse-green bounce-in">♻️</div>
+    <div class="popup-title green">Thank You!</div>
+    <div class="popup-name" id="recycled-name"></div>
+    <div class="popup-company" id="recycled-company"></div>
+    <div class="popup-bottle-badge" id="recycled-badge">🍺 Bottle</div>
+    <div class="popup-message" id="recycled-message">Your bottle has been recycled and logged. Amazing!</div>
+    <button class="popup-close green" onclick="closePopup('popup-recycled')">Close</button>
   </div>
 </div>
 
-<!-- Milestone celebration overlay -->
-<div class="milestone-overlay" id="milestone-overlay">
-  <div class="milestone-emoji" id="milestone-emoji">🎉</div>
-  <div class="milestone-title" id="milestone-title">Milestone!</div>
-  <div class="milestone-sub" id="milestone-sub"></div>
+<!-- POPUP: Bottle recycled (unregistered) -->
+<div class="popup-overlay" id="popup-unregistered" onclick="closePopup('popup-unregistered')">
+  <div class="popup-card unregistered" onclick="event.stopPropagation()">
+    <div class="popup-emoji-ring red bounce-in">🍺</div>
+    <div class="popup-title red">Bottle Recycled</div>
+    <div class="popup-bottle-badge" id="unregistered-badge">🍺 Bottle</div>
+    <div class="popup-message">
+      This bottle was recycled but was <strong style="color:#f87171">not registered</strong> to any user.<br/><br/>
+      Scan the QR code on the bottle before recycling to link it to your name!
+    </div>
+    <button class="popup-close red" onclick="closePopup('popup-unregistered')">Got it</button>
+  </div>
 </div>
-<div class="confetti-wrap" id="confetti-wrap"></div>
+
+<!-- POPUP: Invalid tag -->
+<div class="popup-overlay" id="popup-invalid" onclick="closePopup('popup-invalid')">
+  <div class="popup-card invalid-card" onclick="event.stopPropagation()">
+    <div class="popup-emoji-ring red bounce-in">⚠️</div>
+    <div class="popup-title red">Tag Not Recognised</div>
+    <div class="popup-message">This tag is not part of the GS1 Nordic Summit event.</div>
+    <button class="popup-close red" onclick="closePopup('popup-invalid')">Got it</button>
+  </div>
+</div>
+
+<!-- POPUP: Milestone -->
+<div class="popup-overlay" id="popup-milestone" onclick="closePopup('popup-milestone')">
+  <div class="popup-card milestone-card" onclick="event.stopPropagation()">
+    <div class="popup-emoji-ring purple bounce-in" id="milestone-emoji-ring">🎊</div>
+    <div class="popup-title purple" id="milestone-title">Milestone!</div>
+    <div class="popup-bottle-badge" id="milestone-badge">bottles recycled</div>
+    <div class="popup-message" id="milestone-message"></div>
+    <button class="popup-close purple" onclick="closePopup('popup-milestone')">Celebrate! 🎊</button>
+  </div>
+</div>
+
+<!-- Canvas confetti -->
+<canvas id="confetti-canvas"></canvas>
 
 <script>
   /* =====================================================
@@ -464,53 +517,123 @@
     { count: 300, emoji: '🎊', title: 'All 300 Bottles!',      sub: '100% recycled – GS1 Nordic Summit legend!' },
   ];
 
-  // ── Feedback toast ──────────────────────────────────
-  let feedbackTimer = null;
-  function showFeedbackToast(type, title, sub) {
-    const toast = document.getElementById('feedback-toast');
-    document.getElementById('feedback-title').textContent = title;
-    document.getElementById('feedback-sub').textContent   = sub;
-    toast.className = `feedback-toast ${type} show`;
-    if (feedbackTimer) clearTimeout(feedbackTimer);
-    feedbackTimer = setTimeout(() => { toast.classList.remove('show'); }, 5000);
+  // ── Popup helpers ─────────────────────────────────
+  let popupTimer = null;
+  function openPopup(id, autoDismissMs) {
+    document.getElementById(id).classList.add('active');
+    if (autoDismissMs) {
+      if (popupTimer) clearTimeout(popupTimer);
+      popupTimer = setTimeout(() => closePopup(id), autoDismissMs);
+    }
+  }
+  function closePopup(id) {
+    document.getElementById(id).classList.remove('active');
+    stopConfetti();
   }
 
+  // Show recycled popup (registered user)
+  function showRecycledPopup(name, company, num, giai) {
+    document.getElementById('recycled-name').textContent    = name || '';
+    document.getElementById('recycled-company').textContent = company || '';
+    document.getElementById('recycled-badge').textContent   = `🍺 Bottle #${num} · GIAI ${giai}`;
+    document.getElementById('recycled-message').textContent =
+      `Your bottle has been recycled and logged. Amazing!`;
+    openPopup('popup-recycled', 8000);
+  }
+
+  // Show recycled popup (unregistered)
+  function showUnregisteredPopup(num, giai) {
+    document.getElementById('unregistered-badge').textContent = `🍺 Bottle #${num} · GIAI ${giai}`;
+    openPopup('popup-unregistered', 8000);
+  }
+
+  // Show invalid tag popup
+  function showInvalidPopup() {
+    openPopup('popup-invalid', 6000);
+  }
+
+  // ── Milestones ─────────────────────────────────
   function checkMilestones(count) {
     MILESTONES.forEach(m => {
       if (count >= m.count && !milestoneShown.has(m.count)) {
         milestoneShown.add(m.count);
-        showMilestone(m);
+        showMilestonePopup(m);
       }
     });
   }
 
-  function showMilestone(m) {
-    document.getElementById('milestone-emoji').textContent = m.emoji;
-    document.getElementById('milestone-title').textContent = m.title;
-    document.getElementById('milestone-sub').textContent   = m.sub;
-    const overlay = document.getElementById('milestone-overlay');
-    overlay.classList.add('show');
-    spawnConfetti();
-    setTimeout(() => overlay.classList.remove('show'), 7000);
+  function showMilestonePopup(m) {
+    document.getElementById('milestone-emoji-ring').textContent = m.emoji;
+    document.getElementById('milestone-title').textContent      = m.title;
+    document.getElementById('milestone-badge').textContent      = `${m.count} bottles recycled`;
+    document.getElementById('milestone-message').textContent    = m.sub;
+    openPopup('popup-milestone', 9000);
+    const colors = m.count === 300
+      ? ['#4ade80','#22c55e','#86efac','#fff','#bbf7d0']
+      : ['#c4b5fd','#8b5cf6','#fbbf24','#fff','#a78bfa'];
+    launchConfetti(colors);
   }
 
-  function spawnConfetti() {
-    const wrap = document.getElementById('confetti-wrap');
-    wrap.innerHTML = '';
-    const colors = ['#B5A23A','#5DBB63','#6BA3C7','#E8A838','#F0EBD8','#7A9A60'];
-    for (let i = 0; i < 80; i++) {
-      const el = document.createElement('div');
-      el.className = 'confetti-particle';
-      el.style.left = Math.random() * 100 + 'vw';
-      el.style.background = colors[Math.floor(Math.random() * colors.length)];
-      el.style.animationDuration = (2 + Math.random() * 3) + 's';
-      el.style.animationDelay    = (Math.random() * 1.5) + 's';
-      el.style.width  = (6 + Math.random() * 10) + 'px';
-      el.style.height = (6 + Math.random() * 10) + 'px';
-      wrap.appendChild(el);
+  // ── Canvas confetti ────────────────────────────
+  const confCanvas = document.getElementById('confetti-canvas');
+  const confCtx    = confCanvas.getContext('2d');
+  let confParticles = [];
+  let confAnimId    = null;
+
+  function launchConfetti(colors) {
+    confCanvas.width  = window.innerWidth;
+    confCanvas.height = window.innerHeight;
+    confParticles = [];
+    for (let i = 0; i < 120; i++) {
+      confParticles.push({
+        x: Math.random() * confCanvas.width,
+        y: -10 - Math.random() * 100,
+        w: 6 + Math.random() * 8,
+        h: 4 + Math.random() * 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 4,
+        vy: 2 + Math.random() * 4,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 0.2,
+        life: 1,
+      });
     }
-    setTimeout(() => { wrap.innerHTML = ''; }, 6000);
+    if (confAnimId) cancelAnimationFrame(confAnimId);
+    drawConfetti();
+    setTimeout(stopConfetti, 5000);
   }
+
+  function drawConfetti() {
+    confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+    confParticles.forEach(p => {
+      confCtx.save();
+      confCtx.translate(p.x, p.y);
+      confCtx.rotate(p.rot);
+      confCtx.globalAlpha = p.life;
+      confCtx.fillStyle = p.color;
+      confCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+      confCtx.restore();
+      p.x += p.vx; p.y += p.vy; p.rot += p.vrot; p.vy += 0.08;
+      if (p.y > confCanvas.height) p.life -= 0.05;
+    });
+    confParticles = confParticles.filter(p => p.life > 0);
+    if (confParticles.length > 0) {
+      confAnimId = requestAnimationFrame(drawConfetti);
+    } else {
+      confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+    }
+  }
+
+  function stopConfetti() {
+    if (confAnimId) cancelAnimationFrame(confAnimId);
+    confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+    confParticles = [];
+  }
+
+  window.addEventListener('resize', () => {
+    confCanvas.width  = window.innerWidth;
+    confCanvas.height = window.innerHeight;
+  });
 
   // ── SmartPallet live temperature ──────────────────────
   const SP_API = 'https://iotpallet.no/api/public/devices';
@@ -668,11 +791,12 @@
             ts: new Date(r.recycled_at || Date.now()).getTime()
           });
           if (rfidEvents.length > 50) rfidEvents.pop();
-          // Show success toast for first-time scan
-          const drinkerName = reg?.name || null;
-          const bottleLabel = `Bottle #${num}`;
-          const toastSub = drinkerName ? `${drinkerName} recycled ${bottleLabel}` : `${bottleLabel} has been recycled`;
-          showFeedbackToast('success', '♻️ Bottle recycled!', toastSub);
+          // Show recycled popup
+          if (reg?.name) {
+            showRecycledPopup(reg.name, reg.company || '', num, r.giai);
+          } else {
+            showUnregisteredPopup(num, r.giai);
+          }
           updateUI();
           setLive(true);
         }
@@ -684,7 +808,7 @@
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_feedback' }, (payload) => {
         const f = payload.new;
         if (f.event_type === 'invalid') {
-          showFeedbackToast('invalid', '⚠️ Tag not recognised', 'This tag is not part of the GS1 Nordic Summit event');
+          showInvalidPopup();
         }
       })
       .subscribe();
@@ -744,6 +868,7 @@
         pantedGIAIs.add(b.giai);
         rfidEvents.unshift({ giai: b.giai, num: b.num, name: n.name, company: n.company, ts: Date.now() });
         if (rfidEvents.length > 50) rfidEvents.pop();
+        showRecycledPopup(n.name, n.company, b.num, b.giai);
         updateUI();
       }
     }, 3000);
