@@ -120,16 +120,24 @@ curl -s -X POST \
 
 ## EPC ↔ GIAI Mapping
 
-The AdvanReader returns raw EPC hex codes. The Edge Function converts EPC to GIAI using the GS1 GIAI-96 encoding:
+The AdvanReader returns raw EPC hex codes. The Edge Function converts EPC to GIAI using the GS1 GIAI-96 encoding (GS1 TDS 1.13, Table 14-3).
+
+**GIAI-96 EPC structure** for GCP `7073539` (7 digits, partition 5):
+- Header: `0x34` (8 bits) — note: `0x30` is SGTIN-96, NOT GIAI-96
+- Filter: 3 bits
+- Partition: `5` (3 bits)
+- GCP: 24 bits
+- Asset Reference: 58 bits
+- **Total: 96 bits**
 
 | EPC (hex, from reader) | GIAI (in Supabase) | Bottle # |
 |---|---|---|
-| `3034257BF400B800000000C8` | `70735390200` | #200 |
-| `3034257BF400B800000000A1` | `70735390161` | #161 |
-| `3034257BF400B80000000001` | `70735390001` | #1 |
-| `3034257BF400B8000000012C` | `70735390300` | #300 |
+| `3415AFBC0C000000000003E9` | `70735391001` | #1 |
+| `3415AFBC0C00000000000412` | `70735391042` | #42 |
+| `3415AFBC0C0000000000044C` | `70735391100` | #100 |
+| `3415AFBC0C00000000000514` | `70735391300` | #300 |
 
-Formula: `GIAI = "7073539" + (last 38 bits of EPC as decimal).padStart(4, "0")`
+Formula: `GIAI = "7073539" + AR_decimal` where AR = bits 38–95 (58-bit field)
 
 ---
 
@@ -141,6 +149,7 @@ Formula: `GIAI = "7073539" + (last 38 bits of EPC as decimal).padStart(4, "0")`
 | `401 Unauthorized` | Wrong X-Event-Key | Use `gs1nordic2026` |
 | `400 Bad Request` | Malformed JSON config | Validate at jsonlint.com |
 | `duplicate` for all tags | Same EPC already in database | Expected — each EPC is unique per event |
+| All tags show `skipped (not an event bottle)` | EPC header mismatch — bottles not programmed as GIAI-96 | Verify bottle tags start with `0x34`; if they start with `0x30` they are SGTIN-96 not GIAI-96 |
 | Display screen not updating | Supabase Realtime not connected | Check browser console for WebSocket errors |
 | HTTPS certificate error | Network issue | Verify internet connectivity on reader |
 | Tags read but not posted | TTL not expired yet | Lower TTL to 5s for testing, restore to 60s for event |
