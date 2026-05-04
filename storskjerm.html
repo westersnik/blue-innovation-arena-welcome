@@ -268,7 +268,7 @@
     .feedback-toast.show {
       transform: translateY(0); opacity: 1;
     }
-    .feedback-toast.duplicate { border-color: rgba(181,162,58,0.5); }
+    .feedback-toast.success   { border-color: rgba(93,187,99,0.6); }
     .feedback-toast.invalid   { border-color: rgba(200,80,80,0.5); }
     .feedback-icon { font-size: 36px; flex-shrink: 0; }
     .feedback-body { display: flex; flex-direction: column; gap: 4px; }
@@ -668,21 +668,22 @@
             ts: new Date(r.recycled_at || Date.now()).getTime()
           });
           if (rfidEvents.length > 50) rfidEvents.pop();
+          // Show success toast for first-time scan
+          const drinkerName = reg?.name || null;
+          const bottleLabel = `Bottle #${num}`;
+          const toastSub = drinkerName ? `${drinkerName} recycled ${bottleLabel}` : `${bottleLabel} has been recycled`;
+          showFeedbackToast('success', '♻️ Bottle recycled!', toastSub);
           updateUI();
           setLive(true);
         }
       })
       .subscribe();
 
-    // Subscribe to rfid_feedback (duplicate / invalid tag events)
+    // Subscribe to rfid_feedback (invalid tag events only)
     sb.channel('rfid-feedback-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_feedback' }, (payload) => {
         const f = payload.new;
-        if (f.event_type === 'duplicate') {
-          const num = f.giai ? (parseInt(f.giai, 10) - 70735391640) : null;
-          const label = (num >= 1 && num <= 300) ? `Bottle #${num}` : (f.giai || 'Unknown');
-          showFeedbackToast('duplicate', '♻️ Already recycled', `${label} has already been registered`);
-        } else if (f.event_type === 'invalid') {
+        if (f.event_type === 'invalid') {
           showFeedbackToast('invalid', '⚠️ Tag not recognised', 'This tag is not part of the GS1 Nordic Summit event');
         }
       })

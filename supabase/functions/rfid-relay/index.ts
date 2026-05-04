@@ -185,8 +185,6 @@ Deno.serve(async (req: Request) => {
         // Unique constraint violation — already recorded (idempotent)
         duplicates++;
         results.push({ epc, giai, status: 'duplicate' });
-        // Write feedback so display can show "already recycled" popup
-        await supabase.from('rfid_feedback').insert({ epc, giai, event_type: 'duplicate' });
       } else {
         results.push({ epc, giai, status: `error: ${error.message}` });
       }
