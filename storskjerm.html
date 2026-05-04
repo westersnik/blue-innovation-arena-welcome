@@ -249,6 +249,36 @@
     .pop { animation: numPop 0.4s ease-out; }
 
     /* ── Milestone / celebration overlay ── */
+    /* ── Feedback toast (duplicate / invalid) ── */
+    .feedback-toast {
+      position: fixed;
+      bottom: 48px; right: 48px;
+      z-index: 9998;
+      background: rgba(30,35,25,0.97);
+      border: 1.5px solid var(--border-dim);
+      border-radius: 16px;
+      padding: 18px 28px;
+      display: flex; align-items: center; gap: 18px;
+      min-width: 320px; max-width: 480px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      transform: translateY(120px); opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .feedback-toast.show {
+      transform: translateY(0); opacity: 1;
+    }
+    .feedback-toast.duplicate { border-color: rgba(181,162,58,0.5); }
+    .feedback-toast.invalid   { border-color: rgba(200,80,80,0.5); }
+    .feedback-icon { font-size: 36px; flex-shrink: 0; }
+    .feedback-body { display: flex; flex-direction: column; gap: 4px; }
+    .feedback-title {
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .feedback-sub {
+      font-size: 14px; color: var(--muted);
+    }
+
     .milestone-overlay {
       display: none;
       position: fixed; inset: 0; z-index: 9999;
@@ -379,6 +409,15 @@
 
 </div>
 
+<!-- Feedback toast for duplicate / invalid scans -->
+<div class="feedback-toast" id="feedback-toast">
+  <span class="feedback-icon" id="feedback-icon">⚠️</span>
+  <div class="feedback-body">
+    <div class="feedback-title" id="feedback-title">Already recycled</div>
+    <div class="feedback-sub" id="feedback-sub"></div>
+  </div>
+</div>
+
 <!-- Milestone celebration overlay -->
 <div class="milestone-overlay" id="milestone-overlay">
   <div class="milestone-emoji" id="milestone-emoji">🎉</div>
@@ -424,6 +463,17 @@
     { count: 200, emoji: '🚀', title: '200 Bottles Recycled!', sub: 'Incredible effort!' },
     { count: 300, emoji: '🎊', title: 'All 300 Bottles!',      sub: '100% recycled – GS1 Nordic Summit legend!' },
   ];
+
+  // ── Feedback toast ──────────────────────────────────
+  let feedbackTimer = null;
+  function showFeedbackToast(type, title, sub) {
+    const toast = document.getElementById('feedback-toast');
+    document.getElementById('feedback-title').textContent = title;
+    document.getElementById('feedback-sub').textContent   = sub;
+    toast.className = `feedback-toast ${type} show`;
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => { toast.classList.remove('show'); }, 5000);
+  }
 
   function checkMilestones(count) {
     MILESTONES.forEach(m => {
@@ -620,6 +670,20 @@
           if (rfidEvents.length > 50) rfidEvents.pop();
           updateUI();
           setLive(true);
+        }
+      })
+      .subscribe();
+
+    // Subscribe to rfid_feedback (duplicate / invalid tag events)
+    sb.channel('rfid-feedback-channel')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_feedback' }, (payload) => {
+        const f = payload.new;
+        if (f.event_type === 'duplicate') {
+          const num = f.giai ? (parseInt(f.giai, 10) - 70735391640) : null;
+          const label = (num >= 1 && num <= 300) ? `Bottle #${num}` : (f.giai || 'Unknown');
+          showFeedbackToast('duplicate', '♻️ Already recycled', `${label} has already been registered`);
+        } else if (f.event_type === 'invalid') {
+          showFeedbackToast('invalid', '⚠️ Tag not recognised', 'This tag is not part of the GS1 Nordic Summit event');
         }
       })
       .subscribe();
