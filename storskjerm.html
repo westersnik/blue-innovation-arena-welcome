@@ -303,7 +303,7 @@
   <header>
     <div class="header-left">
       <img class="header-logo" src="V2/img/invig-logo.png" alt="Invig" />
-      <div class="header-event">GS1 Nordic Summit <span>2025</span></div>
+      <div class="header-event">GS1 Nordic Summit <span>2026</span></div>
     </div>
     <div class="live-pill" id="live-pill">
       <span class="live-dot demo" id="live-dot"></span>
@@ -338,7 +338,7 @@
   <!-- Progress bar -->
   <div class="progress-wrap">
     <div class="progress-header">
-      <span class="progress-title">🍺 Recycling Progress – GS1 Nordic Summit 2025</span>
+      <span class="progress-title">🍺 Recycling Progress – GS1 Nordic Summit 2026</span>
       <span class="progress-pct" id="pant-pct">0%</span>
     </div>
     <div class="progress-track">
@@ -389,7 +389,7 @@
 
 <script>
   /* =====================================================
-     Storskjerm (Display Screen) – GS1 Nordic Summit 2025
+     Storskjerm (Display Screen) – GS1 Nordic Summit 2026
      
      Data sources:
        1. Supabase real-time – rfid_events (recycling) + registrations (QR scans)
@@ -536,8 +536,10 @@
     const { data: rfid } = await sb
       .from('rfid_events')
       .select('giai, epc, recycled_at')
+      .gte('giai', '70735391001')
+      .lte('giai', '70735391300')
       .order('recycled_at', { ascending: false })
-      .limit(50);
+      .limit(300);
 
     if (rfid && rfid.length > 0) {
       hasLiveData = true;
@@ -600,10 +602,11 @@
     sb.channel('rfid-events-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
         const r = payload.new;
-        if (!pantedGIAIs.has(r.giai)) {
+        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
+        if (!pantedGIAIs.has(r.giai) && rNum >= 1 && rNum <= 300) {
           hasLiveData = true;
           pantedGIAIs.add(r.giai);
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735391000) : null;
+          const num = rNum;
           // Look up registration for this bottle
           const regs = window._regs || [];
           const reg = regs.find(x => x.giai === r.giai);
@@ -639,14 +642,14 @@
 
   // ── Demo simulation ──────────────────────────────────
   const DEMO_BOTTLES = [
-    { giai: '70735391141', num: 1 },
-    { giai: '70735391642', num: 2 },
-    { giai: '70735391643', num: 3 },
-    { giai: '70735391644', num: 4 },
-    { giai: '70735391645', num: 5 },
-    { giai: '70735391646', num: 6 },
-    { giai: '70735391647', num: 7 },
-    { giai: '70735391648', num: 8 },
+    { giai: '70735391041', num: 41 },
+    { giai: '70735391099', num: 99 },
+    { giai: '70735391142', num: 142 },
+    { giai: '70735391200', num: 200 },
+    { giai: '70735391250', num: 250 },
+    { giai: '70735391077', num: 77 },
+    { giai: '70735391188', num: 188 },
+    { giai: '70735391033', num: 33 },
   ];
   const DEMO_NAMES = [
     { name: 'Ola Nordmann',   company: 'GS1 Norway' },
