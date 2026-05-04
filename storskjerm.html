@@ -518,16 +518,17 @@
   ];
 
   // ── Popup helpers ─────────────────────────────────
-  let popupTimer = null;
+  // Each popup has its own independent timer so multiple popups
+  // can be queued without interfering with each other.
+  const _popupTimers = {};
   function openPopup(id, autoDismissMs) {
     document.getElementById(id).classList.add('active');
-    if (autoDismissMs) {
-      if (popupTimer) clearTimeout(popupTimer);
-      popupTimer = setTimeout(() => closePopup(id), autoDismissMs);
-    }
+    if (_popupTimers[id]) clearTimeout(_popupTimers[id]);
+    _popupTimers[id] = setTimeout(() => closePopup(id), autoDismissMs || 5000);
   }
   function closePopup(id) {
     document.getElementById(id).classList.remove('active');
+    if (_popupTimers[id]) { clearTimeout(_popupTimers[id]); delete _popupTimers[id]; }
     stopConfetti();
   }
 
@@ -538,18 +539,18 @@
     document.getElementById('recycled-badge').textContent   = `🍺 Bottle #${num} · GIAI ${giai}`;
     document.getElementById('recycled-message').textContent =
       `Your bottle has been recycled and logged. Amazing!`;
-    openPopup('popup-recycled', 8000);
+    openPopup('popup-recycled', 5000);
   }
 
   // Show recycled popup (unregistered)
   function showUnregisteredPopup(num, giai) {
     document.getElementById('unregistered-badge').textContent = `🍺 Bottle #${num} · GIAI ${giai}`;
-    openPopup('popup-unregistered', 8000);
+    openPopup('popup-unregistered', 5000);
   }
 
   // Show invalid tag popup
   function showInvalidPopup() {
-    openPopup('popup-invalid', 6000);
+    openPopup('popup-invalid', 4000);
   }
 
   // ── Milestones ─────────────────────────────────
@@ -567,7 +568,7 @@
     document.getElementById('milestone-title').textContent      = m.title;
     document.getElementById('milestone-badge').textContent      = `${m.count} bottles recycled`;
     document.getElementById('milestone-message').textContent    = m.sub;
-    openPopup('popup-milestone', 9000);
+    openPopup('popup-milestone', 7000);
     const colors = m.count === 300
       ? ['#4ade80','#22c55e','#86efac','#fff','#bbf7d0']
       : ['#c4b5fd','#8b5cf6','#fbbf24','#fff','#a78bfa'];
