@@ -4,6 +4,9 @@
  * Accepts POST from Keonn AdvanReader (SimpleHTTPService) and writes
  * EPC tag reads to the rfid_events table using the service role key.
  *
+ * Only EPC codes that decode to a valid event GIAI (70735391001–70735391300)
+ * are accepted. All other tags are silently ignored.
+ *
  * Supported body formats:
  *   { "epc": "3034257BF400B800000000C8" }                        – single tag
  *   { "tags": [{ "epc": "..." }] }                               – batch
@@ -22,20 +25,63 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const EVENT_KEY = Deno.env.get('RFID_EVENT_KEY') ?? 'gs1nordic2026'; // optional shared secret
 
+// Valid GIAI range for this event: 70735391001–70735391300 (300 Carlsberg bottles)
+const GIAI_MIN = 70735391001n;
+const GIAI_MAX = 70735391300n;
+
 // GS1 GIAI-96 EPC → GIAI conversion
-// Matches the logic in server/supabase.ts (Manus app)
+// GS1 TDS 1.13 Table 14-3:
+//   Header:    8 bits = 0x34  (NOT 0x30 — that's SGTIN-96)
+//   Filter:    3 bits
+//   Partition: 3 bits
+//   GCP:       variable (depends on partition)
+//   Asset Ref: variable (depends on partition)
+//   Total:     96 bits
+//
+// Partition table (GCP digits → field widths):
+//   P=0: GCP=40b(12d), AR=42b  |  P=1: GCP=37b(11d), AR=45b
+//   P=2: GCP=34b(10d), AR=48b  |  P=3: GCP=30b(9d),  AR=52b
+//   P=4: GCP=27b(8d),  AR=55b  |  P=5: GCP=24b(7d),  AR=58b  ← GCP 7073539
+//   P=6: GCP=20b(6d),  AR=62b
+const GIAI96_HEADER = 0x34n;
+const PARTITION_TABLE: Record<number, [number, number, number]> = {
+  0: [40, 42, 12], 1: [37, 45, 11], 2: [34, 48, 10], 3: [30, 52, 9],
+  4: [27, 55, 8],  5: [24, 58, 7],  6: [20, 62, 6],
+};
+
 function epcToGiai(epcHex: string): string | null {
   try {
     const hex = epcHex.replace(/\s/g, '').toUpperCase();
     if (hex.length !== 24) return null;
-    const bigint = BigInt('0x' + hex);
-    // Extract asset reference: last 38 bits (bits 58-95)
-    const assetRef = bigint & BigInt('0x3FFFFFFFFF');
-    const gcp = '7073539';
-    const giai = gcp + assetRef.toString().padStart(4, '0');
+    const val = BigInt('0x' + hex);
+    // Check GIAI-96 header (top 8 bits must be 0x34)
+    const header = (val >> 88n) & 0xFFn;
+    if (header !== GIAI96_HEADER) return null;
+    // Extract partition (bits 82-84)
+    const partition = Number((val >> 82n) & 0x7n);
+    const entry = PARTITION_TABLE[partition];
+    if (!entry) return null;
+    const [gcpBits, arBits, gcpDigits] = entry;
+    // Extract GCP and Asset Reference
+    const gcpMask = (1n << BigInt(gcpBits)) - 1n;
+    const gcp = (val >> BigInt(arBits)) & gcpMask;
+    const arMask = (1n << BigInt(arBits)) - 1n;
+    const ar = val & arMask;
+    // GIAI = GCP (zero-padded to gcpDigits) + AR (decimal)
+    const giai = gcp.toString().padStart(gcpDigits, '0') + ar.toString();
     return giai;
   } catch {
     return null;
+  }
+}
+
+// Validate that a GIAI belongs to this event's bottle range
+function isValidEventGiai(giai: string): boolean {
+  try {
+    const n = BigInt(giai);
+    return n >= GIAI_MIN && n <= GIAI_MAX;
+  } catch {
+    return false;
   }
 }
 
@@ -110,20 +156,31 @@ Deno.serve(async (req: Request) => {
   const results: Array<{ epc: string; giai: string | null; status: string }> = [];
   let recorded = 0;
   let duplicates = 0;
+  let skipped = 0;
 
   for (const { epc, readerId } of rawTags) {
     const giai = epcToGiai(epc);
 
+    // ── GIAI range validation ──────────────────────────────────────
+    // Only accept EPC codes that decode to a valid event bottle GIAI.
+    // Any other tag (wrong event, wrong type, stray tags) is silently
+    // ignored — it does NOT appear in counts or the recycled feed.
+    if (!giai || !isValidEventGiai(giai)) {
+      skipped++;
+      results.push({ epc, giai, status: 'skipped (not an event bottle)' });
+      continue;
+    }
+
     const { error } = await supabase.from('rfid_events').insert({
       epc,
-      giai: giai ?? epc, // fallback: use EPC as GIAI if conversion fails
+      giai,
       reader_id: readerId ?? 'advanreader',
       recycled_at: new Date().toISOString(),
     });
 
     if (error) {
       if (error.code === '23505') {
-        // Unique constraint violation — already recorded
+        // Unique constraint violation — already recorded (idempotent)
         duplicates++;
         results.push({ epc, giai, status: 'duplicate' });
       } else {
@@ -141,6 +198,7 @@ Deno.serve(async (req: Request) => {
       processed: rawTags.length,
       recorded,
       duplicates,
+      skipped,
       results,
     }),
     {
