@@ -820,17 +820,20 @@
   }
 
   // ── Init ─────────────────────────────────────────────
+  // Demo mode: add ?demo=1 to the URL to force demo mode.
+  // Without it, the page waits for real data indefinitely (no auto-demo).
+  const FORCE_DEMO = new URLSearchParams(window.location.search).get('demo') === '1';
+
   async function init() {
     await loadInitialData();
     subscribeRealtime();
 
-    // Start demo if no live data arrives within 5 seconds
-    setTimeout(() => {
-      if (!hasLiveData) {
-        setLive(false);
-        startDemo();
-      }
-    }, 5000);
+    if (FORCE_DEMO) {
+      // Immediately start demo mode when ?demo=1 is in the URL
+      setLive(false);
+      startDemo();
+    }
+    // Without ?demo=1: wait for real Supabase data, no fallback demo
   }
 
   init();
