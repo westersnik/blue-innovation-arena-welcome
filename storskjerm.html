@@ -532,7 +532,23 @@
 
   // ── Supabase: load initial data ───────────────────────
   async function loadInitialData() {
-    // Load rfid_events (columns: epc, giai, reader_id, recycled_at)
+    // Load registrations FIRST so enrichment has names available
+    const { data: regs } = await sb
+      .from('registrations')
+      .select('name, company, phone, giai, registered_at')
+      .order('registered_at', { ascending: false });
+
+    if (regs && regs.length > 0) {
+      hasLiveData = true;
+      regs.forEach(r => {
+        registeredSet.add(r.phone || r.name);
+        if (r.giai) uniqueGIAIs.add(r.giai);
+      });
+      // Store registrations for enrichment before rfid_events are loaded
+      window._regs = regs;
+    }
+
+    // Load rfid_events AFTER registrations so enrichment works correctly
     const { data: rfid } = await sb
       .from('rfid_events')
       .select('giai, epc, recycled_at')
@@ -551,7 +567,7 @@
           rfidEvents.push({
             giai: r.giai,
             num: (num >= 1 && num <= 300) ? num : null,
-            name: null,   // name/company come from registrations join
+            name: null,   // will be filled by enrichRfidEvents below
             company: null,
             ts: new Date(r.recycled_at || Date.now()).getTime()
           });
@@ -559,24 +575,8 @@
       });
       rfidEvents.sort((a, b) => b.ts - a.ts);
 
-      // Enrich rfid events with registration data
+      // Enrich rfid events with registration data (registrations already loaded above)
       await enrichRfidEvents();
-    }
-
-    // Load registrations (columns: phone, name, company, giai, registered_at)
-    const { data: regs } = await sb
-      .from('registrations')
-      .select('name, company, phone, giai, registered_at')
-      .order('registered_at', { ascending: false });
-
-    if (regs && regs.length > 0) {
-      hasLiveData = true;
-      regs.forEach(r => {
-        registeredSet.add(r.phone || r.name);
-        if (r.giai) uniqueGIAIs.add(r.giai);
-      });
-      // Store registrations for enrichment
-      window._regs = regs;
     }
 
     updateUI();
