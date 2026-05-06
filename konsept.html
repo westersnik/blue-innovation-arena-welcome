@@ -356,7 +356,7 @@
     font-weight: 600;
     text-align: center;
   }
-  #qr-giai {
+  #qr-sgtin {
     font-size: clamp(0.65rem, 1vw, 0.78rem);
     color: #666;
     font-family: monospace;
@@ -502,7 +502,7 @@
         <div class="card-icon">🍺</div>
         <div class="card-label">Bottles</div>
         <div class="card-value">300</div>
-        <div class="card-sub">unique GIAIs</div>
+        <div class="card-sub">unique S-GTINs</div>
       </div>
       <div class="info-card" id="card-temp">
         <div class="card-icon">🌡️</div>
@@ -525,7 +525,7 @@
       <div class="info-card" id="card-standard">
         <div class="card-icon">✅</div>
         <div class="card-label">Standard</div>
-        <div class="card-value">GS1 GIAI</div>
+        <div class="card-value">GS1 S-GTIN</div>
         <div class="card-sub">AI (8004)</div>
       </div>
     </div>
@@ -562,7 +562,7 @@
   <div id="qr-box">
     <canvas id="qr-canvas" width="200" height="200"></canvas>
     <div id="qr-label">Bottle #1641 · Carlsberg Pilsner</div>
-    <div id="qr-giai">GIAI: (8004) 70735391141</div>
+    <div id="qr-sgtin">S-GTIN: (01) 70735391141</div>
     <div id="qr-cta">Scan to see your bottle's journey →</div>
   </div>
 </div>
@@ -689,7 +689,7 @@ const tempBadge = document.getElementById('temp-badge');
 const liveTemp = document.getElementById('live-temp');
 const qrReveal = document.getElementById('qr-reveal');
 const qrLabel = document.getElementById('qr-label');
-const qrGiai = document.getElementById('qr-giai');
+const qrSgtin = document.getElementById('qr-sgtin');
 const qrCanvas = document.getElementById('qr-canvas');
 
 function getStepEl(id) { return document.getElementById(id); }
@@ -771,7 +771,7 @@ async function runAnimation() {
 
   // Pick a bottle number
   const bottleNum = BOTTLE_NUMS[bottleIdx % BOTTLE_NUMS.length];
-  const giai = '70735391' + String(bottleNum).padStart(3, '0'); // GIAI base 70735391001–70735391300
+  const sgtin = '70735391' + String(bottleNum).padStart(3, '0'); // S-GTIN base 70735391641–70735391940
   bottleIdx++;
 
   // Position bottle at step 0
@@ -815,9 +815,9 @@ async function runAnimation() {
     // Special: QR reveal at step 5
     if (i === 5) {
       await sleep(600);
-      drawQR(qrCanvas, 'https://id.invig.no/8004/' + giai);
+      drawQR(qrCanvas, 'https://id.invig.no/01/' + sgtin);
       qrLabel.textContent = `Bottle #${bottleNum} · Carlsberg Pilsner`;
-      qrGiai.textContent  = `GIAI: (8004) ${giai}`;
+      qrSgtin.textContent  = `S-GTIN: (01) ${sgtin}`;
       qrReveal.classList.add('show');
       await sleep(3500);
       qrReveal.classList.remove('show');
