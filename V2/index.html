@@ -933,7 +933,7 @@
     // CORS enabled – works directly from GitHub Pages
     // SmartPallet API — preview URL (live data)
     // Production: https://smartpallet.iotpallet.no/api/public/devices
-    const SMARTPALLET_API = 'https://iot-logistics-flow.preview.emergentagent.com/api/public/devices';
+     const SMARTPALLET_API = 'https://iotpallet.no/api/public/devices';
     const SMARTPALLET_KEY = 'gs1-nordic-2026';
     // Static cache files (loaded instantly, refreshed in background)
     const CACHE_09 = 'data/tracker-09.json';
@@ -1117,7 +1117,7 @@
     // ── Render temperature chart (SmartPallet Bifrost) ───────
     async function renderTempChart(giai) {
       const num    = bottleNumber(giai);
-      const device = trackerForBottle(num || 1);
+      const device = 'SR-Tracker-09'; // Always use SR-Tracker-09 as the live temperature source
       const data   = await fetchSmartPalletTelemetry(device);
 
       if (data && data.journey && data.journey.length > 0) {
@@ -1278,16 +1278,29 @@
 
       if (!num) return;
 
-      // Temperature – seed with deterministic value; live API updates it async
-      const temp = genTemp(num);
-      document.getElementById('temp-val').textContent = temp.toFixed(1);
-      document.getElementById('temp-bar').style.width = Math.min(100, (temp / 12) * 100) + '%';
-      const statusEl = document.getElementById('temp-status');
-      if (temp <= 6)      { statusEl.textContent = '✓ Perfect'; statusEl.className = 'temp-status temp-ok'; }
-      else if (temp <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
-      else                { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
+      // Temperature – fetch live from SR-Tracker-09
+      document.getElementById('temp-val').textContent = '--';
+      document.getElementById('temp-status').textContent = 'Loading…';
+      fetchSmartPalletLatest('SR-Tracker-09').then(latest => {
+        const cur = latest && latest.temperature && latest.temperature.current != null
+          ? latest.temperature.current
+          : (latest && latest.journey && latest.journey.length > 0
+              ? latest.journey[latest.journey.length - 1].temperature
+              : null);
+        if (cur != null) {
+          document.getElementById('temp-val').textContent = cur.toFixed(1);
+          document.getElementById('temp-bar').style.width = Math.min(100, (cur / 12) * 100) + '%';
+          const statusEl = document.getElementById('temp-status');
+          if (cur <= 6)      { statusEl.textContent = '✓ Perfect'; statusEl.className = 'temp-status temp-ok'; }
+          else if (cur <= 8) { statusEl.textContent = '⚠ Slightly warm'; statusEl.className = 'temp-status temp-warn'; }
+          else               { statusEl.textContent = '✗ Too warm'; statusEl.className = 'temp-status temp-hot'; }
+        } else {
+          document.getElementById('temp-val').textContent = '--';
+          document.getElementById('temp-status').textContent = 'Unavailable';
+        }
+      });
 
-      // Fetch live temperature in background and update hero badge + chart
+      // Also render full chart in background
       renderTempChart(giai);
 
       // Drinkers
