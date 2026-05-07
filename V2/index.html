@@ -362,6 +362,22 @@
       font-size: 12px; color: var(--muted);
     }
     .returning-bottles strong { color: var(--gold); font-size: 18px; }
+    /* ── Claimed beer banner ── */
+    .claimed-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(74,94,53,0.25) 0%, rgba(74,94,53,0.10) 100%);
+      border: 1.5px solid var(--olive-light);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .claimed-banner.visible { display: block; }
+    .claimed-banner .cb-icon { font-size: 36px; margin-bottom: 6px; }
+    .claimed-banner .cb-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .claimed-banner .cb-name { font-size: 22px; font-weight: 800; color: var(--gold); }
+    .claimed-banner .cb-company { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .claimed-banner .cb-hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; }
     .register-success { display: none; text-align: center; padding: 16px 0; }
     .register-success .rs-icon { font-size: 42px; margin-bottom: 8px; }
     .register-success h4 { font-size: 16px; font-weight: 700; color: var(--gold); }
@@ -638,7 +654,15 @@
           </div>
         </div>
         <div class="drinker-list" id="drinker-list"></div>
-        <button class="btn-primary" style="margin-top:14px;" onclick="togglePanel('panel-register')">
+        <!-- Claimed banner: shown when bottle already has an owner -->
+        <div class="claimed-banner" id="claimed-banner">
+          <div class="cb-icon">🍺</div>
+          <div class="cb-title">This is</div>
+          <div class="cb-name" id="cb-owner-name">—</div>
+          <div class="cb-company" id="cb-owner-company"></div>
+          <div class="cb-hint">This bottle has already been claimed.<br>Each bottle can only be registered once.</div>
+        </div>
+        <button class="btn-primary" style="margin-top:14px;" id="btn-register-drinker" onclick="togglePanel('panel-register')">
           + Register as a drinker
         </button>
       </div>
@@ -798,6 +822,19 @@
           .order('registered_at', { ascending: true });
         return data || [];
       } catch { return []; }
+    }
+
+    /** Check if a bottle is already claimed — returns first owner or null */
+    async function supabaseGetBottleOwner(giai) {
+      try {
+        const { data } = await sb
+          .from('registrations')
+          .select('name, company, registered_at')
+          .eq('giai', giai)
+          .order('registered_at', { ascending: true })
+          .limit(1);
+        return (data && data.length > 0) ? data[0] : null;
+      } catch { return null; }
     }
 
     /** Load all bottles for a phone from Supabase */
@@ -1309,6 +1346,17 @@
       // My beer strip
       updateMyBeerStrip();
 
+      // Check if bottle is already claimed — show banner and hide register button
+      supabaseGetBottleOwner(giai).then(owner => {
+        if (owner) {
+          document.getElementById('cb-owner-name').textContent = owner.name + "'s beer";
+          document.getElementById('cb-owner-company').textContent = owner.company || '';
+          document.getElementById('claimed-banner').classList.add('visible');
+          const btn = document.getElementById('btn-register-drinker');
+          if (btn) btn.style.display = 'none';
+        }
+      });
+
       // Journey and temp chart panels are now loaded lazily via togglePanel()
     }
 
@@ -1383,6 +1431,16 @@
       }
     }
 
+    function showClaimedBanner(owner) {
+      document.getElementById('cb-owner-name').textContent = owner.name + "'s beer";
+      document.getElementById('cb-owner-company').textContent = owner.company || '';
+      document.getElementById('claimed-banner').classList.add('visible');
+      const btn = document.getElementById('btn-register-drinker');
+      if (btn) btn.style.display = 'none';
+      // Close register panel
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+    }
+
     function confirmReturning() {
       const phone = document.getElementById('reg-phone').value.trim();
       const giai  = getGIAI();
@@ -1392,11 +1450,16 @@
       const user  = users[cleanPhone];
       if (!user) return;
 
-      registerUserForBottle(cleanPhone, user.name, user.company, giai);
-      localStorage.setItem('gs1ns_my_phone', cleanPhone);
-      // Also persist to Supabase (best-effort)
-      supabaseRegister(cleanPhone, user.name, user.company, giai);
-      showSuccess(user.name, giai);
+      // Double-check Supabase before saving — prevent race-condition claims
+      supabaseGetBottleOwner(giai).then(existing => {
+        if (existing) { showClaimedBanner(existing); return; }
+        registerUserForBottle(cleanPhone, user.name, user.company, giai);
+        localStorage.setItem('gs1ns_my_phone', cleanPhone);
+        supabaseRegister(cleanPhone, user.name, user.company, giai);
+        showSuccess(user.name, giai);
+        // Update banner for this session
+        showClaimedBanner({ name: user.name, company: user.company });
+      });
     }
 
     function registerNew() {
@@ -1409,11 +1472,17 @@
       if (!giai)  return;
 
       const cleanPhone = phone.replace(/\s/g,'');
-      registerUserForBottle(cleanPhone, name, company, giai);
-      localStorage.setItem('gs1ns_my_phone', cleanPhone);
-      // Also persist to Supabase (best-effort)
-      supabaseRegister(cleanPhone, name, company, giai);
-      showSuccess(name, giai);
+
+      // Double-check Supabase before saving — prevent race-condition claims
+      supabaseGetBottleOwner(giai).then(existing => {
+        if (existing) { showClaimedBanner(existing); return; }
+        registerUserForBottle(cleanPhone, name, company, giai);
+        localStorage.setItem('gs1ns_my_phone', cleanPhone);
+        supabaseRegister(cleanPhone, name, company, giai);
+        showSuccess(name, giai);
+        // Update banner for this session
+        showClaimedBanner({ name, company });
+      });
     }
 
     function showSuccess(name, giai) {
