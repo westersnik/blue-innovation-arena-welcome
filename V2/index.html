@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-  <title>GS1 Nordic Summit – Your Carlsberg</title>
-  <meta name="description" content="You have scanned a unique Carlsberg bottle at GS1 Nordic Summit. See its journey, temperature log, and who drank it." />
+  <title>Invig Kaffe med GS1 standard – Din kopp</title>
+  <meta name="description" content="Du har skannet en unik kaffekopp med GS1-standard. Se hvem som drakk den og lever den tilbake." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
@@ -14,41 +14,41 @@
   <!-- Supabase JS client for real-time registration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    /* =====================================================
-       GS1 Nordic Summit V2 – Invig Brand Edition
-       Design: Warm Nordic – Invig olive/gold on cream/dark
-       Colors from Invig brand:
-         --olive-dark:  #3B4A2F  (dark green from logo swirls)
-         --olive:       #5C6E45  (mid green)
-         --olive-light: #8FAF7A  (light green)
-         --gold:        #B5A23A  (Invig gold text)
-         --cream:       #F5F0E8  (warm off-white)
-         --charcoal:    #1C1F17  (near-black background)
-        DB: localStorage key "gs1ns_users" → {phone: {name, company, bottles:[]}}
-           localStorage key "gs1ns_bottle_{giai}" → [{phone, name, company, ts}]
-       API: SmartPallet Bifrost — https://smartpallet.iotpallet.no/api/public/devices/{name}/telemetry
-       Devices: SR-Tracker-09 (31 readings), SR-Tracker-03 (33 readings)
-       API key: gs1-nordic-2026
-       GIAI range: 70735390001–70735390400
+        /* =====================================================
+       Invig Kaffe med GS1 standard – V2
+       Design: Invig brand palette – light mode
+       Colors:
+         --deep-green:  #2E3F34  (dominant – headers, primary buttons)
+         --light-green: #CEE3D2  (positive signals)
+         --gold:        #8A7F1E  (accent text on light bg)
+         --sand:        #F5F3F0  (page background)
+         --sand-dark:   #DAD5CD  (cards, buttons, hairlines)
+         --taupe:       #5F5B53  (body text on light surface)
+       GIAI range: 70735392043–70735394104 (2062 cups)
        ===================================================== */
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --olive-dark:  #2E3D22;
-      --olive:       #4A5E35;
-      --olive-light: #7A9A60;
-      --gold:        #B5A23A;
-      --gold-light:  #D4C05A;
-      --cream:       #F4EFE4;
-      --cream-dim:   #E8E0CF;
-      --charcoal:    #1A1D14;
-      --surface:     #232718;
-      --surface2:    #2D3320;
-      --border:      rgba(181,162,58,0.18);
-      --border-dim:  rgba(255,255,255,0.07);
-      --text:        #F0EBD8;
-      --muted:       #8A9070;
+      --deep-green:  #2E3F34;
+      --light-green: #CEE3D2;
+      --gold:        #8A7F1E;
+      --sand:        #F5F3F0;
+      --sand-dark:   #DAD5CD;
+      --taupe:       #5F5B53;
+      --white:       #FFFFFF;
+      /* Map old vars to new palette for compatibility */
+      --olive-dark:  #2E3F34;
+      --olive:       #3A5244;
+      --olive-light: #3A5244;
+      --gold-light:  #8A7F1E;
+      --cream:       #F5F3F0;
+      --cream-dim:   #DAD5CD;
+      --charcoal:    #2E3F34;
+      --surface:     #FFFFFF;
+      --surface2:    #F5F3F0;
+      --border:      rgba(218,213,205,0.8);
+      --border-dim:  rgba(218,213,205,0.5);
+      --text:        #2E3F34;
+      --muted:       #5F5B53;
       --radius:      14px;
       --radius-sm:   9px;
     }
@@ -57,7 +57,7 @@
 
     body {
       font-family: 'DM Sans', system-ui, sans-serif;
-      background: var(--charcoal);
+      background: var(--sand);
       color: var(--text);
       min-height: 100dvh;
       display: flex; flex-direction: column;
@@ -67,22 +67,21 @@
     /* ── Header ── */
     header {
       position: sticky; top: 0; z-index: 100;
-      background: rgba(26,29,20,0.92);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--border);
+      background: var(--deep-green);
+      border-bottom: 1px solid rgba(0,0,0,0.12);
       padding: 10px 16px;
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
     }
     .header-logo-img { height: 32px; width: auto; object-fit: contain; }
     .header-right { display: flex; align-items: center; gap: 8px; }
     .bottle-badge {
-      background: rgba(181,162,58,0.15);
-      border: 1px solid rgba(181,162,58,0.35);
+      background: rgba(206,227,210,0.25);
+      border: 1px solid rgba(206,227,210,0.5);
       border-radius: 999px; padding: 4px 12px;
-      font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 0.04em;
+      font-size: 12px; font-weight: 700; color: var(--light-green); letter-spacing: 0.04em;
     }
     .event-tag {
-      font-size: 10px; color: var(--muted); letter-spacing: 0.06em;
+      font-size: 10px; color: rgba(206,227,210,0.7); letter-spacing: 0.06em;
       text-transform: uppercase; white-space: nowrap;
     }
     .demo-badge {
@@ -97,7 +96,7 @@
     .hero {
       position: relative; overflow: hidden;
       height: 260px;
-      background: linear-gradient(135deg, var(--olive-dark) 0%, #0E1209 100%);
+      background: linear-gradient(135deg, var(--deep-green) 0%, #1A2B22 100%);
     }
     .hero-img {
       width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
@@ -106,9 +105,9 @@
     .hero-overlay {
       position: absolute; inset: 0;
       background: linear-gradient(to bottom,
-        rgba(26,29,20,0.2) 0%,
-        rgba(26,29,20,0.5) 50%,
-        var(--charcoal) 100%);
+        rgba(46,63,52,0.2) 0%,
+        rgba(46,63,52,0.5) 50%,
+        var(--sand) 100%);
     }
     .hero-content {
       position: absolute; bottom: 18px; left: 16px; right: 16px;
@@ -130,10 +129,10 @@
     }
     .hero-title {
       font-family: 'DM Serif Display', serif;
-      font-size: 26px; font-weight: 400; line-height: 1.15; color: var(--cream);
+      font-size: 26px; font-weight: 400; line-height: 1.15; color: #FFFFFF;
     }
-    .hero-title em { font-style: normal; color: var(--gold); }
-    .hero-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+    .hero-title em { font-style: normal; color: var(--light-green); }
+    .hero-sub { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 5px; }
 
     /* ── Main ── */
     main {
@@ -142,11 +141,11 @@
       display: flex; flex-direction: column; gap: 14px;
     }
 
-    /* ── My beer strip (shown when registered) ── */
+    /* ── My cup strip (shown when registered) ── */
     .my-beer-strip {
       display: none;
-      background: linear-gradient(135deg, var(--olive-dark), var(--surface));
-      border: 1px solid rgba(181,162,58,0.35);
+      background: var(--deep-green);
+      border: 1px solid rgba(46,63,52,0.2);
       border-radius: var(--radius);
       padding: 14px 16px;
       align-items: center; gap: 14px;
@@ -154,42 +153,16 @@
     .my-beer-strip.visible { display: flex; }
     .my-beer-icon { font-size: 28px; flex-shrink: 0; }
     .my-beer-info { flex: 1; }
-    .my-beer-name { font-size: 14px; font-weight: 600; color: var(--cream); }
-    .my-beer-sub  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .my-beer-name { font-size: 14px; font-weight: 600; color: #FFFFFF; }
+    .my-beer-sub  { font-size: 11px; color: var(--light-green); margin-top: 2px; }
     .my-beer-count {
-      font-size: 28px; font-weight: 700; color: var(--gold); line-height: 1;
+      font-size: 28px; font-weight: 700; color: var(--light-green); line-height: 1;
       text-align: right; flex-shrink: 0;
     }
-    .my-beer-count-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .my-beer-count-label { font-size: 9px; color: rgba(206,227,210,0.7); text-transform: uppercase; letter-spacing: 0.06em; }
 
     /* ── Temp strip ── */
-    .temp-strip {
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
-      border-radius: var(--radius);
-      padding: 14px 16px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    }
-    .temp-main { display: flex; align-items: baseline; gap: 3px; }
-    .temp-val { font-size: 34px; font-weight: 700; color: var(--olive-light); line-height: 1; }
-    .temp-unit { font-size: 15px; color: var(--muted); }
-    .temp-meta { text-align: right; }
-    .temp-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
-    .temp-status { font-size: 13px; font-weight: 600; margin-top: 2px; }
-    .temp-ok   { color: var(--olive-light); }
-    .temp-warn { color: var(--gold); }
-    .temp-hot  { color: #E05050; }
-    .temp-bar-wrap { flex: 1; }
-    .temp-bar-track {
-      height: 5px; background: rgba(255,255,255,0.07);
-      border-radius: 999px; overflow: hidden; margin-top: 4px;
-    }
-    .temp-bar-fill {
-      height: 100%; border-radius: 999px;
-      background: linear-gradient(to right, var(--olive), var(--gold));
-      transition: width 1s ease;
-    }
-    .temp-range { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); margin-top: 3px; }
+    .temp-strip { display: none; }
 
     /* ── Action buttons ── */
     .action-grid {
@@ -197,27 +170,27 @@
       gap: 10px;
     }
     .action-btn {
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--white);
+      border: 1px solid var(--sand-dark);
       border-radius: var(--radius);
       padding: 15px 13px;
       display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
       cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s;
       text-decoration: none; color: inherit;
     }
-    .action-btn:hover  { background: var(--surface2); border-color: rgba(181,162,58,0.25); }
+    .action-btn:hover  { background: var(--sand); border-color: var(--deep-green); }
     .action-btn:active { transform: scale(0.97); }
     .action-btn .ab-icon { font-size: 20px; }
-    .action-btn .ab-label { font-size: 13px; font-weight: 600; color: var(--cream); }
-    .action-btn .ab-sub   { font-size: 10px; color: var(--muted); line-height: 1.4; }
-    .action-btn.highlight { border-color: rgba(181,162,58,0.4); background: rgba(181,162,58,0.07); }
-    .action-btn.highlight .ab-label { color: var(--gold); }
+    .action-btn .ab-label { font-size: 13px; font-weight: 600; color: var(--deep-green); }
+    .action-btn .ab-sub   { font-size: 10px; color: var(--taupe); line-height: 1.4; }
+    .action-btn.highlight { border-color: var(--deep-green); background: var(--light-green); }
+    .action-btn.highlight .ab-label { color: var(--deep-green); }
 
     /* ── Panels ── */
     .panel {
       display: none;
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--white);
+      border: 1px solid var(--sand-dark);
       border-radius: var(--radius);
       overflow: hidden;
       animation: fadeUp 0.22s ease-out both;
@@ -230,11 +203,12 @@
     .panel-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 13px 16px;
-      border-bottom: 1px solid var(--border-dim);
+      background: var(--deep-green);
+      border-bottom: 1px solid rgba(0,0,0,0.1);
       cursor: pointer;
     }
-    .panel-header h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--cream); }
-    .panel-close { font-size: 18px; color: var(--muted); line-height: 1; }
+    .panel-header h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: #FFFFFF; }
+    .panel-close { font-size: 18px; color: rgba(255,255,255,0.6); line-height: 1; }
     .panel-body { padding: 16px; }
 
     /* Journey / map panel */
@@ -301,16 +275,17 @@
     .drinker-row {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 11px;
-      background: rgba(255,255,255,0.03); border-radius: var(--radius-sm);
+      background: var(--sand); border-radius: var(--radius-sm);
+      border: 1px solid var(--sand-dark);
     }
-    .drinker-row.me { border: 1px solid rgba(181,162,58,0.35); background: rgba(181,162,58,0.06); }
+    .drinker-row.me { border: 1px solid var(--deep-green); background: var(--light-green); }
     .drinker-avatar {
       width: 32px; height: 32px; border-radius: 50%;
-      background: var(--surface2); display: flex; align-items: center;
+      background: var(--sand-dark); display: flex; align-items: center;
       justify-content: center; font-size: 15px; flex-shrink: 0;
     }
-    .drinker-name { font-size: 13px; font-weight: 500; color: var(--cream); }
-    .drinker-meta { font-size: 11px; color: var(--muted); }
+    .drinker-name { font-size: 13px; font-weight: 500; color: var(--deep-green); }
+    .drinker-meta { font-size: 11px; color: var(--taupe); }
     .drinker-num  { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--gold); white-space: nowrap; }
 
     /* ── Register / Phone flow ── */
@@ -322,51 +297,51 @@
       text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; display: block;
     }
     .form-input {
-      width: 100%; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.12); border-radius: var(--radius-sm);
-      padding: 12px 14px; font-size: 15px; color: var(--cream);
+      width: 100%; background: var(--white);
+      border: 1px solid var(--sand-dark); border-radius: var(--radius-sm);
+      padding: 12px 14px; font-size: 15px; color: var(--deep-green);
       font-family: inherit; outline: none; transition: border-color 0.15s;
     }
-    .form-input:focus { border-color: rgba(181,162,58,0.55); }
-    .form-input::placeholder { color: var(--muted); }
+    .form-input:focus { border-color: var(--deep-green); }
+    .form-input::placeholder { color: var(--taupe); }
     .form-input.phone-input { font-size: 20px; font-weight: 600; letter-spacing: 0.05em; text-align: center; }
     .btn-primary {
       width: 100%; padding: 14px; border-radius: var(--radius-sm);
-      background: var(--gold); color: var(--charcoal);
+      background: var(--deep-green); color: #FFFFFF;
       font-size: 15px; font-weight: 700; font-family: inherit;
       border: none; cursor: pointer;
       transition: opacity 0.15s, transform 0.1s;
     }
-    .btn-primary:hover  { opacity: 0.9; }
+    .btn-primary:hover  { opacity: 0.88; }
     .btn-primary:active { transform: scale(0.98); }
     .btn-secondary {
       width: 100%; padding: 12px; border-radius: var(--radius-sm);
-      background: transparent; color: var(--muted);
+      background: transparent; color: var(--taupe);
       font-size: 13px; font-family: inherit;
-      border: 1px solid var(--border-dim); cursor: pointer;
+      border: 1px solid var(--sand-dark); cursor: pointer;
       transition: border-color 0.15s, color 0.15s;
     }
-    .btn-secondary:hover { border-color: rgba(181,162,58,0.3); color: var(--gold); }
-    .flow-hint { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+    .btn-secondary:hover { border-color: var(--deep-green); color: var(--deep-green); }
+    .flow-hint { font-size: 12px; color: var(--taupe); text-align: center; line-height: 1.6; }
     .returning-card {
-      background: rgba(181,162,58,0.08);
-      border: 1px solid rgba(181,162,58,0.3);
+      background: var(--light-green);
+      border: 1px solid var(--deep-green);
       border-radius: var(--radius-sm);
       padding: 14px;
     }
-    .returning-name { font-size: 16px; font-weight: 700; color: var(--cream); }
-    .returning-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .returning-name { font-size: 16px; font-weight: 700; color: var(--deep-green); }
+    .returning-meta { font-size: 12px; color: var(--taupe); margin-top: 3px; }
     .returning-bottles {
       margin-top: 10px; padding-top: 10px;
-      border-top: 1px solid rgba(181,162,58,0.15);
-      font-size: 12px; color: var(--muted);
+      border-top: 1px solid rgba(46,63,52,0.2);
+      font-size: 12px; color: var(--taupe);
     }
-    .returning-bottles strong { color: var(--gold); font-size: 18px; }
-    /* ── Claimed beer banner ── */
+    .returning-bottles strong { color: var(--deep-green); font-size: 18px; }
+    /* ── Claimed cup banner ── */
     .claimed-banner {
       display: none;
-      background: linear-gradient(135deg, rgba(74,94,53,0.25) 0%, rgba(74,94,53,0.10) 100%);
-      border: 1.5px solid var(--olive-light);
+      background: var(--light-green);
+      border: 1.5px solid var(--deep-green);
       border-radius: var(--radius);
       padding: 18px 16px;
       text-align: center;
@@ -374,14 +349,14 @@
     }
     .claimed-banner.visible { display: block; }
     .claimed-banner .cb-icon { font-size: 36px; margin-bottom: 6px; }
-    .claimed-banner .cb-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
-    .claimed-banner .cb-name { font-size: 22px; font-weight: 800; color: var(--gold); }
-    .claimed-banner .cb-company { font-size: 12px; color: var(--muted); margin-top: 3px; }
-    .claimed-banner .cb-hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; }
+    .claimed-banner .cb-title { font-size: 13px; font-weight: 600; color: var(--taupe); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .claimed-banner .cb-name { font-size: 22px; font-weight: 800; color: var(--deep-green); }
+    .claimed-banner .cb-company { font-size: 12px; color: var(--taupe); margin-top: 3px; }
+    .claimed-banner .cb-hint { font-size: 11px; color: var(--taupe); margin-top: 10px; line-height: 1.5; border-top: 1px solid rgba(46,63,52,0.15); padding-top: 10px; }
     .register-success { display: none; text-align: center; padding: 16px 0; }
     .register-success .rs-icon { font-size: 42px; margin-bottom: 8px; }
-    .register-success h4 { font-size: 16px; font-weight: 700; color: var(--gold); }
-    .register-success p  { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+    .register-success h4 { font-size: 16px; font-weight: 700; color: var(--deep-green); }
+    .register-success p  { font-size: 12px; color: var(--taupe); margin-top: 5px; line-height: 1.6; }
 
     /* ── Registration popup ── */
     #reg-popup-overlay {
@@ -397,8 +372,8 @@
       opacity: 1; pointer-events: all;
     }
     #reg-popup-card {
-      background: var(--surface);
-      border: 1px solid rgba(181,162,58,0.35);
+      background: var(--white);
+      border: 1px solid var(--sand-dark);
       border-radius: 20px 20px 0 0;
       padding: 24px 20px 32px;
       width: 100%; max-width: 480px;
@@ -410,57 +385,57 @@
     }
     .popup-drag-handle {
       width: 40px; height: 4px;
-      background: rgba(255,255,255,0.15);
+      background: var(--sand-dark);
       border-radius: 2px;
       margin: 0 auto 18px;
     }
-    .popup-beer-icon {
+    .popup-cup-icon {
       font-size: 3rem; text-align: center; margin-bottom: 10px;
     }
     .popup-title {
       font-size: 1.25rem; font-weight: 700;
-      color: var(--gold); text-align: center; margin-bottom: 6px;
+      color: var(--deep-green); text-align: center; margin-bottom: 6px;
     }
     .popup-sub {
-      font-size: 0.82rem; color: var(--muted);
+      font-size: 0.82rem; color: var(--taupe);
       text-align: center; line-height: 1.5; margin-bottom: 20px;
     }
-    .popup-sub strong { color: var(--cream); }
+    .popup-sub strong { color: var(--deep-green); }
     .popup-phone-row {
       display: flex; gap: 8px; margin-bottom: 10px;
     }
     .popup-phone-row input {
       flex: 1;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--white);
+      border: 1px solid var(--sand-dark);
       border-radius: var(--radius-sm);
       padding: 13px 14px;
       font-size: 1.1rem; font-weight: 600;
-      color: var(--cream); font-family: inherit;
+      color: var(--deep-green); font-family: inherit;
       outline: none; text-align: center;
       letter-spacing: 0.05em;
       transition: border-color 0.15s;
     }
-    .popup-phone-row input:focus { border-color: rgba(181,162,58,0.6); }
-    .popup-phone-row input::placeholder { color: var(--muted); font-weight: 400; font-size: 0.95rem; }
+    .popup-phone-row input:focus { border-color: var(--deep-green); }
+    .popup-phone-row input::placeholder { color: var(--taupe); font-weight: 400; font-size: 0.95rem; }
     .popup-btn {
       width: 100%; padding: 14px;
-      background: var(--gold); color: #1a1d14;
+      background: var(--deep-green); color: #FFFFFF;
       font-size: 1rem; font-weight: 700;
       border: none; border-radius: var(--radius-sm);
       cursor: pointer; font-family: inherit;
       transition: opacity 0.15s, transform 0.1s;
       margin-bottom: 10px;
     }
-    .popup-btn:hover { opacity: 0.9; }
+    .popup-btn:hover { opacity: 0.88; }
     .popup-btn:active { transform: scale(0.98); }
     .popup-skip {
       width: 100%; padding: 10px;
-      background: transparent; color: var(--muted);
+      background: transparent; color: var(--taupe);
       font-size: 0.8rem; border: none;
       cursor: pointer; font-family: inherit;
     }
-    .popup-skip:hover { color: var(--cream); }
+    .popup-skip:hover { color: var(--deep-green); }
     .popup-error {
       font-size: 0.78rem; color: #e05050;
       text-align: center; min-height: 18px; margin-bottom: 6px;
@@ -468,34 +443,34 @@
 
     /* Product panel */
     .product-specs { display: flex; flex-direction: column; }
-    .spec-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+    .spec-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--sand-dark); font-size: 13px; }
     .spec-row:last-child { border-bottom: none; }
-    .spec-key   { color: var(--muted); }
-    .spec-value { font-weight: 500; color: var(--cream); }
-    .giai-mono  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--olive-light); }
+    .spec-key   { color: var(--taupe); }
+    .spec-value { font-weight: 500; color: var(--deep-green); }
+    .giai-mono  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--gold); }
 
     /* GIAI box */
     .giai-box {
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--white);
+      border: 1px solid var(--sand-dark);
       border-radius: var(--radius);
       padding: 14px 16px;
     }
     .giai-title { font-size: 10px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
     .giai-row { display: flex; justify-content: space-between; padding: 4px 0; }
-    .giai-row .k { font-size: 11px; color: var(--muted); }
-    .giai-row .v { font-size: 11px; font-weight: 500; font-family: 'Courier New', monospace; color: var(--text); }
+    .giai-row .k { font-size: 11px; color: var(--taupe); }
+    .giai-row .v { font-size: 11px; font-weight: 500; font-family: 'Courier New', monospace; color: var(--deep-green); }
 
     /* Footer */
     footer {
-      background: rgba(10,12,7,0.8);
-      border-top: 1px solid var(--border-dim);
+      background: var(--deep-green);
+      border-top: 1px solid rgba(0,0,0,0.1);
       padding: 20px 16px;
       text-align: center;
     }
-    footer img { height: 28px; margin-bottom: 8px; opacity: 0.8; }
-    footer p { font-size: 11px; color: var(--muted); line-height: 1.9; }
-    footer a  { color: var(--olive-light); text-decoration: none; }
+    footer img { height: 28px; margin-bottom: 8px; opacity: 0.9; }
+    footer p { font-size: 11px; color: rgba(206,227,210,0.8); line-height: 1.9; }
+    footer a  { color: var(--light-green); text-decoration: none; }
 
     /* Animations */
     .fade-1 { animation: fadeUp 0.3s ease-out 0.00s both; }
@@ -511,37 +486,37 @@
   <header>
     <img class="header-logo-img" src="img/invig-logo.png" alt="Invig" />
     <div class="header-right">
-      <span class="event-tag">GS1 Nordic Summit</span>
-          <div class="bottle-badge" id="header-bottle-num">Bottle #—</div>
+      <span class="event-tag">Invig Kaffe med GS1 standard</span>
+          <div class="bottle-badge" id="header-bottle-num">Kopp #—</div>
     </div>
   </header>
 
   <!-- Hero -->
   <div class="hero">
-    <img class="hero-img" src="img/hero-bottle.jpg" alt="Carlsberg bottle" />
+    <img class="hero-img" src="img/hero-bottle.jpg" alt="Kaffekopp" />
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="scan-badge">
         <span class="scan-dot"></span>
-          <span>Tag scanned</span>
+          <span>Tag skannet</span>
       </div>
-      <h1 class="hero-title">You scanned<br><em id="hero-bottle-label">Bottle #—</em></h1>
-      <p class="hero-sub" id="hero-sub">Carlsberg Pilsner · GS1 Nordic Summit 2026</p>
+      <h1 class="hero-title">Du skannet<br><em id="hero-bottle-label">Kopp #—</em></h1>
+      <p class="hero-sub" id="hero-sub">Kaffekopp · Invig Kaffe med GS1 standard</p>
     </div>
   </div>
 
   <main>
 
-    <!-- My beer strip (shown when user is registered) -->
+    <!-- My cup strip (shown when user is registered) -->
     <div class="my-beer-strip fade-1" id="my-beer-strip">
-      <div class="my-beer-icon">🍺</div>
+      <div class="my-beer-icon">☕</div>
       <div class="my-beer-info">
         <div class="my-beer-name" id="my-beer-name">—</div>
-        <div class="my-beer-sub" id="my-beer-sub">Your registered bottles</div>
+        <div class="my-beer-sub" id="my-beer-sub">Dine registrerte kopper</div>
       </div>
       <div>
         <div class="my-beer-count" id="my-beer-count">0</div>
-        <div class="my-beer-count-label">bottles</div>
+        <div class="my-beer-count-label">kopper</div>
       </div>
     </div>
 
@@ -569,32 +544,22 @@
 
     <!-- Action buttons -->
     <div class="action-grid fade-2">
-      <button class="action-btn highlight" onclick="togglePanel('panel-journey')">
-        <span class="ab-icon">🗺️</span>
-        <span class="ab-label">See the Journey</span>
-        <span class="ab-sub">From brewery to you</span>
-      </button>
-      <button class="action-btn" onclick="togglePanel('panel-temp')">
-        <span class="ab-icon">🌡️</span>
-        <span class="ab-label">Temperature Log</span>
-        <span class="ab-sub">Full cold chain history</span>
-      </button>
-      <button class="action-btn" onclick="togglePanel('panel-drinkers')">
-        <span class="ab-icon">🍺</span>
-        <span class="ab-label">Who Drank It?</span>
-        <span class="ab-sub">Registered drinkers</span>
+      <button class="action-btn highlight" onclick="togglePanel('panel-drinkers')">
+        <span class="ab-icon">☕</span>
+        <span class="ab-label">Hvem drakk den?</span>
+        <span class="ab-sub">Registrerte drikkere</span>
       </button>
       <button class="action-btn" onclick="togglePanel('panel-product')">
         <span class="ab-icon">ℹ️</span>
-        <span class="ab-label">About the Product</span>
-        <span class="ab-sub">Carlsberg Pilsner</span>
+        <span class="ab-label">Om produktet</span>
+        <span class="ab-sub">Kaffekopp med GS1-standard</span>
       </button>
     </div>
 
     <!-- Panel: Journey (with SmartPallet live map) -->
     <div class="panel fade-3" id="panel-journey">
       <div class="panel-header" onclick="togglePanel('panel-journey')">
-        <h3>🗺️ Bottle Journey</h3>
+        <h3>🗺️ Kopp-reisen</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
@@ -630,18 +595,18 @@
     <!-- Panel: Drinkers -->
     <div class="panel fade-3" id="panel-drinkers">
       <div class="panel-header" onclick="togglePanel('panel-drinkers')">
-        <h3>🍺 Who Drank It?</h3>
+        <h3>☕ Hvem drakk den?</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
         <div class="drinker-header">
           <div>
             <div class="drinker-count" id="drinker-count">0</div>
-            <div class="drinker-label">registered drinkers</div>
+            <div class="drinker-label">registrerte drikkere</div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:20px;font-weight:700;color:var(--muted)">/ 400</div>
-            <div class="drinker-label">bottles total</div>
+            <div class="drinker-label">kopper totalt</div>
           </div>
         </div>
         <div class="progress-wrap">
@@ -654,16 +619,16 @@
           </div>
         </div>
         <div class="drinker-list" id="drinker-list"></div>
-        <!-- Claimed banner: shown when bottle already has an owner -->
+        <!-- Claimed banner: shown when cup already has an owner -->
         <div class="claimed-banner" id="claimed-banner">
-          <div class="cb-icon">🍺</div>
-          <div class="cb-title">This is</div>
+          <div class="cb-icon">☕</div>
+          <div class="cb-title">Dette er</div>
           <div class="cb-name" id="cb-owner-name">—</div>
           <div class="cb-company" id="cb-owner-company"></div>
-          <div class="cb-hint">This bottle has already been claimed.<br>Each bottle can only be registered once.</div>
+          <div class="cb-hint">Denne koppen er allerede registrert.<br>Hver kopp kan kun registreres én gang.</div>
         </div>
         <button class="btn-primary" style="margin-top:14px;" id="btn-register-drinker" onclick="togglePanel('panel-register')">
-          + Register as a drinker
+          + Registrer meg som drikker
         </button>
       </div>
     </div>
@@ -671,7 +636,7 @@
     <!-- Panel: Register (phone-first flow) -->
     <div class="panel fade-3" id="panel-register">
       <div class="panel-header" onclick="togglePanel('panel-register')">
-        <h3>✍️ Register</h3>
+        <h3>✍️ Registrer</h3>
         <span class="panel-close">✕</span>
       </div>
       <div class="panel-body">
@@ -686,8 +651,8 @@
                   placeholder="+47 000 00 000" autocomplete="tel"
                   oninput="formatPhone(this)" />
               </div>
-              <button class="btn-primary" onclick="checkPhone()">Continue →</button>
-              <p class="flow-hint">We use your mobile number to link all the bottles you scan at the event.</p>
+              <button class="btn-primary" onclick="checkPhone()">Fortsett →</button>
+              <p class="flow-hint">Vi bruker mobilnummeret ditt til å koble alle koppene du skanner på arrangementet.</p>
             </div>
 
             <!-- Step 2a: Returning user – one-click confirm -->
@@ -696,12 +661,12 @@
                 <div class="returning-name" id="ret-name">—</div>
                 <div class="returning-meta" id="ret-meta">—</div>
                 <div class="returning-bottles">
-                  You have already registered <strong id="ret-count">0</strong> bottle(s) at this event.
+                  Du har allerede registrert <strong id="ret-count">0</strong> kopp(er) på dette arrangementet.
                   <div id="ret-bottle-list" style="margin-top:6px;font-size:11px;color:var(--muted);"></div>
                 </div>
               </div>
-              <button class="btn-primary" onclick="confirmReturning()">🍺 Add this bottle</button>
-              <button class="btn-secondary" onclick="goStep('step-phone')">← Use a different number</button>
+              <button class="btn-primary" onclick="confirmReturning()">☕ Legg til denne koppen</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Bruk et annet nummer</button>
             </div>
 
             <!-- Step 2b: New user – full registration -->
@@ -711,11 +676,11 @@
                 <input class="form-input" id="reg-name" type="text" placeholder="Ola Nordmann" autocomplete="name" />
               </div>
               <div>
-                <label class="form-label" for="reg-company">Company / organisation</label>
+                <label class="form-label" for="reg-company">Bedrift / organisasjon</label>
                 <input class="form-input" id="reg-company" type="text" placeholder="Invig AS" autocomplete="organization" />
               </div>
-              <button class="btn-primary" onclick="registerNew()">🍺 Register my bottle</button>
-              <button class="btn-secondary" onclick="goStep('step-phone')">← Back</button>
+              <button class="btn-primary" onclick="registerNew()">☕ Registrer min kopp</button>
+              <button class="btn-secondary" onclick="goStep('step-phone')">← Tilbake</button>
             </div>
 
           </div>
@@ -724,8 +689,8 @@
         <!-- Success state -->
         <div class="register-success" id="register-success">
           <div class="rs-icon">🎉</div>
-          <h4>Registered!</h4>
-          <p id="register-success-msg">Bottle #— has been linked to you.</p>
+          <h4>Registrert!</h4>
+          <p id="register-success-msg">Kopp #— er koblet til deg.</p>
         </div>
       </div>
     </div>
@@ -738,17 +703,11 @@
       </div>
       <div class="panel-body">
         <div class="product-specs">
-          <div class="spec-row"><span class="spec-key">Product</span><span class="spec-value">Carlsberg Pilsner</span></div>
-          <div class="spec-row"><span class="spec-key">Producer</span><span class="spec-value">Carlsberg Danmark A/S</span></div>
-          <div class="spec-row"><span class="spec-key">Volume</span><span class="spec-value">330 ml</span></div>
-          <div class="spec-row"><span class="spec-key">Alcohol</span><span class="spec-value">5.0% ABV</span></div>
-          <div class="spec-row"><span class="spec-key">Beer type</span><span class="spec-value">Lager / Pilsner</span></div>
-          <div class="spec-row"><span class="spec-key">Optimal serving temp.</span><span class="spec-value">3–6 °C</span></div>
-          <div class="spec-row"><span class="spec-key">Batch</span><span class="spec-value">GS1-NS-2026-B1</span></div>
-          <div class="spec-row"><span class="spec-key">Production date</span><span class="spec-value">14 May 2026</span></div>
-          <div class="spec-row"><span class="spec-key">Best before</span><span class="spec-value">14 November 2026</span></div>
-          <div class="spec-row"><span class="spec-key">GTIN</span><span class="spec-value giai-mono">05700050000018</span></div>
-          <div class="spec-row"><span class="spec-key">GIAI (this bottle)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
+          <div class="spec-row"><span class="spec-key">Produkt</span><span class="spec-value">Kaffekopp</span></div>
+          <div class="spec-row"><span class="spec-key">Produsent</span><span class="spec-value">Invig AS</span></div>
+          <div class="spec-row"><span class="spec-key">Standard</span><span class="spec-value">GS1 Digital Link</span></div>
+          <div class="spec-row"><span class="spec-key">AI</span><span class="spec-value">(8004) GIAI</span></div>
+          <div class="spec-row"><span class="spec-key">GIAI (denne koppen)</span><span class="spec-value giai-mono" id="product-giai">—</span></div>
         </div>
       </div>
     </div>
@@ -757,7 +716,7 @@
     <div class="giai-box fade-5">
       <div class="giai-title">📡 GS1 Digital Link · GIAI</div>
       <div class="giai-row"><span class="k">Invig GCP prefix</span><span class="v">7073539</span></div>
-      <div class="giai-row"><span class="k">Bottle reference</span><span class="v" id="giai-ref">—</span></div>
+      <div class="giai-row"><span class="k">Kopp-referanse</span><span class="v" id="giai-ref">—</span></div>
       <div class="giai-row"><span class="k">Full GIAI</span><span class="v" id="giai-full">—</span></div>
       <div class="giai-row"><span class="k">GS1 AI</span><span class="v">(8004) <span id="giai-ai">—</span></span></div>
       <div class="giai-row"><span class="k">Resolver</span><span class="v" id="giai-resolver">id.invig.no/8004/…</span></div>
@@ -768,7 +727,7 @@
   <footer>
     <img src="img/invig-logo.png" alt="Invig" />
     <p>
-      <strong style="color:var(--olive-light)">GS1 Nordic Summit 2026</strong><br />
+      <strong style="color:var(--light-green)">Invig Kaffe med GS1 standard</strong><br />
       Powered by <a href="https://invig.no" target="_blank">Invig Locate IT</a> ·
       <a href="https://gs1.no" target="_blank">GS1 Norway</a><br />
       <a href="mailto:sales@invig.no">sales@invig.no</a>
@@ -792,8 +751,8 @@
        ===================================================== */
 
     const INVIG_GCP = '7073539';
-    const GIAI_BASE = 70735391640;  // bottles 70735391641–70735391940
-    const TOTAL     = 300;
+    const GIAI_BASE = 70735392042;  // cups 70735392043–70735394104
+    const TOTAL     = 2062;
     const DB_USERS_KEY = 'gs1ns_users';
 
     // ── Supabase client (anon key, public read + insert registrations) ────────
@@ -1277,7 +1236,7 @@
       if (!user) return;
       const count = user.bottles.length;
       document.getElementById('my-beer-name').textContent = user.name;
-      document.getElementById('my-beer-sub').textContent  = `${user.company || 'GS1 Nordic Summit'}`;
+      document.getElementById('my-beer-sub').textContent  = `${user.company || 'Invig Kaffe'}`;
       document.getElementById('my-beer-count').textContent = count;
       document.getElementById('my-beer-strip').classList.add('visible');
     }
@@ -1293,17 +1252,17 @@
         // Also add a subtle banner below header
         const banner = document.createElement('div');
         banner.style.cssText = 'background:rgba(255,140,0,0.08);border-bottom:1px solid rgba(255,140,0,0.2);padding:5px 16px;font-size:11px;color:#ffaa33;text-align:center;letter-spacing:0.05em;';
-        banner.textContent = '⚠ DEMO MODE — This bottle is not part of the live event. Data shown is for testing only.';
+        banner.textContent = '⚠ DEMO MODUS — Denne koppen er ikke del av live-arrangementet. Data er kun for testing.';
         document.querySelector('header').insertAdjacentElement('afterend', banner);
       }
       const giai = getGIAI();
       const num  = giai ? bottleNumber(giai) : null;
 
-      const label = num ? `Bottle #${num}` : 'Bottle #—';
+      const label = num ? `Kopp #${num}` : 'Kopp #—';
       document.getElementById('header-bottle-num').textContent  = label;
       document.getElementById('hero-bottle-label').textContent  = label;
       document.getElementById('hero-sub').textContent =
-        num ? `Carlsberg Pilsner · GS1 Nordic Summit 2026 · ${num} of ${TOTAL}` : 'Carlsberg Pilsner · GS1 Nordic Summit 2026';
+        num ? `Kaffekopp · Invig Kaffe med GS1 standard` : 'Kaffekopp · Invig Kaffe med GS1 standard';
 
       if (giai) {
         document.getElementById('giai-full').textContent     = giai;
@@ -1349,7 +1308,7 @@
       // Check if bottle is already claimed — show banner and hide register button
       supabaseGetBottleOwner(giai).then(owner => {
         if (owner) {
-          document.getElementById('cb-owner-name').textContent = owner.name + "'s beer";
+          document.getElementById('cb-owner-name').textContent = owner.name + "s kopp";
           document.getElementById('cb-owner-company').textContent = owner.company || '';
           document.getElementById('claimed-banner').classList.add('visible');
           const btn = document.getElementById('btn-register-drinker');
@@ -1423,7 +1382,7 @@
           return n ? `#${n}` : g;
         });
         document.getElementById('ret-bottle-list').textContent =
-          bottleNums.length > 0 ? 'Bottles: ' + bottleNums.join(', ') : '';
+          bottleNums.length > 0 ? 'Kopper: ' + bottleNums.join(', ') : '';
         goStep('step-returning');
       } else {
         // New user
@@ -1432,7 +1391,7 @@
     }
 
     function showClaimedBanner(owner) {
-      document.getElementById('cb-owner-name').textContent = owner.name + "'s beer";
+      document.getElementById('cb-owner-name').textContent = owner.name + "s kopp";
       document.getElementById('cb-owner-company').textContent = owner.company || '';
       document.getElementById('claimed-banner').classList.add('visible');
       const btn = document.getElementById('btn-register-drinker');
@@ -1536,7 +1495,7 @@
       const num     = bottleNumber(giai);
 
       // Update bottle number in popup
-      document.getElementById('popup-bottle-num').textContent = num ? `Bottle #${num}` : 'your bottle';
+      document.getElementById('popup-bottle-num').textContent = num ? `Kopp #${num}` : 'din kopp';
 
       setTimeout(() => overlay.classList.add('show'), 900);
 
@@ -1592,11 +1551,11 @@
   <div id="reg-popup-overlay">
     <div id="reg-popup-card">
       <div class="popup-drag-handle"></div>
-      <div class="popup-beer-icon">🍺</div>
-      <div class="popup-title">Claim <span id="popup-bottle-num">your bottle</span>!</div>
+      <div class="popup-cup-icon">🍺</div>
+      <div class="popup-title">Registrer <span id="popup-bottle-num">din kopp</span>!</div>
       <div class="popup-sub">
         Enter your phone number to register this beer as yours.<br>
-        <strong>Your bottle. Your journey. Your data.</strong>
+        <strong>Din kopp. Din reise. Dine data.</strong>
       </div>
       <div class="popup-error" id="popup-error"></div>
       <div class="popup-phone-row">

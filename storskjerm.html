@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GS1 Nordic Summit – Recycling Display</title>
+  <title>Invig Kaffe med GS1 standard – Recycling Display</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet" />
@@ -352,7 +352,7 @@
   <header>
     <div class="header-left">
       <img class="header-logo" src="V2/img/invig-logo.png" alt="Invig" />
-      <div class="header-event">GS1 Nordic Summit <span>2026</span></div>
+      <div class="header-event">Invig Kaffe med GS1 standard <span>2026</span></div>
     </div>
     <div class="live-pill" id="live-pill">
       <span class="live-dot demo" id="live-dot"></span>
@@ -363,55 +363,55 @@
   <!-- Counter grid -->
   <div class="counter-grid">
     <div class="counter-card gold">
-      <div class="counter-label">Registered Users</div>
+      <div class="counter-label">Registrerte brukere</div>
       <div class="counter-value gold" id="cnt-registered">0</div>
-      <div class="counter-sub">Scanned QR code</div>
+      <div class="counter-sub">Skannet QR-kode</div>
     </div>
     <div class="counter-card amber">
-      <div class="counter-label">Registered Bottles</div>
+      <div class="counter-label">Registrerte kopper</div>
       <div class="counter-value amber" id="cnt-unique">0</div>
-      <div class="counter-sub">Of 300 total</div>
+      <div class="counter-sub">Av totalt</div>
     </div>
     <div class="counter-card green">
-      <div class="counter-label">Recycled Bottles</div>
+      <div class="counter-label">Resirkulerte kopper</div>
       <div class="counter-value green" id="cnt-panted">0</div>
-      <div class="counter-sub">Read by RFID reader</div>
+      <div class="counter-sub">Lest av RFID-leser</div>
     </div>
     <div class="counter-card blue">
-      <div class="counter-label">Recycle Rate</div>
+      <div class="counter-label">Resirkuleringsrate</div>
       <div class="counter-value blue" id="cnt-rate">0%</div>
-      <div class="counter-sub">Registered → recycled</div>
+      <div class="counter-sub">Registrert → resirkulert</div>
     </div>
   </div>
 
   <!-- Progress bar -->
   <div class="progress-wrap">
     <div class="progress-header">
-      <span class="progress-title">🍺 Recycling Progress – GS1 Nordic Summit 2026</span>
+      <span class="progress-title">☕ Resirkuleringsframgang – Invig Kaffe med GS1 standard</span>
       <span class="progress-pct" id="pant-pct">0%</span>
     </div>
     <div class="progress-track">
       <div class="progress-fill" id="pant-fill" style="width:0%"></div>
     </div>
     <div class="progress-labels">
-      <span id="pant-left">0 bottles recycled</span>
-      <span id="pant-right">0 of 300 bottles recycled</span>
+      <span id="pant-left">0 kopper resirkulert</span>
+      <span id="pant-right">0 of 300 kopper resirkulert</span>
     </div>
   </div>
 
   <!-- Recent recycling feed -->
   <div class="feed-wrap">
     <div class="feed-header">
-      <div class="feed-title">♻️ Recently Recycled</div>
-      <span class="feed-count" id="feed-count">0 today</span>
+      <div class="feed-title">♻️ Nylig resirkulert</div>
+      <span class="feed-count" id="feed-count">0 i dag</span>
     </div>
     <div class="feed-body" id="feed-body">
-      <div class="feed-empty">No bottles recycled yet – drop your bottle in the bin!</div>
+      <div class="feed-empty">Ingen kopper resirkulert ennå – kast koppen i bingen!</div>
     </div>
   </div>
 
   <!-- Live temperature strip (SmartPallet) -->
-  <div id="temp-strip" style="display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border-dim);border-radius:12px;padding:10px 20px;flex-shrink:0;">
+  <div id="temp-strip" style="display:none;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border-dim);border-radius:12px;padding:10px 20px;flex-shrink:0;">
     <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">Live Temperature</span>
     <div style="display:flex;align-items:center;gap:16px;">
       <span style="font-size:13px;color:var(--text);">SR-Tracker-09: <strong id="temp-09" style="color:var(--blue);">--</strong></span>
@@ -432,11 +432,11 @@
 <div class="popup-overlay" id="popup-recycled" onclick="closePopup('popup-recycled')">
   <div class="popup-card recycled" onclick="event.stopPropagation()">
     <div class="popup-emoji-ring green pulse-green bounce-in">♻️</div>
-    <div class="popup-title green">Thank You!</div>
+    <div class="popup-title green">Takk!</div>
     <div class="popup-name" id="recycled-name"></div>
     <div class="popup-company" id="recycled-company"></div>
-    <div class="popup-bottle-badge" id="recycled-badge">🍺 Bottle</div>
-    <div class="popup-message" id="recycled-message">Your bottle has been recycled and logged. Amazing!</div>
+    <div class="popup-bottle-badge" id="recycled-badge">☕ Kopp</div>
+    <div class="popup-message" id="recycled-message">Din kopp er resirkulert og registrert. Flott!</div>
     <button class="popup-close green" onclick="closePopup('popup-recycled')">Close</button>
   </div>
 </div>
@@ -444,12 +444,12 @@
 <!-- POPUP: Bottle recycled (unregistered) -->
 <div class="popup-overlay" id="popup-unregistered" onclick="closePopup('popup-unregistered')">
   <div class="popup-card unregistered" onclick="event.stopPropagation()">
-    <div class="popup-emoji-ring red bounce-in">🍺</div>
-    <div class="popup-title red">Bottle Recycled</div>
-    <div class="popup-bottle-badge" id="unregistered-badge">🍺 Bottle</div>
+    <div class="popup-emoji-ring red bounce-in">☕</div>
+    <div class="popup-title red">Kopp resirkulert</div>
+    <div class="popup-bottle-badge" id="unregistered-badge">☕ Kopp</div>
     <div class="popup-message">
-      This bottle was recycled but was <strong style="color:#f87171">not registered</strong> to any user.<br/><br/>
-      Scan the QR code on the bottle before recycling to link it to your name!
+      Denne koppen ble resirkulert, men var <strong style="color:#f87171">ikke registrert</strong> til noen bruker.<br/><br/>
+      Skann QR-koden på koppen før resirkulering for å koble den til ditt navn!
     </div>
     <button class="popup-close red" onclick="closePopup('popup-unregistered')">Got it</button>
   </div>
@@ -460,7 +460,7 @@
   <div class="popup-card invalid-card" onclick="event.stopPropagation()">
     <div class="popup-emoji-ring red bounce-in">⚠️</div>
     <div class="popup-title red">Tag Not Recognised</div>
-    <div class="popup-message">This tag is not part of the GS1 Nordic Summit event.</div>
+    <div class="popup-message">Denne taggen er ikke del av Invig Kaffe-arrangementet.</div>
     <button class="popup-close red" onclick="closePopup('popup-invalid')">Got it</button>
   </div>
 </div>
@@ -470,7 +470,7 @@
   <div class="popup-card milestone-card" onclick="event.stopPropagation()">
     <div class="popup-emoji-ring purple bounce-in" id="milestone-emoji-ring">🎊</div>
     <div class="popup-title purple" id="milestone-title">Milestone!</div>
-    <div class="popup-bottle-badge" id="milestone-badge">bottles recycled</div>
+    <div class="popup-bottle-badge" id="milestone-badge">kopper resirkulert</div>
     <div class="popup-message" id="milestone-message"></div>
     <button class="popup-close purple" onclick="closePopup('popup-milestone')">Celebrate! 🎊</button>
   </div>
@@ -481,7 +481,7 @@
 
 <script>
   /* =====================================================
-     Storskjerm (Display Screen) – GS1 Nordic Summit 2026
+     Storskjerm (Display Screen) – Invig Kaffe med GS1 standard
      
      Data sources:
        1. Supabase real-time – rfid_events (recycling) + registrations (QR scans)
@@ -510,11 +510,11 @@
 
   // ── Milestones ───────────────────────────────────────
   const MILESTONES = [
-    { count: 10,  emoji: '🎯', title: '10 Bottles Recycled!',  sub: 'Great start – keep it going!' },
-    { count: 50,  emoji: '🌿', title: '50 Bottles Recycled!',  sub: 'The planet thanks you!' },
-    { count: 100, emoji: '🏆', title: '100 Bottles Recycled!', sub: 'Halfway to the goal!' },
-    { count: 200, emoji: '🚀', title: '200 Bottles Recycled!', sub: 'Incredible effort!' },
-    { count: 300, emoji: '🎊', title: 'All 300 Bottles!',      sub: '100% recycled – GS1 Nordic Summit legend!' },
+    { count: 10,  emoji: '🎯', title: '10 kopper resirkulert!',  sub: 'Bra start – fortsett!' },
+    { count: 50,  emoji: '🌿', title: '50 kopper resirkulert!',  sub: 'Planeten takker deg!' },
+    { count: 100, emoji: '🏆', title: '100 kopper resirkulert!', sub: 'Halvveis til målet!' },
+    { count: 200, emoji: '🚀', title: '200 kopper resirkulert!', sub: 'Utrolig innsats!' },
+    { count: 300, emoji: '🎊', title: 'Alle 300 kopper!',      sub: '100% resirkulert – Invig Kaffe med GS1 standard!' },
   ];
 
   // ── Popup helpers ─────────────────────────────────
@@ -536,15 +536,15 @@
   function showRecycledPopup(name, company, num, giai) {
     document.getElementById('recycled-name').textContent    = name || '';
     document.getElementById('recycled-company').textContent = company || '';
-    document.getElementById('recycled-badge').textContent   = `🍺 Bottle #${num} · GIAI ${giai}`;
+    document.getElementById('recycled-badge').textContent   = `☕ Kopp #${num} · GIAI ${giai}`;
     document.getElementById('recycled-message').textContent =
-      `Your bottle has been recycled and logged. Amazing!`;
+      `Din kopp er resirkulert og registrert. Flott!`;
     openPopup('popup-recycled', 5000);
   }
 
   // Show recycled popup (unregistered)
   function showUnregisteredPopup(num, giai) {
-    document.getElementById('unregistered-badge').textContent = `🍺 Bottle #${num} · GIAI ${giai}`;
+    document.getElementById('unregistered-badge').textContent = `☕ Kopp #${num} · GIAI ${giai}`;
     openPopup('popup-unregistered', 5000);
   }
 
@@ -566,7 +566,7 @@
   function showMilestonePopup(m) {
     document.getElementById('milestone-emoji-ring').textContent = m.emoji;
     document.getElementById('milestone-title').textContent      = m.title;
-    document.getElementById('milestone-badge').textContent      = `${m.count} bottles recycled`;
+    document.getElementById('milestone-badge').textContent      = `${m.count} kopper resirkulert`;
     document.getElementById('milestone-message').textContent    = m.sub;
     openPopup('popup-milestone', 7000);
     const colors = m.count === 300
@@ -726,8 +726,8 @@
     const { data: rfid } = await sb
       .from('rfid_events')
       .select('giai, epc, recycled_at')
-      .gte('giai', '70735391641')
-      .lte('giai', '70735391940')
+      .gte('giai', '70735392043')
+      .lte('giai', '70735394104')
       .order('recycled_at', { ascending: false })
       .limit(300);
 
@@ -736,8 +736,8 @@
       rfid.forEach(r => {
         if (!pantedGIAIs.has(r.giai)) {
           pantedGIAIs.add(r.giai);
-          // Derive bottle number from GIAI (GIAI_BASE = 70735391640)
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735391640) : null;
+          // Derive bottle number from GIAI (GIAI_BASE = 70735392042)
+          const num = r.giai ? (parseInt(r.giai, 10) - 70735392042) : null;
           rfidEvents.push({
             giai: r.giai,
             num: (num >= 1 && num <= 300) ? num : null,
@@ -776,7 +776,7 @@
     sb.channel('rfid-events-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
         const r = payload.new;
-        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735391640) : null;
+        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735392042) : null;
         if (!pantedGIAIs.has(r.giai) && rNum >= 1 && rNum <= 300) {
           hasLiveData = true;
           pantedGIAIs.add(r.giai);
@@ -832,12 +832,12 @@
 
   // ── Demo simulation ──────────────────────────────────
   const DEMO_BOTTLES = [
-    { giai: '70735391681', num: 41 },
-    { giai: '70735391739', num: 99 },
-    { giai: '70735391782', num: 142 },
-    { giai: '70735391840', num: 200 },
-    { giai: '70735391890', num: 250 },
-    { giai: '70735391717', num: 77 },
+    { giai: '70735392083', num: 41 },
+    { giai: '70735392141', num: 99 },
+    { giai: '70735392184', num: 142 },
+    { giai: '70735392242', num: 200 },
+    { giai: '70735392292', num: 250 },
+    { giai: '70735392119', num: 77 },
     { giai: '70735391828', num: 188 },
     { giai: '70735391673', num: 33 },
   ];
@@ -913,9 +913,9 @@
     setVal('cnt-rate',       rate + '%');
     setVal('pant-pct',       pct + '%');
     document.getElementById('pant-fill').style.width  = pct + '%';
-    document.getElementById('pant-left').textContent  = `${panted} bottles recycled`;
-    document.getElementById('pant-right').textContent = `${panted} of 300 bottles recycled`;
-    document.getElementById('feed-count').textContent = `${panted} today`;
+    document.getElementById('pant-left').textContent  = `${panted} kopper resirkulert`;
+    document.getElementById('pant-right').textContent = `${panted} of 300 kopper resirkulert`;
+    document.getElementById('feed-count').textContent = `${panted} i dag`;
 
     checkMilestones(panted);
     renderFeed();
@@ -924,21 +924,21 @@
   function renderFeed() {
     const body = document.getElementById('feed-body');
     if (rfidEvents.length === 0) {
-      body.innerHTML = '<div class="feed-empty">No bottles recycled yet – drop your bottle in the bin!</div>';
+      body.innerHTML = '<div class="feed-empty">Ingen kopper resirkulert ennå – kast koppen i bingen!</div>';
       return;
     }
     const MAX_ROWS = 5;
-    const emojis = ['♻️','🍺','🌿','🎯','⭐'];
+    const emojis = ['♻️','☕','🌿','🎯','⭐'];
     body.innerHTML = rfidEvents.slice(0, MAX_ROWS).map((e, i) => {
       const time = new Date(e.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       return `<div class="feed-row" style="animation-delay:${i*0.05}s">
         <div class="feed-icon">${emojis[i % emojis.length]}</div>
         <div class="feed-info">
-          <div class="feed-name">${e.name || 'Unknown drinker'}</div>
+          <div class="feed-name">${e.name || 'Ukjent drikker'}</div>
           <div class="feed-detail">${e.company || ''} · GIAI ${e.giai}</div>
         </div>
         <div class="feed-bottle">
-          <div class="feed-num">Bottle #${e.num}</div>
+          <div class="feed-num">Kopp #${e.num}</div>
           <div class="feed-time">${time}</div>
         </div>
       </div>`;
