@@ -7,7 +7,7 @@
   <meta name="description" content="Du har skannet en unik kaffekopp med GS1-standard. Se hvem som drakk den og lever den tilbake." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&family=Gelasio:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -56,7 +56,7 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'DM Sans', system-ui, sans-serif;
+      font-family: 'Figtree', system-ui, sans-serif;
       background: var(--sand);
       color: var(--text);
       min-height: 100dvh;
@@ -98,15 +98,17 @@
       height: 260px;
       background: linear-gradient(135deg, var(--deep-green) 0%, #1A2B22 100%);
     }
-    .hero-img {
-      width: 100%; height: 100%; object-fit: cover; object-position: center 25%;
-      opacity: 0.55; mix-blend-mode: luminosity;
+    .hero-img-placeholder {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 120px; opacity: 0.12;
+      pointer-events: none;
     }
     .hero-overlay {
       position: absolute; inset: 0;
       background: linear-gradient(to bottom,
-        rgba(46,63,52,0.2) 0%,
-        rgba(46,63,52,0.5) 50%,
+        rgba(46,63,52,0.1) 0%,
+        rgba(46,63,52,0.4) 40%,
         var(--sand) 100%);
     }
     .hero-content {
@@ -128,7 +130,7 @@
       100% { box-shadow: 0 0 0 0 rgba(181,162,58,0); }
     }
     .hero-title {
-      font-family: 'DM Serif Display', serif;
+      font-family: 'Gelasio', Georgia, serif;
       font-size: 26px; font-weight: 400; line-height: 1.15; color: #FFFFFF;
     }
     .hero-title em { font-style: normal; color: var(--light-green); }
@@ -153,7 +155,7 @@
     .my-beer-strip.visible { display: flex; }
     .my-beer-icon { font-size: 28px; flex-shrink: 0; }
     .my-beer-info { flex: 1; }
-    .my-beer-name { font-size: 14px; font-weight: 600; color: #FFFFFF; }
+    .my-beer-name { font-size: 14px; font-weight: 600; color: #FFFFFF; }  /* kept white - strip has dark bg */
     .my-beer-sub  { font-size: 11px; color: var(--light-green); margin-top: 2px; }
     .my-beer-count {
       font-size: 28px; font-weight: 700; color: var(--light-green); line-height: 1;
@@ -493,7 +495,7 @@
 
   <!-- Hero -->
   <div class="hero">
-    <img class="hero-img" src="img/hero-bottle.jpg" alt="Kaffekopp" />
+    <div class="hero-img-placeholder">☕</div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
       <div class="scan-badge">
@@ -1568,8 +1570,8 @@
           maxlength="20"
         />
       </div>
-      <button class="popup-btn" id="popup-submit-btn">🍺 Claim this beer</button>
-      <button class="popup-skip" onclick="window._dismissRegPopup && window._dismissRegPopup()">Skip for now</button>
+      <button class="popup-btn" id="popup-submit-btn">☕ Registrer min kopp</button>
+      <button class="popup-skip" onclick="window._dismissRegPopup && window._dismissRegPopup()">Hopp over</button>
     </div>
   </div>
 

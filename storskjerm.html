@@ -6,34 +6,44 @@
   <title>Invig Kaffe med GS1 standard – Recycling Display</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&family=Gelasio:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
   <!-- Supabase JS client for real-time subscriptions -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --olive-dark:  #2E3D22;
-      --olive:       #4A5E35;
-      --olive-light: #7A9A60;
-      --gold:        #B5A23A;
-      --gold-light:  #D4C05A;
-      --charcoal:    #1A1D14;
-      --surface:     #232718;
-      --surface2:    #2D3320;
-      --border-dim:  rgba(255,255,255,0.07);
-      --text:        #F0EBD8;
-      --muted:       #7A8060;
-      --green:       #5DBB63;
-      --amber:       #E8A838;
-      --blue:        #6BA3C7;
+      --deep:    #2E3F34;
+      --deep-2:  #233229;
+      --deep-3:  #1B241E;
+      --sage:    #789883;
+      --mint:    #CEE3D2;
+      --gold:    #CEC460;
+      --gold-ink:#8A7F1E;
+      --cream:   #FFF4DD;
+      --sand:    #F5F3F0;
+      --sand-2:  #EDE9E2;
+      --rule:    #DCD7CE;
+      --ink:     #2E3F34;
+      --ink-2:   #5F5B53;
+      --ink-3:   #8A857B;
+      --panel:   #FAF8F5;
+      /* functional aliases used by existing JS/HTML */
+      --text:    var(--ink);
+      --muted:   var(--ink-3);
+      --green:   #2E7D52;
+      --amber:   #8A7F1E;
+      --blue:    #2E3F34;
+      --surface: var(--panel);
+      --surface2:var(--sand-2);
+      --border-dim: var(--rule);
     }
 
     html, body {
       height: 100%;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      background: var(--charcoal);
-      color: var(--text);
+      font-family: 'Figtree', system-ui, sans-serif;
+      background: var(--sand);
+      color: var(--ink-2);
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
     }
@@ -53,29 +63,32 @@
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+      background: var(--deep);
+      border-radius: 16px;
+      padding: 16px 28px;
     }
     .header-left {
       display: flex; align-items: center; gap: 20px;
     }
     .header-logo { height: 44px; }
     .header-event {
-      font-family: 'DM Serif Display', serif;
+      font-family: 'Gelasio', Georgia, serif;
       font-size: 28px;
-      color: var(--text);
+      color: #fff;
       letter-spacing: -0.01em;
     }
     .header-event span { color: var(--gold); }
     .live-pill {
       display: flex; align-items: center; gap: 8px;
-      background: rgba(93,187,99,0.1);
-      border: 1px solid rgba(93,187,99,0.3);
+      background: var(--mint);
+      border: 1px solid var(--sage);
       border-radius: 999px;
       padding: 6px 16px;
-      font-size: 14px; font-weight: 600; color: var(--green);
+      font-size: 14px; font-weight: 600; color: var(--deep);
     }
     .live-dot {
       width: 9px; height: 9px; border-radius: 50%;
-      background: var(--green);
+      background: var(--deep);
       animation: livePulse 2s ease-in-out infinite;
     }
     .live-dot.demo { background: var(--amber); animation: none; }
@@ -93,8 +106,8 @@
       flex-shrink: 0;
     }
     .counter-card {
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 16px;
       padding: 28px 28px 24px;
       position: relative;
@@ -118,10 +131,10 @@
       font-weight: 900; line-height: 1;
       transition: all 0.4s ease;
     }
-    .counter-value.gold  { color: var(--gold); }
-    .counter-value.green { color: var(--green); }
-    .counter-value.amber { color: var(--amber); }
-    .counter-value.blue  { color: var(--blue); }
+    .counter-value.gold  { color: var(--gold-ink); }
+    .counter-value.green { color: #2E7D52; }
+    .counter-value.amber { color: var(--deep); }
+    .counter-value.blue  { color: var(--deep); }
     .counter-sub {
       font-size: 13px; color: var(--muted);
       margin-top: 10px;
@@ -129,8 +142,8 @@
 
     /* ── Progress bar ── */
     .progress-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 16px;
       padding: 22px 28px;
       flex-shrink: 0;
@@ -169,8 +182,8 @@
     /* ── Recent recycling feed ── */
     .feed-wrap {
       flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border-dim);
+      background: var(--panel);
+      border: 1px solid var(--rule);
       border-radius: 16px;
       overflow: hidden;
       display: flex; flex-direction: column;
@@ -252,7 +265,7 @@
     .popup-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(46,63,52,0.75);
       backdrop-filter: blur(8px);
       z-index: 9999;
       display: flex;
@@ -280,10 +293,10 @@
       border: 1px solid rgba(255,255,255,0.1);
     }
     .popup-overlay.active .popup-card { transform: scale(1) translateY(0); }
-    .popup-card.recycled      { border-color: rgba(74,222,128,0.4); }
-    .popup-card.unregistered  { border-color: rgba(239,68,68,0.4); }
-    .popup-card.milestone-card{ border-color: rgba(139,92,246,0.5); }
-    .popup-card.invalid-card  { border-color: rgba(239,68,68,0.4); }
+    .popup-card.recycled      { border-color: var(--sage); }
+    .popup-card.unregistered  { border-color: #FCA5A5; }
+    .popup-card.milestone-card{ border-color: var(--gold); }
+    .popup-card.invalid-card  { border-color: #FCA5A5; }
     .popup-emoji-ring {
       width: 100px; height: 100px;
       border-radius: 50%;
@@ -291,39 +304,39 @@
       margin: 0 auto 24px;
       font-size: 3rem;
     }
-    .popup-emoji-ring.green  { background: rgba(74,222,128,0.15);  border: 2px solid rgba(74,222,128,0.4); }
-    .popup-emoji-ring.red    { background: rgba(239,68,68,0.15);   border: 2px solid rgba(239,68,68,0.4); }
-    .popup-emoji-ring.purple { background: rgba(139,92,246,0.15);  border: 2px solid rgba(139,92,246,0.5); }
+    .popup-emoji-ring.green  { background: var(--mint); border: 2px solid var(--sage); }
+    .popup-emoji-ring.red    { background: #FEE2E2; border: 2px solid #FCA5A5; }
+    .popup-emoji-ring.purple { background: var(--mint); border: 2px solid var(--sage); }
     .popup-title {
-      font-family: 'DM Serif Display', serif;
+      font-family: 'Gelasio', Georgia, serif;
       font-size: clamp(2rem, 5vw, 3.5rem);
       margin-bottom: 10px; line-height: 1.1;
     }
-    .popup-title.green  { color: #4ade80; }
-    .popup-title.red    { color: #f87171; }
-    .popup-title.purple { color: #c4b5fd; }
-    .popup-name    { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
-    .popup-company { font-size: 1rem; color: rgba(255,255,255,0.5); margin-bottom: 20px; }
-    .popup-message { font-size: 1rem; color: rgba(255,255,255,0.75); line-height: 1.6; margin-bottom: 28px; }
+    .popup-title.green  { color: #2E7D52; }
+    .popup-title.red    { color: #B91C1C; }
+    .popup-title.purple { color: var(--deep); }
+    .popup-name    { font-size: 1.3rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .popup-company { font-size: 1rem; color: var(--ink-3); margin-bottom: 20px; }
+    .popup-message { font-size: 1rem; color: var(--ink-2); line-height: 1.6; margin-bottom: 28px; }
     .popup-bottle-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--sand-2);
+      border: 1px solid var(--rule);
       border-radius: 999px; padding: 8px 18px;
-      font-size: 0.9rem; color: rgba(255,255,255,0.7);
+      font-size: 0.9rem; color: var(--ink-3);
       margin-bottom: 24px;
     }
     .popup-close {
       display: block; width: 100%; padding: 16px;
       border: none; border-radius: 14px;
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Figtree', sans-serif;
       font-size: 1.05rem; font-weight: 600;
       cursor: pointer; transition: opacity 0.15s;
     }
     .popup-close:active { opacity: 0.8; }
-    .popup-close.green  { background: #166534; color: #fff; }
-    .popup-close.red    { background: #7f1d1d; color: #fff; }
-    .popup-close.purple { background: #4c1d95; color: #fff; }
+    .popup-close.green  { background: var(--deep); color: var(--sand); }
+    .popup-close.red    { background: #991B1B; color: #fff; }
+    .popup-close.purple { background: var(--deep); color: var(--sand); }
     /* Pulse ring animations */
     @keyframes pulse-green {
       0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.4); }
