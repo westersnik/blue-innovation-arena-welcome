@@ -1,25 +1,25 @@
-# GS1 Nordic Summit 2025 — Digital Product Passport Demo
+# Invig Kaffe med GS1 standard – Event Demo System
 
-A live beer-bottle tracking demo built for the **GS1 Nordic Summit 2025** at Radisson Blu Plaza Hotel, Oslo. Each Carlsberg bottle carries a GS1 GIAI encoded in a QR code. Guests scan the QR code to see the bottle's full cold-chain journey, register their name, and watch a live recycling leaderboard on the event display screen.
+A live coffee-cup tracking demo built for the **GS1 Nordic Summit 2026**. Each cup carries a unique GS1 GIAI encoded in a QR code. Guests scan the QR code to claim their cup, and a recycling station with a Keonn AdvanReader RFID reader registers the cup when it is returned. A large-screen display shows live recycling statistics in real time.
 
 **Live URLs**
 
 | Page | URL | Purpose |
 |---|---|---|
-| Bottle scan (QR landing page) | https://gs1-nordic.invig.no/V2/?giai={GIAI} | Guest experience after scanning QR |
-| Event display screen | https://gs1-nordic.invig.no/storskjerm.html | TV/projector leaderboard |
-| Dashboard | https://gs1-nordic.invig.no/dashboard.html | Admin stats overview |
-| Animation test | https://gs1-nordic.invig.no/test.html | Confetti/animation test |
+| Cup scan (QR landing page) | `https://gs1-nordic.invig.no/V2/?giai={GIAI}` | Guest experience after scanning QR |
+| Event display screen | `https://gs1-nordic.invig.no/storskjerm.html` | TV/projector leaderboard |
+| Concept explainer | `https://gs1-nordic.invig.no/konsept.html` | S-GTIN / GS1 standard explainer |
+| Demo mode | `https://gs1-nordic.invig.no/storskjerm.html?demo=1` | Simulated data for presentations |
 
-**Example — bottle #1:**
+**Example — cup #1:**
 ```
-https://gs1-nordic.invig.no/V2/?giai=70735391141&demo=1
+https://gs1-nordic.invig.no/V2/?giai=70735392043
 ```
 
-**GS1 Digital Link redirect (via Invig resolver):**
+**GS1 Digital Link (via Invig resolver):**
 ```
-https://id.invig.no/8004/70735391141
-  → https://gs1-nordic.invig.no/V2/?giai=70735391141&demo=1
+https://id.invig.no/8004/70735392043
+  → https://gs1-nordic.invig.no/V2/?giai=70735392043
 ```
 
 ---
@@ -29,176 +29,315 @@ https://id.invig.no/8004/70735391141
 ```
 gs1-nordic-summit/ (gh-pages branch)
 ├── V2/
-│   ├── index.html          # QR landing page (main guest experience)
+│   ├── index.html              # QR landing page – guest cup experience
+│   ├── img/                    # Hero image, Invig logo
 │   └── data/
-│       ├── tracker-09.json # SmartPallet cache – odd bottles (SR-Tracker-09)
-│       └── tracker-03.json # SmartPallet cache – even bottles (SR-Tracker-03)
-├── storskjerm.html         # Event display screen (Supabase real-time)
-├── dashboard.html          # Admin/stats dashboard
-├── test.html               # Animation/confetti test
-├── generate_cache.py       # Script to regenerate SmartPallet cache files
-├── KEONN-SETUP.md          # Keonn AdvanReader configuration guide
-├── RFID-PANT-USERSTORY.md  # User stories and RFID background
-├── httpServer.py           # Local debug server for RFID testing
-├── CNAME                   # GitHub Pages custom domain (gs1-nordic.invig.no)
-└── README.md               # This file
+│       ├── tracker-09.json     # SmartPallet cache – SR-Tracker-09
+│       └── tracker-03.json     # SmartPallet cache – SR-Tracker-03
+├── storskjerm.html             # Event display screen (Supabase real-time)
+├── konsept.html                # S-GTIN / GS1 standard concept explainer
+├── supabase/
+│   └── functions/
+│       └── rfid-relay/
+│           └── index.ts        # Edge Function – receives RFID POSTs from AdvanReader
+├── KEONN-SETUP.md              # Keonn AdvanReader step-by-step configuration guide
+├── BACKLOG.md                  # Feature backlog
+├── SUPABASE_SCHEMA.sql         # Database schema (run once in Supabase SQL editor)
+├── generate_cache.py           # Script to regenerate SmartPallet cache files
+├── httpServer.py               # Local debug server for testing RFID payloads
+├── CNAME                       # GitHub Pages custom domain (gs1-nordic.invig.no)
+└── README.md                   # This file
 ```
 
 ---
 
-## Architecture Overview
+## System Architecture
 
 ```
-Guest scans QR code on bottle
+Guest scans QR code on cup
         │
         ▼
-V2/index.html  (GitHub Pages / gs1-nordic.invig.no)
-  ├── Reads GIAI from URL (?giai=70735391141)
-  ├── Fetches cold-chain telemetry from SmartPallet cache (V2/data/)
-  ├── Renders Leaflet map + temperature chart (Chart.js)
-  ├── Registers guest via Supabase (registrations table)
-  └── Shows other registered drinkers (Supabase query)
+V2/index.html  (GitHub Pages · gs1-nordic.invig.no/V2/)
+  ├── Reads GIAI from URL (?giai=70735392043)
+  ├── Checks Supabase registrations – shows owner if already claimed
+  ├── Registration flow: phone → name / company → Supabase registrations table
+  └── "Hvem drakk den?" panel – shows all registrations for this cup
 
-Keonn AdvanReader (RFID at recycling station)
-  └── POST /api/rfid → gs1-nordic.invig.no (Manus backend)
-        └── Writes to Supabase rfid_events table
-
+Guest drops cup in recycling bin
+        │
+        ▼
+Keonn AdvanReader (UHF RFID at recycling station)
+  └── SimpleHTTPService → HTTPS POST (JSON)
+        │
+        ▼
+Supabase Edge Function: rfid-relay
+  https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/rfid-relay
+  ├── Parses EPC from AdvanNet JSON payload
+  ├── Looks up EPC in `beers` table (2 062 event cups)
+  ├── Inserts into rfid_events (idempotent – duplicate EPC → silently ignored)
+  └── Unknown EPC → inserts into rfid_feedback as 'invalid'
+        │
+        ▼
+Supabase PostgreSQL database
+  ├── rfid_events      – one row per recycled cup (UNIQUE on epc)
+  ├── registrations    – one row per guest/cup claim
+  ├── rfid_feedback    – invalid or duplicate tag events
+  └── beers            – 2 062 event cups (giai, epc, url, bottle_num)
+        │  Realtime WebSocket (supabase-js)
+        ▼
 storskjerm.html  (Event display screen)
-  ├── Subscribes to Supabase rfid_events (real-time INSERT via WebSocket)
-  ├── Subscribes to Supabase registrations (real-time INSERT)
-  └── Shows live recycling counter + milestone celebrations (confetti)
+  ├── Live counters: Registered users · Registered cups · Recycled cups · Recycle rate
+  ├── Feed: last 5 recycled cups with guest name
+  └── Popups: green (recycled) · red (unknown tag) · gold milestone with confetti
 ```
+
+> **Why a Supabase Edge Function?** `gs1-nordic.invig.no` is a static GitHub Pages site — it cannot receive POST requests. The Edge Function runs server-side, performs the EPC lookup, and writes to the database using the service role key (which bypasses RLS safely). The function requires no JWT — `verify_jwt = false` is set in `supabase/config.toml`.
 
 ---
 
-## GS1 GIAI Identity Structure
+## GS1 Identity Structure
 
-Each bottle has a unique **GIAI (Global Individual Asset Identifier)** per the GS1 standard.
+Each cup has a unique **GIAI (Global Individual Asset Identifier)** per the GS1 standard.
 
 | Field | Value | Description |
 |---|---|---|
 | GS1 Application Identifier | `8004` | Identifies GIAI in GS1 Digital Link |
-| GS1 Company Prefix (GCP) | `7073539` | Invig AS GCP |
-| Asset reference | `1001`–`3000` | Unique bottle number (2000 bottles) |
-| Full GIAI (example) | `70735391141` | GCP + asset reference |
-| GS1 element string | `(8004) 70735391141` | Standard GS1 notation |
-| Resolver URL | `https://id.invig.no/8004/70735391141` | GS1 Digital Link |
+| GS1 Company Prefix (GCP) | `7073539` | Invig AS GCP (7 digits) |
+| Asset reference range | `2043`–`4104` | 2 062 unique cups |
+| Full GIAI (example) | `70735392043` | GCP + asset reference |
+| GS1 element string | `(8004) 70735392043` | Standard GS1 notation |
+| Resolver URL | `https://id.invig.no/8004/70735392043` | GS1 Digital Link |
 
-**EPC encoding for RFID (GS1 GIAI-96):**
-```
-Header    (8 bit):  34 hex  → GIAI-96
-Filter    (3 bit):  1
-Partition (3 bit):  5
-GCP      (24 bit):  7073539 → 0xAFBC0C
-Asset    (38 bit):  bottle number
-```
+**EPC encoding for RFID (GS1 GIAI-96, GS1 TDS 1.13 Table 14-3):**
+
+| Bit field | Bits | Value | Notes |
+|---|---|---|---|
+| Header | 8 | `0x34` | GIAI-96 (not `0x30` which is SGTIN-96) |
+| Filter | 3 | `1` | |
+| Partition | 3 | `5` | 7-digit GCP |
+| GCP | 24 | `0xAFBC0C` | = 7073539 decimal |
+| Asset Reference | 58 | cup number | = GIAI − 70735390000 |
+
+The `beers` table stores the pre-computed EPC for each cup, so the Edge Function does a direct table lookup rather than mathematical decoding.
 
 ---
 
-## Supabase Database Schema
+## Supabase Database
 
-### `registrations` table
+**Project:** `spbfuhajwfadzvdidalk` · Region: `eu-central-1`
+**Dashboard:** https://supabase.com/dashboard/project/spbfuhajwfadzvdidalk
+
+### Tables
+
+**`beers`** — event cup registry (2 062 rows, populated from Excel before the event)
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | uuid | Primary key |
+| `id` | bigserial | Primary key |
+| `giai` | text | Full GIAI string, e.g. `70735392043` |
+| `epc` | text | Uppercase hex EPC, e.g. `3415AFBC0C000000000007EB` |
+| `url` | text | QR landing page URL |
+| `bottle_num` | int | Cup number 1–2062 (UNIQUE) |
+
+**`registrations`** — QR scan registrations from guests
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | bigserial | Primary key |
 | `phone` | text | Guest phone number |
 | `name` | text | Guest full name |
-| `company` | text | Guest company/organisation |
-| `giai` | text | Bottle GIAI scanned |
-| `registered_at` | timestamptz | Registration timestamp (UTC) |
+| `company` | text | Guest company / organisation |
+| `giai` | text | Cup GIAI claimed |
+| `registered_at` | timestamptz | UTC timestamp |
 
-### `rfid_events` table
+Unique index on `(phone, giai)` — one registration per phone/cup pair.
+
+**`rfid_events`** — recycling events from the RFID reader
 
 | Column | Type | Description |
 |---|---|---|
-| `id` | uuid | Primary key |
-| `epc` | text | Raw EPC from RFID reader |
+| `id` | bigserial | Primary key |
+| `epc` | text | Raw EPC from reader (UNIQUE — idempotency) |
 | `giai` | text | Decoded GIAI |
-| `reader_id` | text | Keonn reader identifier |
-| `recycled_at` | timestamptz | Scan timestamp (UTC) |
+| `reader_id` | text | Reader identifier string |
+| `recycled_at` | timestamptz | UTC timestamp |
 
----
+**`rfid_feedback`** — invalid or unrecognised tag events
 
-## SmartPallet Cold-Chain Data
-
-The map and temperature log in V2 use a **cache-first** strategy:
-
-1. The page fetches `V2/data/tracker-09.json` (odd bottles) or `tracker-03.json` (even bottles) immediately for instant render.
-2. It then attempts the live SmartPallet API in the background. If the API responds, it overwrites the cache data.
-3. If the live API is unavailable (404 or timeout), the cached data is used.
-
-The cache files contain a realistic fictive cold-chain journey ending at Radisson Blu Plaza, Oslo:
-
-| Date | Location | Temperature |
+| Column | Type | Description |
 |---|---|---|
-| 7 May | Carlsberg Brewery, Fredericia DK | 18.5°C |
-| 8 May | Cold Storage, Kastrup Airport DK | 3.9°C |
-| 9 May | Göteborg Distribution Hub, SE | 5.2°C |
-| 10 May | Fredrikstad Cold Terminal, NO | 4.3°C |
-| 11 May | Oslo Distribution Centre, Alnabru | 3.8°C |
-| 13 May | Refrigerated Transport, Oslo | 5.9°C |
-| 13–14 May | Venue Cold Room, Radisson Blu Plaza | 4.1°C |
-| 14 May | Handed to guest | 5.7°C |
+| `id` | bigserial | Primary key |
+| `epc` | text | Raw EPC |
+| `giai` | text | null for invalid tags |
+| `event_type` | text | `'invalid'` or `'duplicate'` |
+| `created_at` | timestamptz | UTC timestamp |
 
-**Regenerating cache files before the event:**
+**RLS:** All tables have RLS enabled. `registrations` and `rfid_events` allow anonymous SELECT and INSERT. The Edge Function uses the service role key, which bypasses RLS entirely.
 
-```bash
-python3 generate_cache.py
-git add V2/data/
-git commit -m "refresh SmartPallet cache for event day"
-git push origin gh-pages
-```
+**Realtime:** `rfid_events`, `registrations`, and `rfid_feedback` have `REPLICA IDENTITY FULL` and are added to the `supabase_realtime` publication. `storskjerm.html` subscribes to INSERT events on all three.
 
 ---
 
 ## Keonn AdvanReader Setup
 
-See **[KEONN-SETUP.md](./KEONN-SETUP.md)** for the full step-by-step configuration guide.
+See **[KEONN-SETUP.md](./KEONN-SETUP.md)** for the complete step-by-step guide. The summary below covers the essential configuration.
 
-**Quick summary:**
+### What the reader does
 
-1. Open AdvanNet web interface → `HTTPService` → `Add Connection`
-2. Set URL to: `https://gs1-nordic.invig.no/api/rfid`
-3. Set method: `POST`, content type: `application/json`
-4. Save and test with:
+The AdvanReader continuously scans for UHF RFID tags (EPC Gen2, 865–868 MHz). When a cup is placed in the recycling bin, the reader detects the tag and uses its built-in **SimpleHTTPService** to POST the EPC to the Supabase Edge Function over HTTPS.
 
-```bash
-curl -X POST https://gs1-nordic.invig.no/api/rfid \
-  -H "Content-Type: application/json" \
-  -d '{"epc":"3074257BF400B000000006A9","reader_id":"keonn-01","timestamp":"2025-05-14T12:00:00Z"}'
+### Step 1 — Open AdvanNet Manager
+
+1. Connect the AdvanReader to the event network (wired or Wi-Fi).
+2. Navigate to `http://<reader-ip>:8080` in a browser (default AdvanNet Manager port).
+3. Log in with your AdvanNet credentials.
+4. In the left sidebar, go to **Services** → **SimpleHTTPService**.
+5. Enable **Advanced** mode (toggle in the top-right of the Services panel).
+
+### Step 2 — HTTP Connection Settings
+
+| Field | Value |
+|---|---|
+| **Enabled** | ✅ Checked |
+| **Endpoint URL** | `https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/rfid-relay` |
+| **HTTP method** | `POST` |
+| **Content-Type** | `JSON (application/json)` |
+| **Username** | *(leave empty — no Basic Auth)* |
+| **Password** | *(leave empty — no Basic Auth)* |
+
+### Step 3 — HTTP Advanced Settings
+
+| Field | Value |
+|---|---|
+| **Send one by one** | ☐ Unchecked (batch mode) |
+| **Inventory tag TTL (s)** | `60` |
+| **Re-send when in error** | ✅ Checked |
+| **Expected HTTP response** | `200` |
+
+The TTL of 60 seconds means the same EPC will only be posted once per minute. The Edge Function also enforces idempotency at the database level — a duplicate EPC is silently ignored (unique constraint on `rfid_events.epc`).
+
+### Step 4 — JSON Config
+
+Paste the following into the **JSON config** field. This template builds the correct JSON body from the AdvanNet scripting context variables:
+
+```
+[{"event":"TAG_READ","path":"'/functions/v1/rfid-relay'","body":"var body='{';body+='\"devid\": \"'+ctx_devid+'\",';body+='\"devip\": \"'+ctx_devip+'\",';body+='\"reads\": [';for(i=0;i<ctx_tags.length;i++){body+='{';body+='\"epc\": \"'+ctx_tags[i].getEPC()+'\",';body+='\"rssi\": \"'+ctx_tags[i].getRSSI()+'\",';body+='\"ts\": \"'+ctx_tags[i].getUTC()+'\"';body+='}';if(i<ctx_tags.length-1){body+=',';}}body+=']';body+='}';"  }]
 ```
 
-The backend decodes the EPC to a GIAI and writes it to the `rfid_events` Supabase table. The `storskjerm.html` display screen picks this up in real-time via Supabase WebSocket subscription.
+> Validate the JSON at [jsonlint.com](https://jsonlint.com/) before saving (remove any line breaks first).
+
+### Step 5 — Custom Header (recommended)
+
+Add the event key header for an extra layer of security. Paste into the **Advanced JSON conf** field:
+
+```json
+{"customHeaders":[{"header":"X-Event-Key: gs1nordic2026"}]}
+```
+
+### Step 6 — Test the Connection
+
+After saving, verify the pipeline with `curl` from any machine on the network:
+
+```bash
+# Single EPC test (cup #1)
+curl -s -X POST \
+  "https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/rfid-relay" \
+  -H "Content-Type: application/json" \
+  -H "X-Event-Key: gs1nordic2026" \
+  -d '{"epc":"3415AFBC0C000000000007EB","reader_id":"advanreader-test"}'
+```
+
+**Expected response — first scan:**
+```json
+{
+  "success": true,
+  "processed": 1,
+  "recorded": 1,
+  "duplicates": 0,
+  "skipped": 0,
+  "results": [{ "epc": "3415AFBC0C000000000007EB", "giai": "70735392043", "bottle_num": 1, "status": "recorded" }]
+}
+```
+
+**Expected response — duplicate (same EPC again):**
+```json
+{
+  "success": true,
+  "processed": 1,
+  "recorded": 0,
+  "duplicates": 1,
+  "skipped": 0,
+  "results": [{ "epc": "3415AFBC0C000000000007EB", "giai": "70735392043", "bottle_num": 1, "status": "duplicate" }]
+}
+```
+
+**Expected response — unknown tag (not in `beers` table):**
+```json
+{
+  "success": true,
+  "processed": 1,
+  "recorded": 0,
+  "duplicates": 0,
+  "skipped": 1,
+  "results": [{ "epc": "AABBCCDD00112233", "giai": null, "bottle_num": null, "status": "skipped (not an event bottle)" }]
+}
+```
+
+### Supported Payload Formats
+
+The Edge Function accepts several JSON body shapes from the AdvanReader:
+
+| Format | Example body |
+|---|---|
+| Single EPC | `{"epc":"3415AFBC0C000000000007EB"}` |
+| AdvanNet batch | `{"devid":"reader-01","reads":[{"epc":"...","rssi":"-60","ts":"..."}]}` |
+| Tag array | `{"tags":[{"epc":"..."}]}` |
+| EPC list | `{"epc_list":["..."]}` |
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| No POST received by Edge Function | SimpleHTTPService not enabled | Enable in AdvanNet Manager → Services |
+| `401 Unauthorized` | Wrong `X-Event-Key` header | Use `gs1nordic2026` |
+| `400 Bad Request` | Malformed JSON config | Validate at jsonlint.com |
+| All tags return `skipped (not an event bottle)` | EPC not in `beers` table | Verify cups are programmed with the correct GIAI range; check EPC header is `0x34` (GIAI-96), not `0x30` (SGTIN-96) |
+| `duplicate` for all tags | EPC already in `rfid_events` | Expected and correct — clean the table to re-test: `DELETE FROM rfid_events;` |
+| Display screen not updating | Supabase Realtime not connected | Check browser console for WebSocket errors; reload `storskjerm.html` |
+| HTTPS certificate error on reader | Network/DNS issue | Verify the reader has internet access and can resolve `supabase.co` |
+| Tags read but not posted | TTL not expired | Lower TTL to `5` for testing, restore to `60` for the event |
 
 ---
 
 ## Event Display Screen (storskjerm.html)
 
-Open `https://gs1-nordic.invig.no/storskjerm.html` on the event display monitor.
+Open `https://gs1-nordic.invig.no/storskjerm.html` on the event display monitor (TV or projector).
 
-- Connects to Supabase real-time via WebSocket on page load
-- Updates the recycled bottle counter live as RFID reads arrive
-- Shows a feed of the last 10 recycled bottles with guest names (looked up from `registrations`)
-- Triggers confetti celebrations at milestones: **10, 50, 100, 200, 300** bottles
-- Falls back to demo mode after 5 seconds if Supabase is unreachable
+The screen connects to Supabase Realtime via WebSocket on page load and shows:
+
+- **Registrerte brukere** — number of unique phone numbers in `registrations`
+- **Registrerte kopper** — number of unique GIAIs claimed
+- **Resirkulerte kopper** — number of rows in `rfid_events`
+- **Resirkuleringsrate** — recycled / registered (%)
+- **Feed** — last 5 recycled cups with guest name and company
+- **Popups** — green toast when a registered cup is recycled, red toast for unknown tags, gold milestone popup with confetti at 10 / 50 / 100 / 200 / 300 cups
+
+**Demo mode:** Add `?demo=1` to the URL to run a simulated sequence without a live reader. Without this parameter, the screen waits for real Supabase data indefinitely.
 
 ---
 
-## V2 Landing Page Features
+## Cup Scan Page (V2/index.html)
 
-The guest-facing QR landing page (`V2/index.html`) provides:
+The guest-facing QR landing page at `https://gs1-nordic.invig.no/V2/?giai={GIAI}` provides:
 
 | Panel | Content |
 |---|---|
-| **Temperature badge** | Current bottle temperature from SmartPallet cache |
-| **See the Journey** | Interactive Leaflet map of the full cold-chain route + timestamped steps |
-| **Temperature Log** | Chart.js line chart of temperature history + data table |
-| **Who Drank It?** | Other guests who scanned this bottle (from Supabase) |
-| **About the Product** | GS1 product data: GTIN, GIAI, batch, production/best-before dates |
-| **Registration flow** | Phone number → name/company → saved to Supabase |
+| **Hero** | Cup number, GIAI, GS1 Digital Link badge |
+| **Hvem drakk den?** | Registered guests for this cup; live count of registered / recycled cups from Supabase |
+| **Registrer meg** | Phone → name / company flow; saves to `registrations` via Supabase anon key |
+| **Claimed banner** | Shown if cup is already registered — displays owner name and company |
 
-The page works **without a GIAI in the URL** (demo mode) — it shows the full journey and temperature log using the SR-Tracker-09 demo data.
+If a cup is already claimed, the registration button is hidden and the owner's name is shown. Each cup can only be claimed once (enforced by a unique constraint in Supabase, not just localStorage).
 
 ---
 
@@ -207,32 +346,56 @@ The page works **without a GIAI in the URL** (demo mode) — it shows the full j
 The site is deployed via **GitHub Pages** from the `gh-pages` branch with a custom domain.
 
 - Custom domain: `gs1-nordic.invig.no` (configured in `CNAME`)
-- The Manus backend app at `gs1-nordic.invig.no` handles all `/api/*` routes
-- Static files (HTML, JS, CSS, data) are served by GitHub Pages CDN
+- All pages are static HTML/CSS/JS — no build step required
+- The Supabase Edge Function (`rfid-relay`) is deployed separately via the Supabase CLI
 
-**To deploy changes:**
+**To deploy changes to the site:**
 
 ```bash
 git add .
-git commit -m "your message"
+git commit -m "describe your change"
 git push origin gh-pages
 ```
 
-GitHub Pages CDN propagates within approximately 60 seconds.
+GitHub Pages CDN propagates within approximately 60 seconds. Hard-refresh (`Ctrl+Shift+R`) to bypass browser cache.
+
+**To redeploy the Edge Function:**
+
+```bash
+cd gs1-nordic-summit
+supabase login   # use your Supabase Personal Access Token (https://supabase.com/dashboard/account/tokens)
+supabase link --project-ref spbfuhajwfadzvdidalk
+supabase functions deploy rfid-relay --no-verify-jwt
+```
 
 ---
 
-## Local Development
+## Local Development and Testing
 
-**Regenerate SmartPallet cache:**
-```bash
-python3 generate_cache.py
-```
+**Test RFID payloads locally** (inspect what the reader is sending):
 
-**Test RFID endpoint locally:**
 ```bash
 python3 httpServer.py   # starts on port 8080
-# Then configure Keonn to POST to http://<your-ip>:8080
+# Configure AdvanReader to POST to http://<your-machine-ip>:8080
+# All incoming requests are printed to stdout
+```
+
+**Regenerate SmartPallet cache files** (if iotpallet.no data needs refreshing):
+
+```bash
+python3 generate_cache.py
+git add V2/data/
+git commit -m "refresh SmartPallet cache"
+git push origin gh-pages
+```
+
+**Clean the database for a fresh test run:**
+
+```sql
+-- Run in Supabase SQL editor
+DELETE FROM rfid_events;
+DELETE FROM registrations;
+DELETE FROM rfid_feedback;
 ```
 
 ---
@@ -241,57 +404,40 @@ python3 httpServer.py   # starts on port 8080
 
 | Layer | Technology |
 |---|---|
-| Frontend | Vanilla HTML/CSS/JS, Leaflet.js, Chart.js |
-| Maps | Leaflet + OpenStreetMap (no API key required) |
+| Frontend | Vanilla HTML / CSS / JS |
 | Real-time | Supabase JS client (WebSocket subscriptions) |
-| Backend API | Node.js + Express + tRPC (Manus app) |
-| Database | Supabase (PostgreSQL) |
-| RFID | Keonn AdvanReader → POST /api/rfid |
-| Hosting | GitHub Pages + Manus (custom domain `gs1-nordic.invig.no`) |
-| Cold-chain data | SmartPallet Bifrost API (with cache fallback) |
-| GS1 identity | GIAI (AI 8004), GS1 Digital Link |
+| Database | Supabase (PostgreSQL) · project `spbfuhajwfadzvdidalk` |
+| Edge Function | Supabase Edge Functions (Deno) · `rfid-relay` |
+| RFID reader | Keonn AdvanReader (UHF EPC Gen2, 865–868 MHz) |
+| Sensor data | iotpallet.no API · SR-Tracker-09 · SR-Tracker-03 |
+| Hosting | GitHub Pages · custom domain `gs1-nordic.invig.no` |
+| GS1 identity | GIAI (AI 8004) · GS1 Digital Link resolver `id.invig.no` |
+| Design | Invig brand palette · Figtree + Gelasio fonts |
 
 ---
 
-## RFID on Glass Bottles
+## RFID on Paper Cups
 
-UHF RFID (865–868 MHz, EPC Gen2) works well on empty glass bottles. Empty bottles do not attenuate the RF signal — the absence of liquid actually improves readability compared to full bottles.
+UHF RFID (865–868 MHz, EPC Gen2) works well on paper cups. The cups used in this demo have a small UHF label applied to the outside of the cup.
 
-| Condition | RFID effect | Recommendation |
-|---|---|---|
-| Full glass bottle | Moderate attenuation | Works, shorter range |
-| Empty glass bottle | No attenuation | Optimal readability |
-| Aluminium can | Strong blocking | Not recommended for UHF |
+| Condition | RFID effect |
+|---|---|
+| Paper cup, dry | Excellent readability |
+| Paper cup, with liquid | Some attenuation — still readable at close range |
+| Metal-lined cup | Strong blocking — not suitable for UHF |
 
-**Recommended tag placement:** Bottom of bottle, away from the metal cap.  
-**Read range in recycling bin:** 0.3–1.0 m with standard antenna.
-
-See [RFID-PANT-USERSTORY.md](./RFID-PANT-USERSTORY.md) for full technical documentation and user stories.
+Recommended read range at the recycling bin: 0.1–0.5 m with a standard patch antenna.
 
 ---
 
-## Roadmap
+## Backlog
 
-- [x] Bottle identity from GIAI (2000 bottles)
-- [x] Temperature display and cold-chain journey (SmartPallet cache)
-- [x] Registration form with phone number (name + company)
-- [x] Returning user recognition (one-click re-register)
-- [x] Multi-bottle counting per user
-- [x] Keonn AdvanReader RFID integration (POST /api/rfid)
-- [x] Supabase real-time for storskjerm.html
-- [x] Supabase registration from V2/index.html
-- [x] Event display screen with milestone celebrations
-- [x] GS1 Digital Link resolver (id.invig.no)
-- [x] Custom domain (gs1-nordic.invig.no)
-- [x] Full English translation
-- [ ] Live SmartPallet API integration (when available)
-- [ ] CORS proxy for Keonn AdvanReader in production
-- [ ] Recycling verification against Infinitum (Norsk Resirk)
+See **[BACKLOG.md](./BACKLOG.md)** for planned features, including a configurable progress bar showing recycling progress towards a target cup count.
 
 ---
 
 ## Contact
 
-**Invig AS**  
-[invig.no](https://invig.no) · [sales@invig.no](mailto:sales@invig.no)  
-GS1 Nordic Summit 2025 · Powered by Invig Locate IT
+**Invig AS** · [invig.no](https://invig.no) · [sales@invig.no](mailto:sales@invig.no)
+
+GS1 Nordic Summit 2026 · Powered by Invig Locate IT
