@@ -607,13 +607,13 @@
             <div class="drinker-label">registrerte drikkere</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:20px;font-weight:700;color:var(--muted)">/ 400</div>
-            <div class="drinker-label">kopper totalt</div>
+            <div style="font-size:20px;font-weight:700;color:var(--muted)" id="total-registered-cups">/ —</div>
+            <div class="drinker-label">registrerte kopper</div>
           </div>
         </div>
         <div class="progress-wrap">
           <div class="progress-label">
-            <span>Scanned at event</span>
+            <span>Resirkulert av registrerte</span>
             <span id="progress-pct">0%</span>
           </div>
           <div class="progress-track">
@@ -1203,9 +1203,21 @@
         : mockDrinkers.filter(d => !mockNames.has(d.name));
 
       document.getElementById('drinker-count').textContent = finalList.length;
-      const pctScanned = Math.round((scanned / TOTAL) * 100);
-      document.getElementById('progress-pct').textContent  = pctScanned + '%';
-      document.getElementById('progress-fill').style.width = pctScanned + '%';
+      // Fetch real registered + recycled counts from Supabase
+      try {
+        const [{ count: regCount }, { count: recCount }] = await Promise.all([
+          sb.from('registrations').select('*', { count: 'exact', head: true }),
+          sb.from('rfid_events').select('*', { count: 'exact', head: true })
+        ]);
+        const totalReg = regCount || 0;
+        const totalRec = recCount || 0;
+        document.getElementById('total-registered-cups').textContent = '/ ' + totalReg;
+        const pct = totalReg > 0 ? Math.round((totalRec / totalReg) * 100) : 0;
+        document.getElementById('progress-pct').textContent  = pct + '%';
+        document.getElementById('progress-fill').style.width = pct + '%';
+      } catch {
+        document.getElementById('total-registered-cups').textContent = '';
+      }
 
       if (finalList.length === 0) {
         listEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0;">No one has registered yet – be the first!</div>`;
