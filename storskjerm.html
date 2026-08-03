@@ -140,45 +140,6 @@
       margin-top: 10px;
     }
 
-    /* ── Progress bar ── */
-    .progress-wrap {
-      background: var(--panel);
-      border: 1px solid var(--rule);
-      border-radius: 16px;
-      padding: 22px 28px;
-      flex-shrink: 0;
-    }
-    .progress-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 14px;
-    }
-    .progress-title {
-      font-size: 18px; font-weight: 700; color: var(--text);
-    }
-    .progress-pct {
-      font-size: 28px; font-weight: 800; color: var(--gold);
-    }
-    .progress-track {
-      height: 14px; background: rgba(255,255,255,0.06);
-      border-radius: 999px; overflow: hidden; margin-bottom: 10px;
-    }
-    .progress-fill {
-      height: 100%; border-radius: 999px;
-      background: linear-gradient(to right, var(--olive), var(--gold-light));
-      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-    }
-    .progress-fill::after {
-      content: '';
-      position: absolute; right: 0; top: 0; bottom: 0; width: 40px;
-      background: linear-gradient(to right, transparent, rgba(255,255,255,0.25));
-      border-radius: 999px;
-    }
-    .progress-labels {
-      display: flex; justify-content: space-between;
-      font-size: 13px; color: var(--muted);
-    }
-
     /* ── Recent recycling feed ── */
     .feed-wrap {
       flex: 1;
@@ -394,21 +355,6 @@
       <div class="counter-label">Resirkuleringsrate</div>
       <div class="counter-value blue" id="cnt-rate">0%</div>
       <div class="counter-sub">Registrert → resirkulert</div>
-    </div>
-  </div>
-
-  <!-- Progress bar -->
-  <div class="progress-wrap">
-    <div class="progress-header">
-      <span class="progress-title">☕ Resirkuleringsframgang – Invig Kaffe med GS1 standard</span>
-      <span class="progress-pct" id="pant-pct">0%</span>
-    </div>
-    <div class="progress-track">
-      <div class="progress-fill" id="pant-fill" style="width:0%"></div>
-    </div>
-    <div class="progress-labels">
-      <span id="pant-left">0 kopper resirkulert</span>
-      <span id="pant-right">0 of 300 kopper resirkulert</span>
     </div>
   </div>
 
@@ -914,8 +860,6 @@
     const panted     = pantedGIAIs.size;
     const unique     = uniqueGIAIs.size;
     const rate       = unique > 0 ? Math.round((panted / unique) * 100) : 0;
-    const pct        = Math.round((panted / 300) * 100);
-
     const setVal = (id, val) => {
       const el = document.getElementById(id);
       if (el.textContent !== String(val)) { el.textContent = val; animatePop(el); }
@@ -924,10 +868,6 @@
     setVal('cnt-panted',     panted);
     setVal('cnt-unique',     unique);
     setVal('cnt-rate',       rate + '%');
-    setVal('pant-pct',       pct + '%');
-    document.getElementById('pant-fill').style.width  = pct + '%';
-    document.getElementById('pant-left').textContent  = `${panted} kopper resirkulert`;
-    document.getElementById('pant-right').textContent = `${panted} of 300 kopper resirkulert`;
     document.getElementById('feed-count').textContent = `${panted} i dag`;
 
     checkMilestones(panted);
