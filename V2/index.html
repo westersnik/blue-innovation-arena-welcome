@@ -753,7 +753,8 @@
        ===================================================== */
 
     const INVIG_GCP = '7073539';
-    const GIAI_BASE = 70735392042;  // cups 70735392043–70735394104
+    const GIAI_BASE        = 70735392042;  // Batch 1: GIAI 70735392043–70735394104 → display #1–2062
+    const GIAI_BASE_BATCH2 = 70735394095;  // Batch 2: GIAI 70735394096–70735394595 → display #1–500
     const TOTAL     = 2062;
     const DB_USERS_KEY = 'gs1ns_users';
 
@@ -816,8 +817,11 @@
       return p.get('giai') || p.get('id') || null;
     }
     function bottleNumber(giai) {
-      const n = parseInt(giai, 10) - GIAI_BASE;
-      // Accept any positive bottle reference (allows demo GIAIs outside the 300-bottle range)
+      const g = parseInt(giai, 10);
+      // Batch 2: GIAI 70735394096–70735394595 → display #1–500
+      if (g >= 70735394096 && g <= 70735394595) return g - GIAI_BASE_BATCH2;
+      // Batch 1: GIAI 70735392043–70735394104 → display #1–2062
+      const n = g - GIAI_BASE;
       return n >= 1 ? n : null;
     }
     function bottleKey(giai) { return `gs1ns_bottle_${giai}`; }
