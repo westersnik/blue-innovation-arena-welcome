@@ -460,13 +460,47 @@
   // ── State ────────────────────────────────────────────
   let rfidEvents    = [];   // [{giai, num, name, company, ts}]
   let registrations = [];   // [{name, company, giai_list, ts}]
-  let pantedGIAIs   = new Set();
+  // An EPC is the physical RFID tag identity. GIAI overlaps for nine cups between
+  // the two event batches, so use EPC for de-duplication rather than GIAI alone.
+  let pantedEventKeys = new Set();
   let registeredSet = new Set(); // unique phones/ids
   let uniqueGIAIs   = new Set(); // all scanned GIAIs from registrations
   let milestoneShown = new Set();
   let hasLiveData   = false;
   let demoTimer     = null;
   let demoIdx       = 0;
+
+  const BATCH1_GIAI_START = 70735392043;
+  const BATCH1_GIAI_END   = 70735394104;
+  const BATCH1_GIAI_BASE  = 70735392042;
+  const BATCH2_GIAI_START = 70735394096;
+  const BATCH2_GIAI_END   = 70735394595;
+  const BATCH2_GIAI_BASE  = 70735394095;
+
+  function rfidEventKey(event) {
+    const epc = String(event?.epc || '').trim().toUpperCase();
+    return epc ? `epc:${epc}` : `giai:${event?.giai || ''}`;
+  }
+
+  function cupNumberForEvent(giai, epc) {
+    const giaiNumber = Number.parseInt(giai, 10);
+    if (!Number.isFinite(giaiNumber)) return null;
+
+    // Batch 2 is a separate event and must display cup #1–500. The two batches
+    // overlap for GIAI 70735394096–70735394104; batch 2 EPCs are 24 hex chars,
+    // while the prior batch's catalogued EPCs are 25 chars. Use the physical EPC
+    // to distinguish these nine otherwise identical GIAIs.
+    const epcLength = String(epc || '').trim().length;
+    const isBatch2 =
+      (giaiNumber > BATCH1_GIAI_END && giaiNumber <= BATCH2_GIAI_END) ||
+      (giaiNumber >= BATCH2_GIAI_START && giaiNumber <= BATCH1_GIAI_END && epcLength === 24);
+
+    if (isBatch2) return giaiNumber - BATCH2_GIAI_BASE;
+    if (giaiNumber >= BATCH1_GIAI_START && giaiNumber <= BATCH1_GIAI_END) {
+      return giaiNumber - BATCH1_GIAI_BASE;
+    }
+    return null;
+  }
 
   // ── Milestones ───────────────────────────────────────
   const MILESTONES = [
@@ -686,21 +720,21 @@
     const { data: rfid } = await sb
       .from('rfid_events')
       .select('giai, epc, recycled_at')
-      .gte('giai', '70735392043')
-      .lte('giai', '70735394104')
+      .gte('giai', String(BATCH1_GIAI_START))
+      .lte('giai', String(BATCH2_GIAI_END))
       .order('recycled_at', { ascending: false })
       .limit(300);
 
     if (rfid && rfid.length > 0) {
       hasLiveData = true;
       rfid.forEach(r => {
-        if (!pantedGIAIs.has(r.giai)) {
-          pantedGIAIs.add(r.giai);
-          // Derive bottle number from GIAI (GIAI_BASE = 70735392042)
-          const num = r.giai ? (parseInt(r.giai, 10) - 70735392042) : null;
+        const eventKey = rfidEventKey(r);
+        const num = cupNumberForEvent(r.giai, r.epc);
+        if (!pantedEventKeys.has(eventKey) && num !== null) {
+          pantedEventKeys.add(eventKey);
           rfidEvents.push({
             giai: r.giai,
-            num: (num >= 1 && num <= 300) ? num : null,
+            num,
             name: null,   // will be filled by enrichRfidEvents below
             company: null,
             ts: new Date(r.recycled_at || Date.now()).getTime()
@@ -736,17 +770,18 @@
     sb.channel('rfid-events-channel')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
         const r = payload.new;
-        const rNum = r.giai ? (parseInt(r.giai, 10) - 70735392042) : null;
-        if (!pantedGIAIs.has(r.giai) && rNum >= 1 && rNum <= 300) {
+        const rNum = cupNumberForEvent(r.giai, r.epc);
+        const eventKey = rfidEventKey(r);
+        if (!pantedEventKeys.has(eventKey) && rNum !== null) {
           hasLiveData = true;
-          pantedGIAIs.add(r.giai);
+          pantedEventKeys.add(eventKey);
           const num = rNum;
           // Look up registration for this bottle
           const regs = window._regs || [];
           const reg = regs.find(x => x.giai === r.giai);
           rfidEvents.unshift({
             giai: r.giai,
-            num: (num >= 1 && num <= 300) ? num : null,
+            num,
             name: reg?.name || null,
             company: reg?.company || null,
             ts: new Date(r.recycled_at || Date.now()).getTime()
@@ -825,8 +860,9 @@
       const b = DEMO_BOTTLES[demoIdx];
       const n = DEMO_NAMES[demoIdx];
       demoIdx++;
-      if (!pantedGIAIs.has(b.giai)) {
-        pantedGIAIs.add(b.giai);
+      const eventKey = `demo:${b.giai}`;
+      if (!pantedEventKeys.has(eventKey)) {
+        pantedEventKeys.add(eventKey);
         rfidEvents.unshift({ giai: b.giai, num: b.num, name: n.name, company: n.company, ts: Date.now() });
         if (rfidEvents.length > 50) rfidEvents.pop();
         showRecycledPopup(n.name, n.company, b.num, b.giai);
@@ -858,7 +894,7 @@
 
   function updateUI() {
     const registered = registeredSet.size;
-    const panted     = pantedGIAIs.size;
+    const panted     = pantedEventKeys.size;
     const unique     = uniqueGIAIs.size;
     const rate       = unique > 0 ? Math.round((panted / unique) * 100) : 0;
     const setVal = (id, val) => {
