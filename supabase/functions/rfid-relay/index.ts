@@ -5,8 +5,8 @@
  * EPC tag reads to the rfid_events table using the service role key.
  *
  * EPC validation is done by looking up the EPC in the `beers` table.
- * Only EPCs present in that table (the 300 event bottles) are accepted.
- * All other tags are written to rfid_feedback as 'invalid'.
+ * A valid read must also belong to the active event configured for the reader.
+ * All other tags are written to rfid_feedback with their rejection reason.
  *
  * Supported body formats:
  *   { "epc": "3415AFBC0C0000000000014F" }                        – single tag
@@ -97,22 +97,60 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false },
   });
 
-  // Fetch all EPCs from beers table in one query for batch lookup
+  // Fetch all EPCs from the physical inventory catalogue in one query.
   const epcList = rawTags.map(t => t.epc.toUpperCase());
   const { data: beerRows, error: beerLookupError } = await supabase
     .from('beers')
-    .select('epc, giai, bottle_num')
+    .select('id, epc, giai, bottle_num, batch_id, display_number')
     .in('epc', epcList);
 
-  // Build a map: EPC → { giai, bottle_num }
-  const beerMap: Record<string, { giai: string; bottle_num: number }> = {};
+  if (beerLookupError) {
+    return new Response(JSON.stringify({ error: `Cup catalogue lookup failed: ${beerLookupError.message}` }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Build a map: EPC → physical inventory record.
+  const beerMap: Record<string, { id: number; giai: string; bottle_num: number; batch_id: string; display_number: number }> = {};
   if (beerRows) {
     for (const row of beerRows) {
-      beerMap[row.epc.toUpperCase()] = { giai: row.giai, bottle_num: row.bottle_num };
+      beerMap[row.epc.toUpperCase()] = {
+        id: row.id,
+        giai: row.giai,
+        bottle_num: row.bottle_num,
+        batch_id: row.batch_id,
+        display_number: row.display_number,
+      };
     }
   }
 
-  const results: Array<{ epc: string; giai: string | null; bottle_num: number | null; status: string }> = [];
+  // One reader can have one active event. The reader ID is selected on the
+  // configuration page, so different locations can run independently.
+  const readerIds = [...new Set(rawTags.map(t => String(t.readerId ?? 'advanreader')))];
+  const { data: activeEvents, error: activeEventError } = await supabase
+    .from('event_sessions')
+    .select('id, reader_id, batch_id')
+    .eq('status', 'active')
+    .in('reader_id', readerIds);
+
+  if (activeEventError) {
+    return new Response(JSON.stringify({ error: `Active event lookup failed: ${activeEventError.message}` }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const activeEventByReader: Record<string, { id: string; batch_id: string }> = {};
+  for (const event of activeEvents ?? []) {
+    activeEventByReader[event.reader_id] = { id: event.id, batch_id: event.batch_id };
+  }
+  // Existing installations keep their legacy behavior until a configuration
+  // page has started an event for that reader. Once an active event exists,
+  // RFID reads are strictly scoped to its allocated cups.
+  const hasConfiguredActiveEvent = (activeEvents ?? []).length > 0;
+
+  const results: Array<{ epc: string; giai: string | null; bottle_num: number | null; display_number: number | null; event_id: string | null; status: string }> = [];
   let recorded = 0;
   let duplicates = 0;
   let skipped = 0;
@@ -120,22 +158,79 @@ Deno.serve(async (req: Request) => {
   for (const { epc, readerId } of rawTags) {
     const normalizedEpc = epc.toUpperCase();
     const beer = beerMap[normalizedEpc];
+    const normalizedReaderId = String(readerId ?? 'advanreader');
+    const activeEvent = activeEventByReader[normalizedReaderId];
 
-    // Not in beers table → not an event bottle
+    // Not in the physical inventory catalogue.
     if (!beer) {
       skipped++;
-      results.push({ epc, giai: null, bottle_num: null, status: 'skipped (not an event bottle)' });
-      // Write feedback so display can show "tag not recognised" popup
+      results.push({ epc, giai: null, bottle_num: null, display_number: null, event_id: null, status: 'skipped (not in cup catalogue)' });
       await supabase.from('rfid_feedback').insert({ epc, giai: null, event_type: 'invalid' });
       continue;
     }
 
-    const { giai, bottle_num } = beer;
+    const { id: cupId, giai, bottle_num, batch_id, display_number } = beer;
+
+    // When configuration is in use, the reader must be assigned to an active event.
+    if (!activeEvent && hasConfiguredActiveEvent) {
+      skipped++;
+      results.push({ epc, giai, bottle_num, display_number, event_id: null, status: 'skipped (no active event for reader)' });
+      await supabase.from('rfid_feedback').insert({ epc: normalizedEpc, giai, event_type: 'no_active_event' });
+      continue;
+    }
+
+    // No configured event yet: preserve the established eventless ingestion flow.
+    if (!activeEvent) {
+      const { error } = await supabase.from('rfid_events').insert({
+        epc: normalizedEpc,
+        giai,
+        reader_id: normalizedReaderId,
+        recycled_at: new Date().toISOString(),
+      });
+      if (error) {
+        if (error.code === '23505') {
+          duplicates++;
+          results.push({ epc, giai, bottle_num, display_number, event_id: null, status: 'duplicate' });
+        } else {
+          results.push({ epc, giai, bottle_num, display_number, event_id: null, status: `error: ${error.message}` });
+        }
+      } else {
+        recorded++;
+        results.push({ epc, giai, bottle_num, display_number, event_id: null, status: 'recorded (legacy mode)' });
+      }
+      continue;
+    }
+
+    // A coffee event cannot record an RFID tag from a beer batch, and vice versa.
+    if (activeEvent.batch_id !== batch_id) {
+      skipped++;
+      results.push({ epc, giai, bottle_num, display_number, event_id: activeEvent.id, status: 'skipped (cup belongs to another batch)' });
+      await supabase.from('rfid_feedback').insert({ epc: normalizedEpc, giai, event_id: activeEvent.id, event_type: 'outside_event_batch' });
+      continue;
+    }
+
+    // Check that the cup is part of this event's allocated number range.
+    const { data: eventCup, error: eventCupError } = await supabase
+      .from('event_cups')
+      .select('id, status')
+      .eq('event_id', activeEvent.id)
+      .eq('cup_id', cupId)
+      .in('status', ['allocated', 'registered'])
+      .maybeSingle();
+
+    if (eventCupError || !eventCup) {
+      skipped++;
+      results.push({ epc, giai, bottle_num, display_number, event_id: activeEvent.id, status: 'skipped (cup is not available in active event)' });
+      await supabase.from('rfid_feedback').insert({ epc: normalizedEpc, giai, event_id: activeEvent.id, event_type: 'outside_event_range' });
+      continue;
+    }
 
     const { error } = await supabase.from('rfid_events').insert({
       epc: normalizedEpc,
       giai,
-      reader_id: readerId ?? 'advanreader',
+      reader_id: normalizedReaderId,
+      event_id: activeEvent.id,
+      event_cup_id: eventCup.id,
       recycled_at: new Date().toISOString(),
     });
 
@@ -143,13 +238,17 @@ Deno.serve(async (req: Request) => {
       if (error.code === '23505') {
         // Unique constraint violation — already recorded (idempotent)
         duplicates++;
-        results.push({ epc, giai, bottle_num, status: 'duplicate' });
+        results.push({ epc, giai, bottle_num, display_number, event_id: activeEvent.id, status: 'duplicate' });
       } else {
-        results.push({ epc, giai, bottle_num, status: `error: ${error.message}` });
+        results.push({ epc, giai, bottle_num, display_number, event_id: activeEvent.id, status: `error: ${error.message}` });
       }
     } else {
+      await supabase.from('event_cups').update({
+        status: 'recycled',
+        recycled_at: new Date().toISOString(),
+      }).eq('id', eventCup.id);
       recorded++;
-      results.push({ epc, giai, bottle_num, status: 'recorded' });
+      results.push({ epc, giai, bottle_num, display_number, event_id: activeEvent.id, status: 'recorded' });
     }
   }
 

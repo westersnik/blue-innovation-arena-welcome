@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digi-Coffee – arrangementskonfigurasjon</title>
+  <meta name="description" content="Åpen konfigurasjon for RFID-arrangement, koppsortiment og progresjon." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Gelasio:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    :root { --deep:#2E3F34; --sand:#F5F3F0; --sand-dark:#DAD5CD; --taupe:#5F5B53; --mint:#CEE3D2; --gold:#8A7F1E; --white:#fff; --red:#B44A3D; --line:#D8D3CA; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--sand); color:var(--deep); font:15px/1.45 Figtree,system-ui,sans-serif; }
+    header { background:var(--deep); color:var(--white); padding:24px max(20px,calc((100vw - 1120px)/2)); }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand h1 { font:400 31px/1.1 Gelasio,Georgia,serif; margin:0; letter-spacing:-.02em; }
+    .brand p { color:var(--mint); margin:6px 0 0; font-size:13px; }
+    .open-pill { border:1px solid rgba(206,227,210,.55); color:var(--mint); border-radius:999px; padding:6px 10px; font-size:11px; font-weight:700; white-space:nowrap; }
+    main { max-width:1120px; margin:0 auto; padding:28px 20px 56px; }
+    .intro { display:grid; grid-template-columns:1.5fr 1fr; gap:18px; align-items:start; margin-bottom:22px; }
+    .intro h2 { font:400 28px/1.15 Gelasio,Georgia,serif; margin:0 0 9px; }
+    .intro p { margin:0; color:var(--taupe); max-width:650px; }
+    .notice { background:var(--mint); border:1px solid var(--deep); padding:13px 15px; font-size:13px; color:var(--deep); }
+    .grid { display:grid; grid-template-columns:minmax(0,1.03fr) minmax(360px,.97fr); gap:22px; align-items:start; }
+    .card { background:var(--white); border:1px solid var(--line); padding:22px; }
+    .card h2 { margin:0; font:400 25px/1.15 Gelasio,Georgia,serif; }
+    .card-lead { color:var(--taupe); margin:8px 0 21px; font-size:13px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field.full { grid-column:1/-1; }
+    label { color:var(--taupe); font-size:12px; font-weight:700; letter-spacing:.035em; text-transform:uppercase; }
+    input, select { width:100%; min-height:43px; border:1px solid var(--sand-dark); border-radius:0; background:var(--white); color:var(--deep); padding:9px 11px; font:inherit; }
+    input:focus,select:focus { outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold); }
+    .range-summary { grid-column:1/-1; display:flex; justify-content:space-between; gap:12px; background:var(--sand); border-left:4px solid var(--gold); padding:11px 12px; color:var(--taupe); font-size:13px; }
+    .range-summary strong { color:var(--deep); }
+    .button-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
+    button,.link-button { border:0; border-radius:0; min-height:42px; padding:10px 15px; font:700 14px Figtree,system-ui,sans-serif; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
+    button.primary { background:var(--deep); color:#fff; }
+    button.primary:hover { background:#3a5244; }
+    button.secondary,.link-button { background:var(--sand); color:var(--deep); border:1px solid var(--sand-dark); }
+    button.danger { color:#fff; background:var(--red); }
+    button:disabled { cursor:not-allowed; opacity:.55; }
+    .batch-note { padding:13px; background:var(--sand); border:1px solid var(--sand-dark); color:var(--taupe); font-size:13px; }
+    .batch-note strong { color:var(--deep); }
+    .event-list { display:flex; flex-direction:column; gap:13px; }
+    .event-card { border:1px solid var(--line); padding:16px; }
+    .event-card.active { border-left:5px solid var(--deep); }
+    .event-top { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+    .event-name { margin:0; font-size:17px; font-weight:800; }
+    .event-meta { color:var(--taupe); margin:4px 0 0; font-size:13px; }
+    .status { display:inline-flex; border:1px solid var(--sand-dark); color:var(--taupe); padding:3px 8px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
+    .status.active { border-color:var(--deep); color:var(--deep); background:var(--mint); }
+    .event-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:14px 0; }
+    .stat { background:var(--sand); padding:8px; }
+    .stat b { display:block; font-size:19px; line-height:1.05; }
+    .stat span { display:block; color:var(--taupe); font-size:11px; margin-top:3px; }
+    .event-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .event-actions button,.event-actions .link-button { min-height:35px; padding:7px 9px; font-size:12px; }
+    .empty { padding:23px 12px; color:var(--taupe); text-align:center; border:1px dashed var(--sand-dark); }
+    dialog { border:1px solid var(--deep); padding:0; max-width:480px; width:calc(100% - 32px); background:var(--white); color:var(--deep); }
+    dialog::backdrop { background:rgba(46,63,52,.65); }
+    .dialog-body { padding:24px; }
+    .dialog-body h2 { margin:0 0 10px; font:400 26px/1.15 Gelasio,Georgia,serif; }
+    .dialog-body p { color:var(--taupe); margin:0 0 10px; }
+    .dialog-summary { background:var(--sand); border-left:4px solid var(--gold); padding:11px; font-size:13px; margin:15px 0; }
+    .toast { position:fixed; bottom:20px; right:20px; max-width:390px; background:var(--deep); color:#fff; padding:13px 15px; border-left:4px solid var(--mint); display:none; z-index:4; }
+    .toast.error { border-color:#f4a29b; }
+    .toast.visible { display:block; }
+    footer { text-align:center; color:var(--taupe); font-size:12px; padding:0 20px 28px; }
+    @media (max-width:780px) { .intro,.grid { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .event-stats { grid-template-columns:repeat(2,1fr); } header { padding:20px; } .brand h1{font-size:26px;} }
+  </style>
+</head>
+<body>
+  <header><div class="brand"><div><h1>Digi-Coffee</h1><p>Konfigurasjon av RFID-arrangement</p></div><span class="open-pill">Åpen konfigurasjon</span></div></header>
+  <main>
+    <section class="intro"><div><h2>Opprett og avslutt arrangement</h2><p>Velg lokasjon, RFID-leser, batch og koppserie. Bare kopper som ikke er registrert eller resirkulert frigjøres når et arrangement avsluttes, slik at de kan brukes senere.</p></div><aside class="notice"><strong>Batch 1 og batch 2</strong> er registrert som kaffe. En fremtidig batch kan opprettes med produkttype kaffe eller øl.</aside></section>
+    <section class="grid">
+      <article class="card"><h2>Nytt arrangement</h2><p class="card-lead">Koppantallet og fremdriftsmålet blir automatisk beregnet fra valgt nummerserie.</p>
+        <form id="event-form"><div class="form-grid">
+          <div class="field full"><label for="event-name">Arrangementnavn</label><input id="event-name" required placeholder="For eksempel: GS1 Demo" /></div>
+          <div class="field"><label for="location">Lokasjon</label><input id="location" list="location-list" required placeholder="For eksempel: GS1 Norge" /><datalist id="location-list"></datalist></div>
+          <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="advanreader" /></div>
+          <div class="field full"><label for="batch">Koppbatch</label><select id="batch" required></select></div>
+          <div class="field"><label for="series-start">Fra koppnummer</label><input id="series-start" type="number" required /></div>
+          <div class="field"><label for="series-end">Til koppnummer</label><input id="series-end" type="number" required /></div>
+          <div class="range-summary"><span id="product-summary">Velg en batch for å se produktmodus.</span><strong id="cup-total">0 kopper</strong></div>
+        </div><div class="button-row"><button class="primary" id="create-button" type="submit">Start arrangement</button></div></form>
+      </article>
+      <article class="card"><h2>Arrangementer</h2><p class="card-lead">Aktive arrangementer har egne lenker til storskjerm og digital koppflate.</p><div class="event-list" id="event-list"><div class="empty">Laster arrangementer …</div></div></article>
+    </section>
+  </main>
+  <dialog id="close-dialog"><div class="dialog-body"><h2>Avslutt arrangement?</h2><p id="close-description"></p><div class="dialog-summary" id="close-summary"></div><p>Dette kan ikke angres. Ubrukte kopper blir frigjort for et senere arrangement. Registrerte og resirkulerte kopper beholdes i historikken.</p><div class="button-row"><button class="secondary" id="cancel-close" type="button">Avbryt</button><button class="danger" id="confirm-close" type="button">Ja, avslutt arrangement</button></div></div></dialog>
+  <div class="toast" id="toast" role="status"></div>
+  <footer>Invig · GS1 Digital Link · RFID event management</footer>
+  <script>
+    const SUPABASE_URL = 'https://spbfuhajwfadzvdidalk.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    let batches = [], locations = [], events = [], allocations = [], pendingClose = null;
+    const $ = id => document.getElementById(id);
+    function toast(message, error=false) { const el=$('toast'); el.textContent=message; el.className='toast visible'+(error?' error':''); clearTimeout(window._toast); window._toast=setTimeout(()=>el.className='toast',5200); }
+    function batchFor(id) { return batches.find(b=>b.id===id); }
+    function statsFor(id) { const a=allocations.filter(x=>x.event_id===id); return { total:a.length, unused:a.filter(x=>x.status==='allocated').length, registered:a.filter(x=>x.status==='registered').length, recycled:a.filter(x=>x.status==='recycled').length, released:a.filter(x=>x.status==='released').length }; }
+    function refreshRange() { const b=batchFor($('batch').value); if(!b) return; const start=$('series-start'), end=$('series-end'); start.min=b.display_start; start.max=b.display_end; end.min=b.display_start; end.max=b.display_end; if(!start.value || +start.value<b.display_start || +start.value>b.display_end) start.value=b.display_start; if(!end.value || +end.value<b.display_start || +end.value>b.display_end || +end.value<+start.value) end.value=b.display_end; const total=Math.max(0,(+end.value||0)-(+start.value||0)+1); $('cup-total').textContent=total+' '+(total===1?'kopp':'kopper'); $('product-summary').innerHTML='<strong>'+ (b.product_mode==='beer'?'Øl':'Kaffe') +'</strong> · '+b.name+' · tilgjengelig serie '+b.display_start+'–'+b.display_end; }
+    function escapeHtml(s) { return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+    function render() { const list=$('event-list'); if(!events.length) { list.innerHTML='<div class="empty">Ingen arrangementer er opprettet ennå.</div>'; return; } list.innerHTML=events.map(e=>{ const b=batchFor(e.batch_id), l=locations.find(x=>x.id===e.location_id), s=statsFor(e.id), active=e.status==='active'; const screen='storskjerm.html?event='+encodeURIComponent(e.id), cup='V2/?event='+encodeURIComponent(e.id); return '<article class="event-card '+(active?'active':'')+'"><div class="event-top"><div><p class="event-name">'+escapeHtml(e.name)+'</p><p class="event-meta">'+escapeHtml(l?.name||'Ukjent lokasjon')+' · '+escapeHtml(b?.name||'Ukjent batch')+' · '+e.series_start+'–'+e.series_end+'</p></div><span class="status '+(active?'active':'')+'">'+(active?'Aktiv':'Avsluttet')+'</span></div><div class="event-stats"><div class="stat"><b>'+e.target_cups+'</b><span>tildelt</span></div><div class="stat"><b>'+s.registered+'</b><span>registrert</span></div><div class="stat"><b>'+s.recycled+'</b><span>resirkulert</span></div><div class="stat"><b>'+s.unused+'</b><span>ubrukt</span></div></div><div class="event-actions">'+(active?'<a class="link-button" href="'+screen+'" target="_blank">Åpne storskjerm</a><a class="link-button" href="'+cup+'" target="_blank">Åpne koppflate</a><button class="danger" data-close="'+e.id+'">Avslutt arrangement</button>':'<span class="event-meta">Frigjort etter avslutning: '+s.released+' kopper</span>')+'</div></article>'; }).join(''); document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>openClose(b.dataset.close))); }
+    async function load() { const [b,l,e,a]=await Promise.all([sb.from('cup_batches').select('*').order('code'),sb.from('event_locations').select('*').order('name'),sb.from('event_sessions').select('*').order('started_at',{ascending:false}),sb.from('event_cups').select('event_id,status')]); const errors=[b.error,l.error,e.error,a.error].filter(Boolean); if(errors.length) { toast(errors[0].message,true); return; } batches=b.data||[]; locations=l.data||[]; events=e.data||[]; allocations=a.data||[]; $('batch').innerHTML=batches.map(b=>'<option value="'+b.id+'">'+escapeHtml(b.name)+' · '+(b.product_mode==='beer'?'Øl':'Kaffe')+'</option>').join(''); $('location-list').innerHTML=locations.map(l=>'<option value="'+escapeHtml(l.name)+'"></option>').join(''); refreshRange(); render(); }
+    async function createEvent(ev) { ev.preventDefault(); const b=batchFor($('batch').value), start=+$('series-start').value, end=+$('series-end').value; if(!b || start<b.display_start || end>b.display_end || end<start) { toast('Velg en gyldig nummerserie innenfor batchen.',true); return; } const button=$('create-button'); button.disabled=true; const {data,error}=await sb.rpc('create_event_session',{p_name:$('event-name').value.trim(),p_location:$('location').value.trim(),p_batch:b.id,p_reader:$('reader').value.trim(),p_start:start,p_end:end}); button.disabled=false; if(error) { toast(error.message,true); return; } toast('Arrangementet er startet. Storskjerm og koppflate er klare.'); $('event-form').reset(); $('reader').value='advanreader'; await load(); }
+    function openClose(id) { pendingClose=events.find(e=>e.id===id); const s=statsFor(id); $('close-description').textContent='Du er i ferd med å avslutte «'+pendingClose.name+'».'; $('close-summary').innerHTML='<strong>'+s.unused+' ubrukte kopper</strong> frigjøres. '+s.registered+' registrerte og '+s.recycled+' resirkulerte kopper beholdes i arrangementshistorikken.'; $('close-dialog').showModal(); }
+    async function closeEvent() { if(!pendingClose) return; $('confirm-close').disabled=true; const {data,error}=await sb.rpc('close_event_session',{p_event:pendingClose.id}); $('confirm-close').disabled=false; if(error) { toast(error.message,true); return; } $('close-dialog').close(); toast('Arrangementet er avsluttet. '+(data?.released_unused_cups||0)+' ubrukte kopper er frigjort.'); pendingClose=null; await load(); }
+    $('event-form').addEventListener('submit',createEvent); $('batch').addEventListener('change',refreshRange); $('series-start').addEventListener('input',refreshRange); $('series-end').addEventListener('input',refreshRange); $('cancel-close').addEventListener('click',()=>$('close-dialog').close()); $('confirm-close').addEventListener('click',closeEvent); load();
+  </script>
+</body>
+</html>

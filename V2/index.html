@@ -772,25 +772,38 @@
     const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    /** Insert registration into Supabase (best-effort, falls back to localStorage) */
+    /** Insert a registration. Event links use the server-side allocation check. */
     async function supabaseRegister(phone, name, company, giai) {
+      const eventId = getEventId();
       try {
+        if (eventId) {
+          const { error } = await sb.rpc('claim_event_cup', {
+            p_event: eventId, p_giai: giai, p_phone: phone,
+            p_name: name, p_company: company || null,
+          });
+          if (error) throw error;
+          return;
+        }
         const { error } = await sb.from('registrations').upsert(
           { phone, name, company: company || null, giai },
           { onConflict: 'phone,giai', ignoreDuplicates: true }
         );
         if (error) console.warn('[Supabase] register:', error.message);
-      } catch (e) { console.warn('[Supabase] register failed:', e); }
+      } catch (e) {
+        if (eventId) throw e;
+        console.warn('[Supabase] register failed:', e);
+      }
     }
 
     /** Load drinkers for a bottle from Supabase */
     async function supabaseGetBottleDrinkers(giai) {
       try {
-        const { data } = await sb
+        let query = sb
           .from('registrations')
           .select('name, company, registered_at')
-          .eq('giai', giai)
-          .order('registered_at', { ascending: true });
+          .eq('giai', giai);
+        if (getEventId()) query = query.eq('event_id', getEventId());
+        const { data } = await query.order('registered_at', { ascending: true });
         return data || [];
       } catch { return []; }
     }
@@ -798,12 +811,12 @@
     /** Check if a bottle is already claimed — returns first owner or null */
     async function supabaseGetBottleOwner(giai) {
       try {
-        const { data } = await sb
+        let query = sb
           .from('registrations')
           .select('name, company, registered_at')
-          .eq('giai', giai)
-          .order('registered_at', { ascending: true })
-          .limit(1);
+          .eq('giai', giai);
+        if (getEventId()) query = query.eq('event_id', getEventId());
+        const { data } = await query.order('registered_at', { ascending: true }).limit(1);
         return (data && data.length > 0) ? data[0] : null;
       } catch { return null; }
     }
@@ -811,11 +824,12 @@
     /** Load all bottles for a phone from Supabase */
     async function supabaseGetUserBottles(phone) {
       try {
-        const { data } = await sb
+        let query = sb
           .from('registrations')
           .select('giai, name, company, registered_at')
-          .eq('phone', phone.replace(/[\s\-]/g, ''))
-          .order('registered_at', { ascending: true });
+          .eq('phone', phone.replace(/[\s\-]/g, ''));
+        if (getEventId()) query = query.eq('event_id', getEventId());
+        const { data } = await query.order('registered_at', { ascending: true });
         return data || [];
       } catch { return []; }
     }
@@ -824,6 +838,9 @@
     function getGIAI() {
       const p = new URLSearchParams(window.location.search);
       return p.get('giai') || p.get('id') || null;
+    }
+    function getEventId() {
+      return new URLSearchParams(window.location.search).get('event') || null;
     }
     function bottleNumber(giai) {
       const g = parseInt(giai, 10);
@@ -1218,10 +1235,14 @@
       document.getElementById('drinker-count').textContent = finalList.length;
       // Fetch real registered + recycled counts from Supabase
       try {
-        const [{ count: regCount }, { count: recCount }] = await Promise.all([
-          sb.from('registrations').select('*', { count: 'exact', head: true }),
-          sb.from('rfid_events').select('*', { count: 'exact', head: true })
-        ]);
+        const eventId = getEventId();
+        let registrationsQuery = sb.from('registrations').select('*', { count: 'exact', head: true });
+        let recycledQuery = sb.from('rfid_events').select('*', { count: 'exact', head: true });
+        if (eventId) {
+          registrationsQuery = registrationsQuery.eq('event_id', eventId);
+          recycledQuery = recycledQuery.eq('event_id', eventId);
+        }
+        const [{ count: regCount }, { count: recCount }] = await Promise.all([registrationsQuery, recycledQuery]);
         const totalReg = regCount || 0;
         const totalRec = recCount || 0;
         document.getElementById('total-registered-cups').textContent = '/ ' + totalReg;
@@ -1427,7 +1448,7 @@
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
     }
 
-    function confirmReturning() {
+    async function confirmReturning() {
       const phone = document.getElementById('reg-phone').value.trim();
       const giai  = getGIAI();
       if (!giai) return;
@@ -1437,18 +1458,18 @@
       if (!user) return;
 
       // Double-check Supabase before saving — prevent race-condition claims
-      supabaseGetBottleOwner(giai).then(existing => {
-        if (existing) { showClaimedBanner(existing); return; }
+      const existing = await supabaseGetBottleOwner(giai);
+      if (existing) { showClaimedBanner(existing); return; }
+      try {
+        await supabaseRegister(cleanPhone, user.name, user.company, giai);
         registerUserForBottle(cleanPhone, user.name, user.company, giai);
         localStorage.setItem('gs1ns_my_phone', cleanPhone);
-        supabaseRegister(cleanPhone, user.name, user.company, giai);
         showSuccess(user.name, giai);
-        // Update banner for this session
         showClaimedBanner({ name: user.name, company: user.company });
-      });
+      } catch (error) { alert(error.message || 'Koppen kunne ikke registreres i arrangementet.'); }
     }
 
-    function registerNew() {
+    async function registerNew() {
       const name    = document.getElementById('reg-name').value.trim();
       const company = document.getElementById('reg-company').value.trim();
       const phone   = document.getElementById('reg-phone').value.trim();
@@ -1460,15 +1481,15 @@
       const cleanPhone = phone.replace(/\s/g,'');
 
       // Double-check Supabase before saving — prevent race-condition claims
-      supabaseGetBottleOwner(giai).then(existing => {
-        if (existing) { showClaimedBanner(existing); return; }
+      const existing = await supabaseGetBottleOwner(giai);
+      if (existing) { showClaimedBanner(existing); return; }
+      try {
+        await supabaseRegister(cleanPhone, name, company, giai);
         registerUserForBottle(cleanPhone, name, company, giai);
         localStorage.setItem('gs1ns_my_phone', cleanPhone);
-        supabaseRegister(cleanPhone, name, company, giai);
         showSuccess(name, giai);
-        // Update banner for this session
         showClaimedBanner({ name, company });
-      });
+      } catch (error) { alert(error.message || 'Koppen kunne ikke registreres i arrangementet.'); }
     }
 
     function showSuccess(name, giai) {

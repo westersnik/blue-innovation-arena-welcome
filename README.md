@@ -8,6 +8,7 @@ A live coffee-cup tracking demo built for the **GS1 Nordic Summit 2026**. Each c
 |---|---|---|
 | Cup scan (QR landing page) | `https://gs1-nordic.invig.no/V2/?giai={GIAI}` | Guest experience after scanning QR |
 | Event display screen | `https://gs1-nordic.invig.no/storskjerm.html` | TV/projector leaderboard |
+| Event configuration | `https://gs1-nordic.invig.no/konfigurasjon.html` | Lokasjon, batch, nummerserie, fremdrift og avslutning |
 | Concept explainer | `https://gs1-nordic.invig.no/konsept.html` | S-GTIN / GS1 standard explainer |
 | Demo mode | `https://gs1-nordic.invig.no/storskjerm.html?demo=1` | Simulated data for presentations |
 
@@ -35,6 +36,7 @@ gs1-nordic-summit/ (gh-pages branch)
 │       ├── tracker-09.json     # SmartPallet cache – SR-Tracker-09
 │       └── tracker-03.json     # SmartPallet cache – SR-Tracker-03
 ├── storskjerm.html             # Event display screen (Supabase real-time)
+├── konfigurasjon.html           # Åpen konfigurasjon av arrangement og koppsortiment
 ├── konsept.html                # S-GTIN / GS1 standard concept explainer
 ├── supabase/
 │   └── functions/
@@ -43,6 +45,7 @@ gs1-nordic-summit/ (gh-pages branch)
 ├── KEONN-SETUP.md              # Keonn AdvanReader step-by-step configuration guide
 ├── BACKLOG.md                  # Feature backlog
 ├── SUPABASE_SCHEMA.sql         # Database schema (run once in Supabase SQL editor)
+├── docs/MULTI_EVENT_OPERATIONS.md # Bruk av batcher, arrangementer og gjenbruk
 ├── generate_cache.py           # Script to regenerate SmartPallet cache files
 ├── httpServer.py               # Local debug server for testing RFID payloads
 ├── CNAME                       # GitHub Pages custom domain (gs1-nordic.invig.no)

@@ -140,6 +140,23 @@
       margin-top: 10px;
     }
 
+    /* ── Event progress ── */
+    .event-progress {
+      flex-shrink: 0;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-left: 5px solid var(--gold);
+      border-radius: 16px;
+      padding: 15px 22px;
+    }
+    .event-progress[hidden] { display: none; }
+    .event-progress-top { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:10px; }
+    .event-progress-title { font-size:13px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--deep); }
+    .event-progress-count { font:700 22px/1 Gelasio, Georgia, serif; color:var(--gold-ink); }
+    .event-progress-track { height:12px; background:var(--sand-2); border:1px solid var(--rule); overflow:hidden; }
+    .event-progress-fill { height:100%; width:0; background:var(--deep); transition:width .45s ease; }
+    .event-progress-label { margin-top:7px; color:var(--muted); font-size:12px; }
+
     /* ── Recent recycling feed ── */
     .feed-wrap {
       flex: 1;
@@ -345,7 +362,7 @@
     <div class="counter-card amber">
       <div class="counter-label">Registrerte kopper</div>
       <div class="counter-value amber" id="cnt-unique">0</div>
-      <div class="counter-sub">Av totalt</div>
+      <div class="counter-sub" id="cnt-unique-sub">Av totalt</div>
     </div>
     <div class="counter-card green">
       <div class="counter-label">Resirkulerte kopper</div>
@@ -358,6 +375,15 @@
       <div class="counter-sub">Registrert → resirkulert</div>
     </div>
   </div>
+
+  <section class="event-progress" id="event-progress" hidden>
+    <div class="event-progress-top">
+      <div class="event-progress-title" id="event-progress-title">Fremdrift</div>
+      <div class="event-progress-count" id="event-progress-count">0 / 0</div>
+    </div>
+    <div class="event-progress-track"><div class="event-progress-fill" id="event-progress-fill"></div></div>
+    <div class="event-progress-label" id="event-progress-label">Resirkulerte kopper av arrangementets tildelte kopper.</div>
+  </section>
 
   <!-- Recent recycling feed -->
   <div class="feed-wrap">
@@ -456,6 +482,7 @@
   const SUPABASE_URL  = 'https://spbfuhajwfadzvdidalk.supabase.co';
   const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  const EVENT_ID = new URLSearchParams(window.location.search).get('event');
 
   // ── State ────────────────────────────────────────────
   let rfidEvents    = [];   // [{giai, num, name, company, ts}]
@@ -469,6 +496,7 @@
   let hasLiveData   = false;
   let demoTimer     = null;
   let demoIdx       = 0;
+  let eventConfig   = null;
 
   const BATCH1_GIAI_START = 70735392043;
   const BATCH1_GIAI_END   = 70735394104;
@@ -500,6 +528,31 @@
       return giaiNumber - BATCH1_GIAI_BASE;
     }
     return null;
+  }
+
+  function displayNumberForEvent(event) {
+    const configuredNumber = event?.event_cups?.display_number;
+    return Number.isInteger(configuredNumber) ? configuredNumber : cupNumberForEvent(event?.giai, event?.epc);
+  }
+
+  async function loadEventConfig() {
+    if (!EVENT_ID) return;
+    const { data, error } = await sb
+      .from('event_sessions')
+      .select('id, name, target_cups, status, series_start, series_end, cup_batches(name, product_mode)')
+      .eq('id', EVENT_ID)
+      .maybeSingle();
+    if (error || !data) return;
+    eventConfig = data;
+    const mode = data.cup_batches?.product_mode === 'beer' ? 'Øl' : 'Kaffe';
+    const headerEvent = document.querySelector('.header-event');
+    headerEvent.textContent = `${data.name} `;
+    const modeSpan = document.createElement('span');
+    modeSpan.textContent = mode;
+    headerEvent.appendChild(modeSpan);
+    document.getElementById('event-progress').hidden = false;
+    document.getElementById('event-progress-title').textContent = `Fremdrift · ${data.series_start}–${data.series_end}`;
+    document.getElementById('cnt-unique-sub').textContent = `Av ${data.target_cups} tildelte kopper`;
   }
 
   // ── Milestones ───────────────────────────────────────
@@ -700,11 +753,14 @@
 
   // ── Supabase: load initial data ───────────────────────
   async function loadInitialData() {
+    await loadEventConfig();
     // Load registrations FIRST so enrichment has names available
-    const { data: regs } = await sb
+    let registrationsQuery = sb
       .from('registrations')
       .select('name, company, phone, giai, registered_at')
       .order('registered_at', { ascending: false });
+    if (EVENT_ID) registrationsQuery = registrationsQuery.eq('event_id', EVENT_ID);
+    const { data: regs } = await registrationsQuery;
 
     if (regs && regs.length > 0) {
       hasLiveData = true;
@@ -717,19 +773,23 @@
     }
 
     // Load rfid_events AFTER registrations so enrichment works correctly
-    const { data: rfid } = await sb
+    let rfidQuery = sb
       .from('rfid_events')
-      .select('giai, epc, recycled_at')
-      .gte('giai', String(BATCH1_GIAI_START))
-      .lte('giai', String(BATCH2_GIAI_END))
+      .select('giai, epc, recycled_at, event_cup_id, event_cups(display_number)')
       .order('recycled_at', { ascending: false })
       .limit(300);
+    if (EVENT_ID) {
+      rfidQuery = rfidQuery.eq('event_id', EVENT_ID);
+    } else {
+      rfidQuery = rfidQuery.gte('giai', String(BATCH1_GIAI_START)).lte('giai', String(BATCH2_GIAI_END));
+    }
+    const { data: rfid } = await rfidQuery;
 
     if (rfid && rfid.length > 0) {
       hasLiveData = true;
       rfid.forEach(r => {
         const eventKey = rfidEventKey(r);
-        const num = cupNumberForEvent(r.giai, r.epc);
+        const num = displayNumberForEvent(r);
         if (!pantedEventKeys.has(eventKey) && num !== null) {
           pantedEventKeys.add(eventKey);
           rfidEvents.push({
@@ -766,11 +826,16 @@
 
   // ── Supabase: real-time subscriptions ────────────────
   function subscribeRealtime() {
+    const eventFilter = EVENT_ID ? { filter: `event_id=eq.${EVENT_ID}` } : {};
     // Subscribe to new rfid_events (recycling)
     sb.channel('rfid-events-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events' }, async (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_events', ...eventFilter }, async (payload) => {
         const r = payload.new;
-        const rNum = cupNumberForEvent(r.giai, r.epc);
+        let rNum = cupNumberForEvent(r.giai, r.epc);
+        if (EVENT_ID && r.event_cup_id) {
+          const { data: eventCup } = await sb.from('event_cups').select('display_number').eq('id', r.event_cup_id).maybeSingle();
+          if (eventCup) rNum = eventCup.display_number;
+        }
         const eventKey = rfidEventKey(r);
         if (!pantedEventKeys.has(eventKey) && rNum !== null) {
           hasLiveData = true;
@@ -801,7 +866,7 @@
 
     // Subscribe to rfid_feedback (invalid tag events only)
     sb.channel('rfid-feedback-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_feedback' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rfid_feedback', ...eventFilter }, (payload) => {
         const f = payload.new;
         if (f.event_type === 'invalid') {
           showInvalidPopup();
@@ -811,7 +876,7 @@
 
     // Subscribe to new registrations
     sb.channel('registrations-channel')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations' }, (payload) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registrations', ...eventFilter }, (payload) => {
         const r = payload.new;
         hasLiveData = true;
         registeredSet.add(r.phone || r.name);
@@ -906,6 +971,14 @@
     setVal('cnt-unique',     unique);
     setVal('cnt-rate',       rate + '%');
     document.getElementById('feed-count').textContent = `${panted} i dag`;
+
+    if (eventConfig) {
+      const target = eventConfig.target_cups;
+      const pct = target > 0 ? Math.min(100, Math.round((panted / target) * 100)) : 0;
+      document.getElementById('event-progress-count').textContent = `${panted} / ${target}`;
+      document.getElementById('event-progress-fill').style.width = `${pct}%`;
+      document.getElementById('event-progress-label').textContent = `${pct}% av arrangementets ${target} tildelte kopper er resirkulert.`;
+    }
 
     checkMilestones(panted);
     renderFeed();
