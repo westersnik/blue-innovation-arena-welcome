@@ -52,6 +52,10 @@ Konfigurasjonssiden viser knappen **Avslutt arrangement** bare for aktive arrang
 
 For GS1-eksempelet betyr dette at dersom 200 kopper er tildelt og bare 50 er brukt, frigjøres de 150 som fortsatt står som **allokert**. De 50 brukte koppene forblir knyttet til arrangementet og kan ikke ved et uhell tildeles på nytt. [1]
 
+### Verifisert scenario
+
+En rollback-only test er kjørt mot Supabase uten å etterlate testdata. Testen opprettet arrangement 1 med koppene #50–#249, markerte 50 som brukt, avsluttet arrangementet og opprettet arrangement 2 med koppene #100–#249. Resultatet var at **150 kopper** kunne tildeles arrangement 2. Testskriptet er lagret i repositoryet. [4]
+
 ## RFID- og QR-flyt
 
 Konfigurasjonslenkene gir både storskjerm og V2-siden et `event`-parameter. QR-registrering bruker da `claim_event_cup`, som kontrollerer at koppen er tildelt det aktive arrangementet før den kan registreres. RFID-reléet lagrer på tilsvarende måte `event_id` og `event_cup_id` på lesningen. [2] [3]
@@ -63,3 +67,4 @@ Før et arrangement opprettes for en leser beholder RFID-reléet den gamle, uavg
 [1]: ../supabase/migrations/20260811_multi_event_configuration.sql "Batch-, arrangement- og koppallokeringsskjema"
 [2]: ../konfigurasjon.html "Åpen arrangementskonfigurasjon"
 [3]: ../supabase/functions/rfid-relay/index.ts "RFID-relé med arrangementsskoping"
+[4]: ../supabase/tests/event_reuse_rollback_test.sql "Rollback-only test av gjenbruk"
