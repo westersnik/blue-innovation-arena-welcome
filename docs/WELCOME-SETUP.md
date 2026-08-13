@@ -1,0 +1,130 @@
+# Oppsettguide: Event Welcome
+
+Denne guiden klargjør den nye velkomstflyten med RFID-tagger. Løsningen er avgrenset fra den tidligere Digi-Coffee-flyten: den bruker egne `welcome_*`-tabeller og funksjonen `welcome-rfid-relay`.
+
+> **Personvern:** Konfigurasjonssiden inneholder navn og selskapsnavn. Den er foreløpig åpen på samme måte som kildeprosjektet. Legg den bak tilgangskontroll eller distribuer den bare til arrangementsansvarlige før reell produksjonsbruk.
+
+## 1. Legg inn datamigrasjonen
+
+Åpne Supabase SQL Editor for prosjektet og kjør hele filen:
+
+```text
+supabase/migrations/20260813_welcome_events.sql
+```
+
+Migrasjonen oppretter arrangements-, tagg-, gjeste- og skannetabeller, i tillegg til funksjonene som konfigurasjonssiden og RFID-endepunktet bruker.
+
+| Funksjon | Brukes av | Formål |
+|---|---|---|
+| `create_welcome_event` | Konfigurasjon | Reserverer en batch og en sammenhengende ID-serie. |
+| `assign_welcome_guest` | Konfigurasjon | Kobler navn og selskap til én ledig ID-tagg. |
+| `record_welcome_scan` | RFID-endepunkt | Validerer lesningen og skriver en idempotent velkomstskann. |
+| `close_welcome_event` | Konfigurasjon | Frigir aldri-tildelte tagger etter arrangementet. |
+
+## 2. Distribuer RFID-endepunktet
+
+Kjør fra repositoryets rot etter at Supabase CLI er koblet til korrekt prosjekt:
+
+```bash
+supabase functions deploy welcome-rfid-relay --no-verify-jwt
+```
+
+Angi en sterk `RFID_EVENT_KEY` som funksjonshemmelighet. Leseren må sende samme verdi i `X-Event-Key`.
+
+```bash
+supabase secrets set RFID_EVENT_KEY='velg-en-lang-og-unik-hemmelighet'
+```
+
+Endepunktet er:
+
+```text
+https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay
+```
+
+## 3. Konfigurer Keonn AdvanReader
+
+Bruk en unik leseridentifikator per fysisk RFID-sone, for eksempel `stand-b12-reader`. Den samme identifikatoren må stå i arrangementsoppsettet på `konfigurasjon.html`.
+
+| Felt i SimpleHTTPService | Verdi |
+|---|---|
+| Aktivert | På |
+| Metode | `POST` |
+| Endepunkt | `https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay` |
+| Content-Type | `application/json` |
+| Forventet status | `200` |
+| Tagg-TTL ved test | `5` sekunder |
+| Tagg-TTL i drift | `60` sekunder |
+
+Legg inn tilpasset HTTP-header i leseren:
+
+```json
+{"customHeaders":[{"header":"X-Event-Key: DIN_RFID_EVENT_KEY"}]}
+```
+
+Leseren kan sende enkelt-EPC-er, `tags`, `reads` eller `epc_list`. Et typisk AdvanNet-format er:
+
+```json
+{
+  "devid": "stand-b12-reader",
+  "reads": [
+    {"epc": "3415AFBC0C000000000007EB", "rssi": "-60"}
+  ]
+}
+```
+
+## 4. Opprett og klargjør arrangementet
+
+Åpne `konfigurasjon.html` og opprett arrangementet. Velg lokasjon, leser, taggbatch og synlig nummerserie, eksempelvis ID `1–100`.
+
+Deretter velger du arrangementet i kortet **Registrer gjest** og registrerer følgende for hver tagg:
+
+| Felt | Eksempel |
+|---|---|
+| ID-nummer på tagg | `42` |
+| Navn | `Ada Lovelace` |
+| Selskapsnavn | `Acme AS` |
+
+Systemet vil avvise ID-nummer som ikke ligger i den aktive serien eller allerede er tildelt til en annen gjest.
+
+## 5. Åpne storskjermen
+
+I arrangementslisten velger du **Åpne storskjerm**. Lenken har denne formen:
+
+```text
+storskjerm.html?event={EVENT_ID}
+```
+
+Storskjermen lytter på `welcome_scans` via Supabase Realtime. Når en gyldig, tildelt tagg leses første gang, vises:
+
+> **Velkommen til vår stand!**  
+> **Ada Lovelace**  
+> Acme AS
+
+Visningen går tilbake til «Klar for neste gjest» etter ni sekunder. En tagg utløser én velkomst per arrangement; gjentatte lesninger blir ignorert for å hindre flimmer.
+
+## 6. Verifiser hele kjeden før dørene åpner
+
+Gjennomfør denne kontrollen i rekkefølge:
+
+1. Opprett et testarrangement med en liten, ubrukt serie.
+2. Tildel en fysisk tagg til et testnavn i konfigurasjonssiden.
+3. Åpne arrangementets storskjerm i et eget vindu.
+4. Send en testlesning fra leseren eller med `curl`.
+5. Kontroller at navnet og selskapet vises én gang på storskjermen.
+6. Test en ukjent EPC og en uregistrert, men tildelt tagg. Begge skal avvises og registreres i `welcome_feedback`.
+
+Eksempel med `curl`:
+
+```bash
+curl -sS -X POST \
+  'https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay' \
+  -H 'Content-Type: application/json' \
+  -H 'X-Event-Key: DIN_RFID_EVENT_KEY' \
+  -d '{"devid":"stand-b12-reader","reads":[{"epc":"3415AFBC0C000000000007EB"}]}'
+```
+
+Forventet resultat ved første vellykkede lesning er `recorded: 1`; ved en repetert lesning er resultatet `duplicates: 1`.
+
+## Avslutte arrangementet
+
+Velg **Avslutt arrangement** på konfigurasjonssiden etter at arrangementet er ferdig. Systemet frigir bare tagger med status `available`. Tagger som er tildelt eller allerede har utløst en velkomst beholdes i historikken og kan ikke uforvarende gjenbrukes i et nytt arrangement.

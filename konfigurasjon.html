@@ -3,114 +3,162 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Digi-Coffee – arrangementskonfigurasjon</title>
-  <meta name="description" content="Åpen konfigurasjon for RFID-arrangement, koppsortiment og progresjon." />
+  <title>Event Welcome – konfigurasjon</title>
+  <meta name="description" content="Konfigurer RFID-baserte velkomstmeldinger for arrangementer." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Gelasio:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    :root { --deep:#2E3F34; --sand:#F5F3F0; --sand-dark:#DAD5CD; --taupe:#5F5B53; --mint:#CEE3D2; --gold:#8A7F1E; --white:#fff; --red:#B44A3D; --line:#D8D3CA; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--sand); color:var(--deep); font:15px/1.45 Figtree,system-ui,sans-serif; }
-    header { background:var(--deep); color:var(--white); padding:24px max(20px,calc((100vw - 1120px)/2)); }
-    .brand { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-    .brand h1 { font:400 31px/1.1 Gelasio,Georgia,serif; margin:0; letter-spacing:-.02em; }
-    .brand p { color:var(--mint); margin:6px 0 0; font-size:13px; }
-    .open-pill { border:1px solid rgba(206,227,210,.55); color:var(--mint); border-radius:999px; padding:6px 10px; font-size:11px; font-weight:700; white-space:nowrap; }
-    main { max-width:1120px; margin:0 auto; padding:28px 20px 56px; }
-    .intro { display:grid; grid-template-columns:1.5fr 1fr; gap:18px; align-items:start; margin-bottom:22px; }
-    .intro h2 { font:400 28px/1.15 Gelasio,Georgia,serif; margin:0 0 9px; }
-    .intro p { margin:0; color:var(--taupe); max-width:650px; }
-    .notice { background:var(--mint); border:1px solid var(--deep); padding:13px 15px; font-size:13px; color:var(--deep); }
-    .grid { display:grid; grid-template-columns:minmax(0,1.03fr) minmax(360px,.97fr); gap:22px; align-items:start; }
-    .card { background:var(--white); border:1px solid var(--line); padding:22px; }
-    .card h2 { margin:0; font:400 25px/1.15 Gelasio,Georgia,serif; }
-    .card-lead { color:var(--taupe); margin:8px 0 21px; font-size:13px; }
-    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
-    .field { display:flex; flex-direction:column; gap:6px; }
-    .field.full { grid-column:1/-1; }
-    label { color:var(--taupe); font-size:12px; font-weight:700; letter-spacing:.035em; text-transform:uppercase; }
-    input, select { width:100%; min-height:43px; border:1px solid var(--sand-dark); border-radius:0; background:var(--white); color:var(--deep); padding:9px 11px; font:inherit; }
-    input:focus,select:focus { outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold); }
-    .range-summary { grid-column:1/-1; display:flex; justify-content:space-between; gap:12px; background:var(--sand); border-left:4px solid var(--gold); padding:11px 12px; color:var(--taupe); font-size:13px; }
-    .range-summary strong { color:var(--deep); }
-    .button-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
-    button,.link-button { border:0; border-radius:0; min-height:42px; padding:10px 15px; font:700 14px Figtree,system-ui,sans-serif; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; }
-    button.primary { background:var(--deep); color:#fff; }
-    button.primary:hover { background:#3a5244; }
-    button.secondary,.link-button { background:var(--sand); color:var(--deep); border:1px solid var(--sand-dark); }
-    button.danger { color:#fff; background:var(--red); }
-    button:disabled { cursor:not-allowed; opacity:.55; }
-    .batch-note { padding:13px; background:var(--sand); border:1px solid var(--sand-dark); color:var(--taupe); font-size:13px; }
-    .batch-note strong { color:var(--deep); }
-    .event-list { display:flex; flex-direction:column; gap:13px; }
-    .event-card { border:1px solid var(--line); padding:16px; }
-    .event-card.active { border-left:5px solid var(--deep); }
-    .event-top { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
-    .event-name { margin:0; font-size:17px; font-weight:800; }
-    .event-meta { color:var(--taupe); margin:4px 0 0; font-size:13px; }
-    .status { display:inline-flex; border:1px solid var(--sand-dark); color:var(--taupe); padding:3px 8px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; }
-    .status.active { border-color:var(--deep); color:var(--deep); background:var(--mint); }
-    .event-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin:14px 0; }
-    .stat { background:var(--sand); padding:8px; }
-    .stat b { display:block; font-size:19px; line-height:1.05; }
-    .stat span { display:block; color:var(--taupe); font-size:11px; margin-top:3px; }
-    .event-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .event-actions button,.event-actions .link-button { min-height:35px; padding:7px 9px; font-size:12px; }
-    .empty { padding:23px 12px; color:var(--taupe); text-align:center; border:1px dashed var(--sand-dark); }
-    dialog { border:1px solid var(--deep); padding:0; max-width:480px; width:calc(100% - 32px); background:var(--white); color:var(--deep); }
-    dialog::backdrop { background:rgba(46,63,52,.65); }
-    .dialog-body { padding:24px; }
-    .dialog-body h2 { margin:0 0 10px; font:400 26px/1.15 Gelasio,Georgia,serif; }
-    .dialog-body p { color:var(--taupe); margin:0 0 10px; }
-    .dialog-summary { background:var(--sand); border-left:4px solid var(--gold); padding:11px; font-size:13px; margin:15px 0; }
-    .toast { position:fixed; bottom:20px; right:20px; max-width:390px; background:var(--deep); color:#fff; padding:13px 15px; border-left:4px solid var(--mint); display:none; z-index:4; }
-    .toast.error { border-color:#f4a29b; }
-    .toast.visible { display:block; }
-    footer { text-align:center; color:var(--taupe); font-size:12px; padding:0 20px 28px; }
-    @media (max-width:780px) { .intro,.grid { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .event-stats { grid-template-columns:repeat(2,1fr); } header { padding:20px; } .brand h1{font-size:26px;} }
+    :root { --ink:#11242C; --ink2:#1D3640; --paper:#F5F7F4; --white:#FFF; --lime:#D9F15B; --aqua:#9DE7DD; --coral:#FC8B70; --mist:#E0E9E6; --muted:#63727A; --line:#C8D3D0; --danger:#B63E39; }
+    *{box-sizing:border-box} body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 Manrope,system-ui,sans-serif} button,input,select{font:inherit} button{cursor:pointer}
+    header{background:var(--ink);color:white;padding:26px max(20px,calc((100vw - 1180px)/2));border-bottom:6px solid var(--lime)} .brand{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.eyebrow{font:500 11px/1 DM Mono,monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--aqua);margin:0 0 9px}.brand h1{font-size:29px;line-height:1.05;margin:0;letter-spacing:-.04em}.brand p:last-child{color:#C6D5D3;margin:8px 0 0;font-size:13px}.pill{font:500 11px/1 DM Mono,monospace;border:1px solid rgba(217,241,91,.65);color:var(--lime);padding:7px 9px;white-space:nowrap}
+    main{max-width:1180px;margin:0 auto;padding:31px 20px 62px}.intro{display:grid;grid-template-columns:1.25fr .75fr;gap:22px;margin-bottom:24px;align-items:start}.intro h2,.card h2,.assign-card h2{font-size:25px;line-height:1.15;letter-spacing:-.035em;margin:0 0 8px}.intro p{margin:0;color:var(--muted);max-width:720px}.flow-note{background:var(--aqua);padding:16px 18px;border-left:5px solid var(--ink);font-size:13px}.flow-note strong{display:block;margin-bottom:4px}
+    .layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:22px;align-items:start}.stack{display:grid;gap:22px}.card,.assign-card{background:var(--white);border:1px solid var(--line);box-shadow:5px 5px 0 rgba(17,36,44,.08);padding:22px}.card-lead{margin:7px 0 20px;color:var(--muted);font-size:13px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}label{font:700 11px/1.2 Manrope,sans-serif;text-transform:uppercase;letter-spacing:.075em;color:var(--muted)}input,select{width:100%;min-height:43px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 11px;border-radius:3px}input:focus,select:focus{outline:3px solid rgba(157,231,221,.65);border-color:var(--ink)}.range-summary{grid-column:1/-1;background:var(--paper);border-left:4px solid var(--lime);padding:11px 12px;color:var(--muted);display:flex;justify-content:space-between;gap:12px}.range-summary strong{color:var(--ink)}
+    .button-row{display:flex;flex-wrap:wrap;gap:9px;margin-top:19px}.button,.link-button{border:0;min-height:42px;padding:9px 13px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;transition:transform .15s ease,background .15s ease}.button:active,.link-button:active{transform:scale(.97)}.primary{background:var(--ink);color:#fff}.primary:hover{background:var(--ink2)}.secondary,.link-button{background:var(--paper);border:1px solid var(--line);color:var(--ink)}.danger{background:var(--danger);color:#fff}.button:disabled{opacity:.55;cursor:not-allowed}
+    .event-list{display:grid;gap:13px}.empty{padding:24px 14px;color:var(--muted);text-align:center;border:1px dashed var(--line)}.event-card{border:1px solid var(--line);padding:17px;background:#fff}.event-card.active{border-left:5px solid var(--lime)}.event-top{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.event-name{font-size:17px;font-weight:800;margin:0;letter-spacing:-.02em}.event-meta{color:var(--muted);font-size:12px;margin:4px 0 0}.status{font:500 10px/1 DM Mono,monospace;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--line);padding:5px 7px;white-space:nowrap}.status.active{background:var(--lime);border-color:var(--lime);color:var(--ink)}.event-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 0}.stat{background:var(--paper);padding:8px}.stat b{display:block;font-size:19px;line-height:1.05}.stat span{display:block;font-size:10px;color:var(--muted);margin-top:3px}.event-actions{display:flex;flex-wrap:wrap;gap:8px}.event-actions .button,.event-actions .link-button{min-height:35px;padding:7px 9px;font-size:11px}
+    .assign-card{position:sticky;top:18px;background:var(--ink);color:white;border-color:var(--ink);box-shadow:5px 5px 0 var(--aqua)}.assign-card h2{font-size:23px}.assign-card .card-lead{color:#C4D4D1}.assign-card label{color:#C4D4D1}.assign-card input,.assign-card select{border-color:#51666C}.tag-chip{font:500 11px/1 DM Mono,monospace;background:var(--lime);color:var(--ink);display:inline-flex;padding:5px 7px;margin-bottom:15px}.assign-card .range-summary{background:#264049;color:#C4D4D1;border-left-color:var(--aqua)}.assign-card .range-summary strong{color:#fff}.assignment-list{margin:19px -22px -22px;padding:17px 22px;background:#0C1C21;border-top:1px solid #3A5057}.assignment-list h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px;color:var(--aqua)}.guest-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #31474D;font-size:12px}.guest-row:first-of-type{border-top:0}.guest-row b{display:block;font-size:13px}.guest-row span{color:#B7C8C8}.guest-number{font:500 11px/1 DM Mono,monospace;color:var(--lime);white-space:nowrap;padding-top:3px}
+    dialog{border:0;padding:0;max-width:480px;width:calc(100% - 32px);background:#fff;color:var(--ink);box-shadow:8px 8px 0 var(--ink)}dialog::backdrop{background:rgba(17,36,44,.7)}.dialog-body{padding:24px}.dialog-body h2{font-size:25px;margin:0 0 9px;letter-spacing:-.04em}.dialog-body p{color:var(--muted);margin:0 0 10px}.dialog-summary{background:var(--paper);border-left:4px solid var(--coral);padding:11px;font-size:13px;margin:15px 0}.toast{position:fixed;right:20px;bottom:20px;max-width:410px;background:var(--ink);color:white;padding:13px 15px;border-left:5px solid var(--lime);display:none;z-index:4}.toast.error{border-color:var(--coral)}.toast.visible{display:block}footer{max-width:1180px;padding:0 20px 28px;margin:auto;color:var(--muted);font:11px/1.4 DM Mono,monospace}
+    @media(max-width:920px){.layout{grid-template-columns:1fr}.assign-card{position:static}.intro{grid-template-columns:1fr}} @media(max-width:560px){header{padding:21px 18px}.brand h1{font-size:25px}.pill{display:none}main{padding:23px 16px 48px}.card,.assign-card{padding:18px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.range-summary{display:block}.range-summary strong{display:block;margin-top:4px}.event-stats{grid-template-columns:repeat(2,1fr)}.assignment-list{margin:18px -18px -18px;padding:16px 18px}}
   </style>
 </head>
 <body>
-  <header><div class="brand"><div><h1>Digi-Coffee</h1><p>Konfigurasjon av RFID-arrangement</p></div><span class="open-pill">Åpen konfigurasjon</span></div></header>
+  <header><div class="brand"><div><p class="eyebrow">RFID event experience</p><h1>Event Welcome</h1><p>Personlige velkomster når gjesten ankommer standen.</p></div><span class="pill">KONFIGURASJON</span></div></header>
   <main>
-    <section class="intro"><div><h2>Opprett og avslutt arrangement</h2><p>Velg lokasjon, RFID-leser, batch og koppserie. Bare kopper som ikke er registrert eller resirkulert frigjøres når et arrangement avsluttes, slik at de kan brukes senere.</p></div><aside class="notice"><strong>Batch 1 og batch 2</strong> er registrert som kaffe. En fremtidig batch kan opprettes med produkttype kaffe eller øl.</aside></section>
-    <section class="grid">
-      <article class="card"><h2>Nytt arrangement</h2><p class="card-lead">Koppantallet og fremdriftsmålet blir automatisk beregnet fra valgt nummerserie.</p>
-        <form id="event-form"><div class="form-grid">
-          <div class="field full"><label for="event-name">Arrangementnavn</label><input id="event-name" required placeholder="For eksempel: GS1 Demo" /></div>
-          <div class="field"><label for="location">Lokasjon</label><input id="location" list="location-list" required placeholder="For eksempel: GS1 Norge" /><datalist id="location-list"></datalist></div>
-          <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="advanreader" /></div>
-          <div class="field full"><label for="batch">Koppbatch</label><select id="batch" required></select></div>
-          <div class="field"><label for="series-start">Fra koppnummer</label><input id="series-start" type="number" required /></div>
-          <div class="field"><label for="series-end">Til koppnummer</label><input id="series-end" type="number" required /></div>
-          <div class="range-summary"><span id="product-summary">Velg en batch for å se produktmodus.</span><strong id="cup-total">0 kopper</strong></div>
-        </div><div class="button-row"><button class="primary" id="create-button" type="submit">Start arrangement</button></div></form>
-      </article>
-      <article class="card"><h2>Arrangementer</h2><p class="card-lead">Aktive arrangementer har egne lenker til storskjerm og digital koppflate.</p><div class="event-list" id="event-list"><div class="empty">Laster arrangementer …</div></div></article>
+    <section class="intro"><div><h2>Gi hver tagg en personlig velkomst.</h2><p>Opprett arrangementet, reserver en sammenhengende nummerserie og knytt deretter hvert ID-nummer til en gjests navn og selskap. Når taggen leses i RFID-sonen, vises velkomsten umiddelbart på arrangementets storskjerm.</p></div><aside class="flow-note"><strong>Slik brukes løsningen</strong>1. Opprett arrangement og nummerserie. 2. Tildel navn og selskap til hver RFID-tagg. 3. Gi taggen til gjesten. 4. Storskjermen viser velkomsten ved ankomst.</aside></section>
+    <section class="layout">
+      <div class="stack">
+        <article class="card"><h2>Nytt arrangement</h2><p class="card-lead">Velg leser, RFID-batch og nummerserie. Antall tilgjengelige gjestetagger beregnes automatisk.</p>
+          <form id="event-form"><div class="form-grid">
+            <div class="field full"><label for="event-name">Arrangementnavn</label><input id="event-name" required placeholder="For eksempel: GS1 Nordic Summit" /></div>
+            <div class="field"><label for="location">Stand eller lokasjon</label><input id="location" list="location-list" required placeholder="For eksempel: GS1 Norge, stand B12" /><datalist id="location-list"></datalist></div>
+            <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="advanreader" /></div>
+            <div class="field full"><label for="batch">RFID-tag batch</label><select id="batch" required></select></div>
+            <div class="field"><label for="series-start">Fra ID-nummer</label><input id="series-start" type="number" required /></div>
+            <div class="field"><label for="series-end">Til ID-nummer</label><input id="series-end" type="number" required /></div>
+            <div class="range-summary"><span id="batch-summary">Velg en batch for å se tilgjengelige ID-tagger.</span><strong id="tag-total">0 tagger</strong></div>
+          </div><div class="button-row"><button class="button primary" id="create-button" type="submit">Opprett arrangement</button></div></form>
+        </article>
+        <article class="card"><h2>Arrangementer</h2><p class="card-lead">Hvert aktivt arrangement har sin egen storskjermlenke. En leser kan være tilknyttet ett aktivt arrangement om gangen.</p><div class="event-list" id="event-list"><div class="empty">Laster arrangementer …</div></div></article>
+      </div>
+      <aside class="assign-card"><span class="tag-chip">TILDEL RFID-TAGG</span><h2>Registrer gjest</h2><p class="card-lead">Skriv inn taggens nummer sammen med navn og selskap før den deles ut.</p>
+        <form id="guest-form"><div class="form-grid">
+          <div class="field full"><label for="assign-event">Arrangement</label><select id="assign-event" required></select></div>
+          <div class="field full"><label for="tag-number">ID-nummer på tagg</label><input id="tag-number" type="number" required placeholder="For eksempel: 42" /></div>
+          <div class="field full"><label for="guest-name">Navn</label><input id="guest-name" required autocomplete="name" placeholder="For eksempel: Ada Lovelace" /></div>
+          <div class="field full"><label for="guest-company">Selskapsnavn</label><input id="guest-company" autocomplete="organization" placeholder="For eksempel: Acme AS" /></div>
+          <div class="range-summary"><span>Valgt arrangement</span><strong id="assignment-range">Velg et aktivt arrangement</strong></div>
+        </div><div class="button-row"><button class="button primary" id="assign-button" type="submit">Lagre og tildel tagg</button></div></form>
+        <section class="assignment-list"><h3>Sist tildelte gjester</h3><div id="guest-list"><div class="guest-row"><span>Ingen gjester er tildelt ennå.</span></div></div></section>
+      </aside>
     </section>
   </main>
-  <dialog id="close-dialog"><div class="dialog-body"><h2>Avslutt arrangement?</h2><p id="close-description"></p><div class="dialog-summary" id="close-summary"></div><p>Dette kan ikke angres. Ubrukte kopper blir frigjort for et senere arrangement. Registrerte og resirkulerte kopper beholdes i historikken.</p><div class="button-row"><button class="secondary" id="cancel-close" type="button">Avbryt</button><button class="danger" id="confirm-close" type="button">Ja, avslutt arrangement</button></div></div></dialog>
+  <dialog id="close-dialog"><div class="dialog-body"><h2>Avslutt arrangement?</h2><p id="close-description"></p><div class="dialog-summary" id="close-summary"></div><p>Utdelte RFID-tagger blir frigjort for et senere arrangement. Tildelte og velkomne tagger beholdes i arrangementshistorikken.</p><div class="button-row"><button class="button secondary" id="cancel-close" type="button">Avbryt</button><button class="button danger" id="confirm-close" type="button">Ja, avslutt arrangement</button></div></div></dialog>
   <div class="toast" id="toast" role="status"></div>
-  <footer>Invig · GS1 Digital Link · RFID event management</footer>
+  <footer>Event Welcome · RFID tag assignment · GS1 Nordic</footer>
   <script>
     const SUPABASE_URL = 'https://spbfuhajwfadzvdidalk.supabase.co';
     const SUPABASE_ANON = 'sb_publishable_8FjsZ9PbOGVCMvzp0qxEyA_c2AJJpE3';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    let batches = [], locations = [], events = [], allocations = [], pendingClose = null;
     const $ = id => document.getElementById(id);
-    function toast(message, error=false) { const el=$('toast'); el.textContent=message; el.className='toast visible'+(error?' error':''); clearTimeout(window._toast); window._toast=setTimeout(()=>el.className='toast',5200); }
-    function batchFor(id) { return batches.find(b=>b.id===id); }
-    function statsFor(id) { const a=allocations.filter(x=>x.event_id===id); return { total:a.length, unused:a.filter(x=>x.status==='allocated').length, registered:a.filter(x=>x.status==='registered').length, recycled:a.filter(x=>x.status==='recycled').length, released:a.filter(x=>x.status==='released').length }; }
-    function refreshRange() { const b=batchFor($('batch').value); if(!b) return; const start=$('series-start'), end=$('series-end'); start.min=b.display_start; start.max=b.display_end; end.min=b.display_start; end.max=b.display_end; if(!start.value || +start.value<b.display_start || +start.value>b.display_end) start.value=b.display_start; if(!end.value || +end.value<b.display_start || +end.value>b.display_end || +end.value<+start.value) end.value=b.display_end; const total=Math.max(0,(+end.value||0)-(+start.value||0)+1); $('cup-total').textContent=total+' '+(total===1?'kopp':'kopper'); $('product-summary').innerHTML='<strong>'+ (b.product_mode==='beer'?'Øl':'Kaffe') +'</strong> · '+b.name+' · tilgjengelig serie '+b.display_start+'–'+b.display_end; }
-    function escapeHtml(s) { return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-    function render() { const list=$('event-list'); if(!events.length) { list.innerHTML='<div class="empty">Ingen arrangementer er opprettet ennå.</div>'; return; } list.innerHTML=events.map(e=>{ const b=batchFor(e.batch_id), l=locations.find(x=>x.id===e.location_id), s=statsFor(e.id), active=e.status==='active'; const screen='storskjerm.html?event='+encodeURIComponent(e.id), cup='V2/?event='+encodeURIComponent(e.id); return '<article class="event-card '+(active?'active':'')+'"><div class="event-top"><div><p class="event-name">'+escapeHtml(e.name)+'</p><p class="event-meta">'+escapeHtml(l?.name||'Ukjent lokasjon')+' · '+escapeHtml(b?.name||'Ukjent batch')+' · '+e.series_start+'–'+e.series_end+'</p></div><span class="status '+(active?'active':'')+'">'+(active?'Aktiv':'Avsluttet')+'</span></div><div class="event-stats"><div class="stat"><b>'+e.target_cups+'</b><span>tildelt</span></div><div class="stat"><b>'+s.registered+'</b><span>registrert</span></div><div class="stat"><b>'+s.recycled+'</b><span>resirkulert</span></div><div class="stat"><b>'+s.unused+'</b><span>ubrukt</span></div></div><div class="event-actions">'+(active?'<a class="link-button" href="'+screen+'" target="_blank">Åpne storskjerm</a><a class="link-button" href="'+cup+'" target="_blank">Åpne koppflate</a><button class="danger" data-close="'+e.id+'">Avslutt arrangement</button>':'<span class="event-meta">Frigjort etter avslutning: '+s.released+' kopper</span>')+'</div></article>'; }).join(''); document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>openClose(b.dataset.close))); }
-    async function load() { const [b,l,e,a]=await Promise.all([sb.from('cup_batches').select('*').order('code'),sb.from('event_locations').select('*').order('name'),sb.from('event_sessions').select('*').order('started_at',{ascending:false}),sb.from('event_cups').select('event_id,status')]); const errors=[b.error,l.error,e.error,a.error].filter(Boolean); if(errors.length) { toast(errors[0].message,true); return; } batches=b.data||[]; locations=l.data||[]; events=e.data||[]; allocations=a.data||[]; $('batch').innerHTML=batches.map(b=>'<option value="'+b.id+'">'+escapeHtml(b.name)+' · '+(b.product_mode==='beer'?'Øl':'Kaffe')+'</option>').join(''); $('location-list').innerHTML=locations.map(l=>'<option value="'+escapeHtml(l.name)+'"></option>').join(''); refreshRange(); render(); }
-    async function createEvent(ev) { ev.preventDefault(); const b=batchFor($('batch').value), start=+$('series-start').value, end=+$('series-end').value; if(!b || start<b.display_start || end>b.display_end || end<start) { toast('Velg en gyldig nummerserie innenfor batchen.',true); return; } const button=$('create-button'); button.disabled=true; const {data,error}=await sb.rpc('create_event_session',{p_name:$('event-name').value.trim(),p_location:$('location').value.trim(),p_batch:b.id,p_reader:$('reader').value.trim(),p_start:start,p_end:end}); button.disabled=false; if(error) { toast(error.message,true); return; } toast('Arrangementet er startet. Storskjerm og koppflate er klare.'); $('event-form').reset(); $('reader').value='advanreader'; await load(); }
-    function openClose(id) { pendingClose=events.find(e=>e.id===id); const s=statsFor(id); $('close-description').textContent='Du er i ferd med å avslutte «'+pendingClose.name+'».'; $('close-summary').innerHTML='<strong>'+s.unused+' ubrukte kopper</strong> frigjøres. '+s.registered+' registrerte og '+s.recycled+' resirkulerte kopper beholdes i arrangementshistorikken.'; $('close-dialog').showModal(); }
-    async function closeEvent() { if(!pendingClose) return; $('confirm-close').disabled=true; const {data,error}=await sb.rpc('close_event_session',{p_event:pendingClose.id}); $('confirm-close').disabled=false; if(error) { toast(error.message,true); return; } $('close-dialog').close(); toast('Arrangementet er avsluttet. '+(data?.released_unused_cups||0)+' ubrukte kopper er frigjort.'); pendingClose=null; await load(); }
-    $('event-form').addEventListener('submit',createEvent); $('batch').addEventListener('change',refreshRange); $('series-start').addEventListener('input',refreshRange); $('series-end').addEventListener('input',refreshRange); $('cancel-close').addEventListener('click',()=>$('close-dialog').close()); $('confirm-close').addEventListener('click',closeEvent); load();
+    let batches = [], locations = [], events = [], allocations = [], guests = [], pendingClose = null;
+
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function toast(message, error = false) { const el = $('toast'); el.textContent = message; el.className = 'toast visible' + (error ? ' error' : ''); clearTimeout(window._toast); window._toast = setTimeout(() => { el.className = 'toast'; }, 5200); }
+    function batchFor(id) { return batches.find(batch => batch.id === id); }
+    function eventFor(id) { return events.find(event => event.id === id); }
+    function allocationsFor(eventId) { return allocations.filter(tag => tag.event_id === eventId); }
+    function statsFor(eventId) { const tags = allocationsFor(eventId); return { total: tags.length, available: tags.filter(tag => tag.status === 'available').length, assigned: tags.filter(tag => tag.status === 'assigned').length, welcomed: tags.filter(tag => tag.status === 'welcomed').length, released: tags.filter(tag => tag.status === 'released').length }; }
+    function tagFor(id) { return allocations.find(tag => String(tag.id) === String(id)); }
+
+    function refreshRange() {
+      const batch = batchFor($('batch').value); if (!batch) return;
+      const start = $('series-start'), end = $('series-end');
+      start.min = batch.display_start; start.max = batch.display_end; end.min = batch.display_start; end.max = batch.display_end;
+      if (!start.value || +start.value < batch.display_start || +start.value > batch.display_end) start.value = batch.display_start;
+      if (!end.value || +end.value < batch.display_start || +end.value > batch.display_end || +end.value < +start.value) end.value = batch.display_end;
+      const total = Math.max(0, (+end.value || 0) - (+start.value || 0) + 1);
+      $('tag-total').textContent = total + ' ' + (total === 1 ? 'tagg' : 'tagger');
+      $('batch-summary').innerHTML = '<strong>' + escapeHtml(batch.name) + '</strong> · tilgjengelig ID-serie ' + batch.display_start + '–' + batch.display_end;
+    }
+
+    function refreshAssignmentRange() {
+      const event = eventFor($('assign-event').value);
+      const input = $('tag-number');
+      if (!event) { input.removeAttribute('min'); input.removeAttribute('max'); $('assignment-range').textContent = 'Velg et aktivt arrangement'; renderGuests(); return; }
+      input.min = event.series_start; input.max = event.series_end;
+      if (!input.value || +input.value < event.series_start || +input.value > event.series_end) input.value = event.series_start;
+      const stats = statsFor(event.id);
+      $('assignment-range').textContent = 'ID ' + event.series_start + '–' + event.series_end + ' · ' + stats.available + ' ledige';
+      renderGuests();
+    }
+
+    function renderEvents() {
+      const list = $('event-list');
+      if (!events.length) { list.innerHTML = '<div class="empty">Ingen arrangementer er opprettet ennå.</div>'; return; }
+      list.innerHTML = events.map(event => {
+        const batch = batchFor(event.batch_id), location = locations.find(item => item.id === event.location_id), stats = statsFor(event.id), active = event.status === 'active';
+        const screen = 'storskjerm.html?event=' + encodeURIComponent(event.id);
+        return '<article class="event-card ' + (active ? 'active' : '') + '"><div class="event-top"><div><p class="event-name">' + escapeHtml(event.name) + '</p><p class="event-meta">' + escapeHtml(location?.name || 'Ukjent lokasjon') + ' · ' + escapeHtml(batch?.name || 'Ukjent batch') + ' · ID ' + event.series_start + '–' + event.series_end + '</p></div><span class="status ' + (active ? 'active' : '') + '">' + (active ? 'Aktiv' : 'Avsluttet') + '</span></div><div class="event-stats"><div class="stat"><b>' + stats.total + '</b><span>tildelt serie</span></div><div class="stat"><b>' + stats.available + '</b><span>ledige</span></div><div class="stat"><b>' + stats.assigned + '</b><span>registrert</span></div><div class="stat"><b>' + stats.welcomed + '</b><span>velkommet</span></div></div><div class="event-actions">' + (active ? '<a class="link-button" href="' + screen + '" target="_blank" rel="noopener">Åpne storskjerm</a><button class="button secondary" data-assign="' + event.id + '">Tildel gjest</button><button class="button danger" data-close="' + event.id + '">Avslutt arrangement</button>' : '<span class="event-meta">Frigitt, ikke-tildelt: ' + stats.released + ' tagger</span>') + '</div></article>';
+      }).join('');
+      document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => openClose(button.dataset.close)));
+      document.querySelectorAll('[data-assign]').forEach(button => button.addEventListener('click', () => { $('assign-event').value = button.dataset.assign; refreshAssignmentRange(); document.querySelector('.assign-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('tag-number').focus(); }));
+    }
+
+    function renderAssignmentOptions() {
+      const activeEvents = events.filter(event => event.status === 'active');
+      const previous = $('assign-event').value;
+      $('assign-event').innerHTML = activeEvents.length ? activeEvents.map(event => '<option value="' + event.id + '">' + escapeHtml(event.name) + ' · ID ' + event.series_start + '–' + event.series_end + '</option>').join('') : '<option value="">Ingen aktive arrangementer</option>';
+      if (activeEvents.some(event => event.id === previous)) $('assign-event').value = previous;
+      $('assign-button').disabled = !activeEvents.length;
+    }
+
+    function renderGuests() {
+      const eventId = $('assign-event').value;
+      const list = $('guest-list');
+      const selectedGuests = guests.filter(guest => guest.event_id === eventId).slice(0, 8);
+      if (!eventId || !selectedGuests.length) { list.innerHTML = '<div class="guest-row"><span>Ingen gjester er tildelt ennå.</span></div>'; return; }
+      list.innerHTML = selectedGuests.map(guest => { const tag = tagFor(guest.event_tag_id); return '<div class="guest-row"><div><b>' + escapeHtml(guest.name) + '</b><span>' + escapeHtml(guest.company || 'Ingen selskap oppgitt') + '</span></div><span class="guest-number">ID ' + (tag?.display_number ?? '—') + '</span></div>'; }).join('');
+    }
+
+    async function load() {
+      const [batchResult, locationResult, eventResult, tagResult, guestResult] = await Promise.all([
+        sb.from('welcome_tag_batches').select('*').order('code'),
+        sb.from('welcome_locations').select('*').order('name'),
+        sb.from('welcome_events').select('*').order('started_at', { ascending: false }),
+        sb.from('welcome_event_tags').select('id,event_id,display_number,status'),
+        sb.from('welcome_guests').select('event_id,event_tag_id,name,company,assigned_at').order('assigned_at', { ascending: false })
+      ]);
+      const errors = [batchResult.error, locationResult.error, eventResult.error, tagResult.error, guestResult.error].filter(Boolean);
+      if (errors.length) { toast(errors[0].message, true); return; }
+      batches = batchResult.data || []; locations = locationResult.data || []; events = eventResult.data || []; allocations = tagResult.data || []; guests = guestResult.data || [];
+      $('batch').innerHTML = batches.map(batch => '<option value="' + batch.id + '">' + escapeHtml(batch.name) + ' · ID ' + batch.display_start + '–' + batch.display_end + '</option>').join('');
+      $('location-list').innerHTML = locations.map(location => '<option value="' + escapeHtml(location.name) + '"></option>').join('');
+      refreshRange(); renderAssignmentOptions(); renderEvents(); refreshAssignmentRange();
+    }
+
+    async function createEvent(event) {
+      event.preventDefault(); const batch = batchFor($('batch').value), start = +$('series-start').value, end = +$('series-end').value;
+      if (!batch || start < batch.display_start || end > batch.display_end || end < start) { toast('Velg en gyldig ID-serie innenfor RFID-batchen.', true); return; }
+      const button = $('create-button'); button.disabled = true;
+      const { error } = await sb.rpc('create_welcome_event', { p_name: $('event-name').value.trim(), p_location: $('location').value.trim(), p_batch: batch.id, p_reader: $('reader').value.trim(), p_start: start, p_end: end });
+      button.disabled = false; if (error) { toast(error.message, true); return; }
+      toast('Arrangementet er opprettet. Du kan nå tildele navn til taggene.'); $('event-form').reset(); $('reader').value = 'advanreader'; await load();
+    }
+
+    async function assignGuest(event) {
+      event.preventDefault(); const eventId = $('assign-event').value, tagNumber = +$('tag-number').value, name = $('guest-name').value.trim(), company = $('guest-company').value.trim(); const selected = eventFor(eventId);
+      if (!selected || !name || tagNumber < selected.series_start || tagNumber > selected.series_end) { toast('Velg et aktivt arrangement, et gyldig ID-nummer og gjestens navn.', true); return; }
+      const button = $('assign-button'); button.disabled = true;
+      const { error } = await sb.rpc('assign_welcome_guest', { p_event: eventId, p_display_number: tagNumber, p_name: name, p_company: company || null });
+      button.disabled = false; if (error) { toast(error.message, true); return; }
+      toast('ID ' + tagNumber + ' er tildelt ' + name + '.'); $('guest-form').reset(); $('assign-event').value = eventId; await load();
+    }
+
+    function openClose(id) { pendingClose = eventFor(id); if (!pendingClose) return; const stats = statsFor(id); $('close-description').textContent = 'Du er i ferd med å avslutte «' + pendingClose.name + '». '; $('close-summary').innerHTML = '<strong>' + stats.available + ' utdelte tagger</strong> blir frigitt. ' + stats.assigned + ' registrerte og ' + stats.welcomed + ' velkomne tagger beholdes i historikken.'; $('close-dialog').showModal(); }
+    async function closeEvent() { if (!pendingClose) return; $('confirm-close').disabled = true; const { data, error } = await sb.rpc('close_welcome_event', { p_event: pendingClose.id }); $('confirm-close').disabled = false; if (error) { toast(error.message, true); return; } $('close-dialog').close(); toast('Arrangementet er avsluttet. ' + (data?.released_unassigned_tags || 0) + ' tagger ble frigitt.'); pendingClose = null; await load(); }
+
+    $('event-form').addEventListener('submit', createEvent); $('guest-form').addEventListener('submit', assignGuest); $('batch').addEventListener('change', refreshRange); $('series-start').addEventListener('input', refreshRange); $('series-end').addEventListener('input', refreshRange); $('assign-event').addEventListener('change', refreshAssignmentRange); $('cancel-close').addEventListener('click', () => $('close-dialog').close()); $('confirm-close').addEventListener('click', closeEvent); load();
   </script>
 </body>
 </html>

@@ -4,29 +4,42 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('..', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-const [schema, claims, config, display, cupPage, relay] = await Promise.all([
-  read('supabase/migrations/20260811_multi_event_configuration.sql'),
-  read('supabase/migrations/20260812_event_scoped_claims.sql'),
+const [migration, config, screen, relay, legacyRelay] = await Promise.all([
+  read('supabase/migrations/20260813_welcome_events.sql'),
   read('konfigurasjon.html'),
   read('storskjerm.html'),
-  read('V2/index.html'),
+  read('supabase/functions/welcome-rfid-relay/index.ts'),
   read('supabase/functions/rfid-relay/index.ts'),
 ]);
 
-assert.match(schema, /coffee-batch-1[\s\S]*'coffee'/, 'Batch 1 must be declared as coffee');
-assert.match(schema, /coffee-batch-2[\s\S]*'coffee'/, 'Batch 2 must be declared as coffee');
-assert.match(schema, /product_mode TEXT NOT NULL CHECK \(product_mode IN \('coffee','beer'\)\)/, 'Future batches must declare coffee or beer');
-assert.match(schema, /status IN \('allocated','registered','recycled','released'\)/, 'Allocation lifecycle must preserve used cups and release untouched cups');
-assert.match(schema, /UPDATE event_cups SET status='released'/, 'Closing an event must release unused cups');
-assert.match(claims, /claim_event_cup/, 'Configured event claims must use server-side allocation checks');
-assert.match(config, /Avslutt arrangement\?/, 'Configuration UI must require closure confirmation');
-assert.match(config, /create_event_session/, 'Configuration UI must create events via the allocation function');
-assert.match(config, /close_event_session/, 'Configuration UI must close events via the lifecycle function');
-assert.match(display, /event-progress/, 'Storskjerm must contain the configurable event progress interface');
-assert.match(display, /EVENT_ID/, 'Storskjerm must support event-scoped links');
-assert.match(cupPage, /claim_event_cup/, 'Digital cup page must use event-scoped claims');
-assert.match(relay, /event_cup_id/, 'RFID relay must attach reads to an allocated event cup');
-assert.match(relay, /recorded \(legacy mode\)/, 'RFID relay must preserve legacy behavior before the first configured event');
+assert.match(migration, /welcome_tag_batches/, 'Welcome batches must be separate from the legacy product model');
+assert.match(migration, /welcome_events/, 'Welcome events must support multiple event sessions');
+assert.match(migration, /welcome_event_tags/, 'Welcome events must reserve individual physical RFID tags');
+assert.match(migration, /series_start INT NOT NULL/, 'Welcome events must retain numbered series');
+assert.match(migration, /series_end INT NOT NULL/, 'Welcome events must retain numbered series end');
+assert.match(migration, /welcome_one_active_reader_uniq/, 'A reader may only power one active welcome event');
+assert.match(migration, /UPDATE welcome_event_tags\s+SET status = 'released'/, 'Closing an event must release unused tags');
+assert.match(migration, /WHERE event_id = p_event AND status = 'available'/, 'Only never-assigned tags may be released');
+assert.match(migration, /name TEXT NOT NULL/, 'Guest names must be persisted');
+assert.match(migration, /company TEXT/, 'Guest companies must be persisted');
+
+assert.match(config, /Opprett arrangement/, 'Configuration must create events');
+assert.match(config, /RFID-TAG/, 'Configuration must support tag assignment');
+assert.match(config, /Navn/, 'Configuration must request a guest name');
+assert.match(config, /Selskapsnavn/, 'Configuration must request a company');
+assert.match(config, /create_welcome_event/, 'Configuration must use the welcome event creation RPC');
+assert.match(config, /assign_welcome_guest/, 'Configuration must use the welcome guest assignment RPC');
+assert.match(config, /close_welcome_event/, 'Configuration must use the welcome closure RPC');
+
+assert.match(screen, /Velkommen til vår stand!/, 'Screen must contain the required greeting');
+assert.match(screen, /welcome_scans/, 'Screen must receive the event-scoped welcome feed');
+assert.match(screen, /guest-name/, 'Screen must show the guest name');
+assert.match(screen, /guest-company/, 'Screen must show the guest company');
+
+assert.match(relay, /record_welcome_scan/, 'Welcome relay must validate scans through the database');
+assert.match(relay, /providedKey !== EVENT_KEY/, 'Welcome relay must reject missing or invalid reader secrets');
+assert.match(relay, /parseTags/, 'Welcome relay must accept Keonn payload variants');
+assert.match(legacyRelay, /rfid_events/, 'Legacy relay remains isolated for the original project');
 
 function assertInlineScriptsCompile(source, label) {
   const scripts = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
@@ -39,7 +52,6 @@ function assertInlineScriptsCompile(source, label) {
 }
 
 assertInlineScriptsCompile(config, 'Configuration page');
-assertInlineScriptsCompile(display, 'Storskjerm');
-assertInlineScriptsCompile(cupPage, 'Digital cup page');
+assertInlineScriptsCompile(screen, 'Welcome screen');
 
-console.log('Multi-event configuration regression checks passed.');
+console.log('Welcome multi-event regression checks passed.');
