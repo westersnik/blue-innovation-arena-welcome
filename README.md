@@ -22,9 +22,10 @@ Prosjektet beholder den etablerte modellen for **flere arrangementer**, **RFID-l
 
 | Side | Fil | Formål |
 |---|---|---|
-| Startside | `index.html` | Kort introduksjon og inngang til administrasjon. |
-| Konfigurasjon | `konfigurasjon.html` | Opprette/avslutte arrangementer og tildele gjester til taggnummer. |
-| Storskjerm | `storskjerm.html?event={EVENT_ID}` | Sanntids velkomstvisning for TV eller projektor. |
+| Startside | `https://westersnik.github.io/gs1-nordic-welcome/` | Kort introduksjon og inngang til administrasjon. |
+| Konfigurasjon | `https://westersnik.github.io/gs1-nordic-welcome/konfigurasjon.html` | Opprette/avslutte arrangementer og tildele gjester til taggnummer. |
+| Storskjerm | `https://westersnik.github.io/gs1-nordic-welcome/storskjerm.html?event={EVENT_ID}` | Sanntids velkomstvisning for TV eller projektor. |
+| RFID-katalog | `supabase/migrations/20260810_welcome_bootstrap.sql` | Importerer 300 fysiske EPC-tagger med synlige ID-numre 1–300. |
 | Datamigrasjon | `supabase/migrations/20260813_welcome_events.sql` | Nye tabeller, funksjoner, indekser og Realtime-publisering. |
 | RFID-endepunkt | `supabase/functions/welcome-rfid-relay/index.ts` | Edge Function som validerer RFID-lesninger og utløser velkomst. |
 | Oppsettguide | `docs/WELCOME-SETUP.md` | Stegvis database-, funksjons- og leseroppsett. |
@@ -42,19 +43,17 @@ Prosjektet beholder den etablerte modellen for **flere arrangementer**, **RFID-l
 
 Tagger følger livssyklusen **available → assigned → welcomed**. Ved avslutning frigjøres kun tagger som aldri er tildelt. Dermed kan ubrukt materiell gjenbrukes, mens persondata og historikk ikke blandes med nye arrangementer.
 
-## Før første bruk
+## Produksjonsoppsett
 
-Kjør migrasjonen i Supabase SQL Editor og distribuer funksjonen før konfigurasjonssiden tas i bruk. Hele fremgangsmåten, inkludert en Keonn-test, finnes i [oppsettguiden](docs/WELCOME-SETUP.md).
+GitHub Pages publiseres fra `gh-pages`-grenens rotmappe. Supabase-prosjektet `vvqpbvicvhwqbjezifst` inneholder RFID-katalogen på 300 tagger og hele velkomstdatamodellen. Funksjonen `welcome-rfid-relay` er distribuert uten JWT og er beskyttet av den separate `RFID_EVENT_KEY`-hemmeligheten.
 
-```bash
-supabase functions deploy welcome-rfid-relay --no-verify-jwt
-```
-
-Konfigurer deretter Keonn AdvanReader til å poste til:
+Konfigurer Keonn AdvanReader til å poste til:
 
 ```text
-https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay
+https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay
 ```
+
+Detaljert konfigurasjon, inkludert header og testflyt, finnes i [oppsettguiden](docs/WELCOME-SETUP.md).
 
 ## Lokal kvalitetssikring
 
@@ -72,4 +71,4 @@ git push origin gh-pages
 
 ## Avgrensning
 
-Denne avleggeren gjenbruker den eksisterende `beers`-katalogen som fysisk EPC-register, men har et eget prefiks (`welcome_*`) for nye arrangementer, gjester og lesninger. Den endrer derfor ikke Digi-Coffee-tabellene eller den eksisterende RFID-reléfunksjonen.
+Denne avleggeren inneholder en selvstendig fysisk EPC-katalog med 300 RFID-tagger i oppstartsmigrasjonen og bruker et eget prefiks (`welcome_*`) for arrangementer, gjester og lesninger. Den offentlige GitHub Pages-versjonen eksponerer kun Event Welcome-flater.

@@ -6,13 +6,14 @@ Denne guiden klargjør den nye velkomstflyten med RFID-tagger. Løsningen er avg
 
 ## 1. Legg inn datamigrasjonen
 
-Åpne Supabase SQL Editor for prosjektet og kjør hele filen:
+Supabase-prosjektet er allerede klargjort med disse migrasjonene i rekkefølge:
 
 ```text
+supabase/migrations/20260810_welcome_bootstrap.sql
 supabase/migrations/20260813_welcome_events.sql
 ```
 
-Migrasjonen oppretter arrangements-, tagg-, gjeste- og skannetabeller, i tillegg til funksjonene som konfigurasjonssiden og RFID-endepunktet bruker.
+Den første migrasjonen importerer 300 fysiske EPC-tagger fra prosjektets katalog. Den andre oppretter arrangements-, tagg-, gjeste- og skannetabeller, i tillegg til funksjonene som konfigurasjonssiden og RFID-endepunktet bruker.
 
 | Funksjon | Brukes av | Formål |
 |---|---|---|
@@ -26,19 +27,17 @@ Migrasjonen oppretter arrangements-, tagg-, gjeste- og skannetabeller, i tillegg
 Kjør fra repositoryets rot etter at Supabase CLI er koblet til korrekt prosjekt:
 
 ```bash
-supabase functions deploy welcome-rfid-relay --no-verify-jwt
+supabase functions deploy welcome-rfid-relay --project-ref vvqpbvicvhwqbjezifst --no-verify-jwt
 ```
 
 Angi en sterk `RFID_EVENT_KEY` som funksjonshemmelighet. Leseren må sende samme verdi i `X-Event-Key`.
 
-```bash
-supabase secrets set RFID_EVENT_KEY='velg-en-lang-og-unik-hemmelighet'
-```
+`RFID_EVENT_KEY` er allerede opprettet som funksjonshemmelighet i produksjonsprosjektet. Hent den fra den sikre leveransen når Keonn-leseren skal konfigureres; ikke legg nøkkelen inn i Git-repositoryet.
 
 Endepunktet er:
 
 ```text
-https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay
+https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay
 ```
 
 ## 3. Konfigurer Keonn AdvanReader
@@ -49,7 +48,7 @@ Bruk en unik leseridentifikator per fysisk RFID-sone, for eksempel `stand-b12-re
 |---|---|
 | Aktivert | På |
 | Metode | `POST` |
-| Endepunkt | `https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay` |
+| Endepunkt | `https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay` |
 | Content-Type | `application/json` |
 | Forventet status | `200` |
 | Tagg-TTL ved test | `5` sekunder |
@@ -74,7 +73,7 @@ Leseren kan sende enkelt-EPC-er, `tags`, `reads` eller `epc_list`. Et typisk Adv
 
 ## 4. Opprett og klargjør arrangementet
 
-Åpne `konfigurasjon.html` og opprett arrangementet. Velg lokasjon, leser, taggbatch og synlig nummerserie, eksempelvis ID `1–100`.
+Åpne `https://westersnik.github.io/gs1-nordic-welcome/konfigurasjon.html` og opprett arrangementet. Velg lokasjon, leser, taggbatch og synlig nummerserie, eksempelvis ID `1–100`.
 
 Deretter velger du arrangementet i kortet **Registrer gjest** og registrerer følgende for hver tagg:
 
@@ -91,13 +90,15 @@ Systemet vil avvise ID-nummer som ikke ligger i den aktive serien eller allerede
 I arrangementslisten velger du **Åpne storskjerm**. Lenken har denne formen:
 
 ```text
-storskjerm.html?event={EVENT_ID}
+https://westersnik.github.io/gs1-nordic-welcome/storskjerm.html?event={EVENT_ID}
 ```
 
 Storskjermen lytter på `welcome_scans` via Supabase Realtime. Når en gyldig, tildelt tagg leses første gang, vises:
 
-> **Velkommen til vår stand!**  
-> **Ada Lovelace**  
+> **Velkommen til vår stand!**
+>
+> **Ada Lovelace**
+>
 > Acme AS
 
 Visningen går tilbake til «Klar for neste gjest» etter ni sekunder. En tagg utløser én velkomst per arrangement; gjentatte lesninger blir ignorert for å hindre flimmer.
@@ -117,7 +118,7 @@ Eksempel med `curl`:
 
 ```bash
 curl -sS -X POST \
-  'https://spbfuhajwfadzvdidalk.supabase.co/functions/v1/welcome-rfid-relay' \
+  'https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay' \
   -H 'Content-Type: application/json' \
   -H 'X-Event-Key: DIN_RFID_EVENT_KEY' \
   -d '{"devid":"stand-b12-reader","reads":[{"epc":"3415AFBC0C000000000007EB"}]}'

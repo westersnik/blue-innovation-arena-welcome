@@ -4,12 +4,11 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('..', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-const [migration, config, screen, relay, legacyRelay] = await Promise.all([
+const [migration, config, screen, relay] = await Promise.all([
   read('supabase/migrations/20260813_welcome_events.sql'),
   read('konfigurasjon.html'),
   read('storskjerm.html'),
   read('supabase/functions/welcome-rfid-relay/index.ts'),
-  read('supabase/functions/rfid-relay/index.ts'),
 ]);
 
 assert.match(migration, /welcome_tag_batches/, 'Welcome batches must be separate from the legacy product model');
@@ -39,7 +38,6 @@ assert.match(screen, /guest-company/, 'Screen must show the guest company');
 assert.match(relay, /record_welcome_scan/, 'Welcome relay must validate scans through the database');
 assert.match(relay, /providedKey !== EVENT_KEY/, 'Welcome relay must reject missing or invalid reader secrets');
 assert.match(relay, /parseTags/, 'Welcome relay must accept Keonn payload variants');
-assert.match(legacyRelay, /rfid_events/, 'Legacy relay remains isolated for the original project');
 
 function assertInlineScriptsCompile(source, label) {
   const scripts = [...source.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]

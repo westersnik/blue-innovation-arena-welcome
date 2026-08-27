@@ -15,8 +15,7 @@ CREATE TABLE IF NOT EXISTS welcome_tag_batches (
 -- Seed matching RFID-tag batches from the existing physical catalogue.
 INSERT INTO welcome_tag_batches (code, name, display_start, display_end)
 VALUES
-  ('rfid-batch-1', 'RFID-tag batch 1', 1, 2062),
-  ('rfid-batch-2', 'RFID-tag batch 2', 1, 500)
+  ('rfid-batch-1', 'RFID-tag batch 1', 1, 300)
 ON CONFLICT (code) DO UPDATE
   SET name = EXCLUDED.name,
       display_start = EXCLUDED.display_start,
@@ -139,11 +138,8 @@ BEGIN
   SELECT count(*) INTO available
   FROM beers b
   JOIN welcome_tag_batches wb ON wb.id = p_batch
-  WHERE b.display_number BETWEEN p_start AND p_end
-    AND (
-      (wb.code = 'rfid-batch-1' AND b.bottle_num NOT BETWEEN 4096 AND 4595)
-      OR (wb.code = 'rfid-batch-2' AND b.bottle_num BETWEEN 4096 AND 4595)
-    )
+  WHERE b.welcome_batch_code = wb.code
+    AND b.bottle_num BETWEEN p_start AND p_end
     AND NOT EXISTS (
       SELECT 1 FROM welcome_event_tags wet
       WHERE wet.tag_id = b.id
@@ -164,14 +160,11 @@ BEGIN
   RETURNING id INTO e;
 
   INSERT INTO welcome_event_tags(event_id, tag_id, display_number)
-  SELECT e, b.id, b.display_number
+  SELECT e, b.id, b.bottle_num
   FROM beers b
   JOIN welcome_tag_batches wb ON wb.id = p_batch
-  WHERE b.display_number BETWEEN p_start AND p_end
-    AND (
-      (wb.code = 'rfid-batch-1' AND b.bottle_num NOT BETWEEN 4096 AND 4595)
-      OR (wb.code = 'rfid-batch-2' AND b.bottle_num BETWEEN 4096 AND 4595)
-    );
+  WHERE b.welcome_batch_code = wb.code
+    AND b.bottle_num BETWEEN p_start AND p_end;
 
   RETURN e;
 END;

@@ -23,10 +23,13 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "https://westersnik.github.io/gs1-nordic-welcome/"
 additional_redirect_urls = []
 jwt_expiry = 3600
 enable_signup = true
 
 [functions.rfid-relay]
+verify_jwt = false
+
+[functions.welcome-rfid-relay]
 verify_jwt = false
