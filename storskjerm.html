@@ -9,12 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    :root{--ink:#10242C;--lime:#D9F15B;--aqua:#9DE7DD;--slate:#23444A}*{box-sizing:border-box}body{margin:0;background:var(--ink);color:white;font-family:Manrope,system-ui,sans-serif;overflow:hidden}.screen{height:100vh;min-height:520px;display:grid;grid-template-rows:auto 1fr auto;padding:clamp(22px,3vw,56px);position:relative;isolation:isolate}.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;z-index:-1}.screen::before{width:48vw;height:48vw;min-width:480px;min-height:480px;right:-12vw;top:-21vw;background:var(--slate)}.screen::after{width:29vw;height:29vw;min-width:300px;min-height:300px;left:-11vw;bottom:-15vw;background:#183B42}.topbar,.footer{display:flex;justify-content:space-between;align-items:center;gap:18px}.brand{display:flex;align-items:center;gap:12px;font:500 clamp(12px,1.15vw,18px)/1 DM Mono,monospace;text-transform:uppercase;letter-spacing:.08em}.brand-mark{width:13px;height:13px;background:var(--lime);transform:rotate(45deg)}.event-name{font:500 clamp(12px,1.15vw,18px)/1.3 DM Mono,monospace;color:var(--aqua);text-align:right;letter-spacing:.02em}.status{display:inline-flex;align-items:center;gap:8px;font:500 clamp(10px,.9vw,14px)/1 DM Mono,monospace;text-transform:uppercase;letter-spacing:.08em;color:#BFD2D1}.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 5px rgba(217,241,91,.12)}.welcome{align-self:center;max-width:1400px;width:100%;padding:clamp(18px,3vw,55px) 0;opacity:0;transform:translateY(16px);transition:opacity .45s cubic-bezier(.23,1,.32,1),transform .45s cubic-bezier(.23,1,.32,1)}.welcome.visible{opacity:1;transform:translateY(0)}.kicker{font:500 clamp(12px,1.25vw,20px)/1 DM Mono,monospace;color:var(--lime);letter-spacing:.1em;text-transform:uppercase;margin:0 0 clamp(16px,2.5vw,36px)}h1{font-size:clamp(44px,7.5vw,142px);line-height:.96;letter-spacing:-.06em;margin:0;max-width:1200px}.guest-name{display:block;color:var(--lime);margin-top:.08em;overflow-wrap:anywhere}.company{font-size:clamp(20px,2.5vw,44px);line-height:1.15;color:var(--aqua);font-weight:600;margin:clamp(18px,2.4vw,35px) 0 0;letter-spacing:-.03em}.company:empty{display:none}.footer{font:500 clamp(10px,.95vw,15px)/1.4 DM Mono,monospace;color:#AFC1C0}.instruction{text-align:right;max-width:360px}.welcome-counter{font:500 clamp(10px,.95vw,15px)/1 DM Mono,monospace;color:#BFD2D1}.welcome-counter strong{color:#fff;font-size:1.25em}.idle{display:none;text-align:center;margin:auto}.idle.visible{display:block}.idle .idle-icon{width:clamp(82px,10vw,150px);height:clamp(82px,10vw,150px);margin:0 auto clamp(25px,3.2vw,48px);border:2px solid rgba(217,241,91,.7);display:grid;place-items:center;transform:rotate(45deg)}.idle .idle-icon span{font:500 clamp(28px,4vw,58px)/1 DM Mono,monospace;transform:rotate(-45deg);color:var(--lime)}.idle h1{font-size:clamp(38px,5.3vw,90px);max-width:900px}.idle p{font-size:clamp(17px,1.7vw,28px);color:var(--aqua);margin:24px 0 0}.error{position:fixed;left:26px;bottom:26px;max-width:500px;background:#fff;color:var(--ink);padding:14px 16px;display:none;font-size:14px;z-index:5}.error.visible{display:block}@media(max-width:620px){.screen{min-height:100svh;padding:24px 20px}.topbar{align-items:flex-start}.event-name{font-size:10px;max-width:42vw}.instruction{display:none}.footer{justify-content:center}.welcome{padding:20px 0}.idle h1{font-size:42px}}
+    :root{--ink:#10242C;--lime:#D9F15B;--aqua:#9DE7DD;--slate:#23444A}*{box-sizing:border-box}body{margin:0;background:var(--ink);color:white;font-family:Manrope,system-ui,sans-serif;overflow:hidden}.event-logo{display:none;max-width:clamp(116px,16vw,250px);max-height:clamp(42px,6vw,96px);object-fit:contain;object-position:right center;filter:brightness(0) invert(1)}.event-logo.visible{display:block}.screen{height:100vh;min-height:520px;display:grid;grid-template-rows:auto 1fr auto;padding:clamp(22px,3vw,56px);position:relative;isolation:isolate}.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;z-index:-1}.screen::before{width:48vw;height:48vw;min-width:480px;min-height:480px;right:-12vw;top:-21vw;background:var(--slate)}.screen::after{width:29vw;height:29vw;min-width:300px;min-height:300px;left:-11vw;bottom:-15vw;background:#183B42}.topbar,.footer{display:flex;justify-content:space-between;align-items:center;gap:18px}.brand{display:flex;align-items:center;gap:12px;font:500 clamp(12px,1.15vw,18px)/1 DM Mono,monospace;text-transform:uppercase;letter-spacing:.08em}.brand-mark{width:13px;height:13px;background:var(--lime);transform:rotate(45deg)}.event-name{font:500 clamp(12px,1.15vw,18px)/1.3 DM Mono,monospace;color:var(--aqua);text-align:right;letter-spacing:.02em}.status{display:inline-flex;align-items:center;gap:8px;font:500 clamp(10px,.9vw,14px)/1 DM Mono,monospace;text-transform:uppercase;letter-spacing:.08em;color:#BFD2D1}.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 5px rgba(217,241,91,.12)}.welcome{align-self:center;max-width:1400px;width:100%;padding:clamp(18px,3vw,55px) 0;opacity:0;transform:translateY(16px);transition:opacity .45s cubic-bezier(.23,1,.32,1),transform .45s cubic-bezier(.23,1,.32,1)}.welcome.visible{opacity:1;transform:translateY(0)}.kicker{font:500 clamp(12px,1.25vw,20px)/1 DM Mono,monospace;color:var(--lime);letter-spacing:.1em;text-transform:uppercase;margin:0 0 clamp(16px,2.5vw,36px)}h1{font-size:clamp(44px,7.5vw,142px);line-height:.96;letter-spacing:-.06em;margin:0;max-width:1200px}.guest-name{display:block;color:var(--lime);margin-top:.08em;overflow-wrap:anywhere}.company{font-size:clamp(20px,2.5vw,44px);line-height:1.15;color:var(--aqua);font-weight:600;margin:clamp(18px,2.4vw,35px) 0 0;letter-spacing:-.03em}.company:empty{display:none}.footer{font:500 clamp(10px,.95vw,15px)/1.4 DM Mono,monospace;color:#AFC1C0}.instruction{text-align:right;max-width:360px}.welcome-counter{font:500 clamp(10px,.95vw,15px)/1 DM Mono,monospace;color:#BFD2D1}.welcome-counter strong{color:#fff;font-size:1.25em}.idle{display:none;text-align:center;margin:auto}.idle.visible{display:block}.idle .idle-icon{width:clamp(82px,10vw,150px);height:clamp(82px,10vw,150px);margin:0 auto clamp(25px,3.2vw,48px);border:2px solid rgba(217,241,91,.7);display:grid;place-items:center;transform:rotate(45deg)}.idle .idle-icon span{font:500 clamp(28px,4vw,58px)/1 DM Mono,monospace;transform:rotate(-45deg);color:var(--lime)}.idle h1{font-size:clamp(38px,5.3vw,90px);max-width:900px}.idle p{font-size:clamp(17px,1.7vw,28px);color:var(--aqua);margin:24px 0 0}.error{position:fixed;left:26px;bottom:26px;max-width:500px;background:#fff;color:var(--ink);padding:14px 16px;display:none;font-size:14px;z-index:5}.error.visible{display:block}@media(max-width:620px){.screen{min-height:100svh;padding:24px 20px}.topbar{align-items:flex-start}.event-name{font-size:10px;max-width:42vw}.instruction{display:none}.footer{justify-content:center}.welcome{padding:20px 0}.idle h1{font-size:42px}}
   </style>
 </head>
 <body>
   <main class="screen">
-    <header class="topbar"><div class="brand"><span class="brand-mark"></span><span>Event Welcome</span></div><div class="event-name" id="event-name">Laster arrangement …</div></header>
+    <header class="topbar"><div class="brand"><span class="brand-mark"></span><span>Event Welcome</span></div><div><img class="event-logo" id="event-logo" alt="Arrangørlogo" /><div class="event-name" id="event-name">Laster arrangement …</div></div></header>
     <section class="welcome" id="welcome" aria-live="polite"><p class="kicker">Velkommen til vår stand!</p><h1><span class="guest-name" id="guest-name"></span></h1><p class="company" id="guest-company"></p></section>
     <section class="idle visible" id="idle"><div class="idle-icon"><span>RF</span></div><h1>Klar for neste gjest.</h1><p>Ta med RFID-taggen inn i velkomstsonen.</p></section>
     <footer class="footer"><span class="welcome-counter" id="welcome-counter"><strong>0</strong> velkomster</span><span class="status"><i class="status-dot"></i> RFID-sonen er aktiv</span><span class="instruction">Personlige velkomster vises når taggen leses.</span></footer>
@@ -29,6 +29,12 @@
     let clearWelcomeTimer = null;
 
     function showError(message) { const error = $('error'); error.textContent = message; error.classList.add('visible'); }
+    function setEventBrand(event) {
+      $('event-name').textContent = event.name;
+      const logo = $('event-logo');
+      if (event.logo_url) { logo.src = event.logo_url; logo.classList.add('visible'); }
+      else { logo.removeAttribute('src'); logo.classList.remove('visible'); }
+    }
     function setWelcomeCount(count) { $('welcome-counter').innerHTML = '<strong>' + Number(count || 0) + '</strong> ' + (Number(count || 0) === 1 ? 'velkomst' : 'velkomster'); }
     function showIdle() { $('welcome').classList.remove('visible'); $('idle').classList.add('visible'); }
     function showWelcome(scan) {
@@ -45,17 +51,29 @@
       if (!EVENT_REFERENCE) { showError('Denne storskjermlenken mangler arrangementets ID eller alias. Åpne storskjermen fra konfigurasjonssiden.'); return; }
       const isDemoAlias = EVENT_REFERENCE.toLowerCase() === 'demo';
       const eventResult = isDemoAlias
-        ? await sb.from('welcome_events').select('id,name,status').eq('reader_id', 'demo').eq('status', 'active').maybeSingle()
-        : await sb.from('welcome_events').select('id,name,status').eq('id', EVENT_REFERENCE).maybeSingle();
+        ? await sb.from('welcome_events').select('id,name,status,logo_url').eq('reader_id', 'demo').eq('status', 'active').maybeSingle()
+        : await sb.from('welcome_events').select('id,name,status,logo_url').eq('id', EVENT_REFERENCE).maybeSingle();
       if (eventResult.error || !eventResult.data) { showError(eventResult.error?.message || 'Arrangementet ble ikke funnet.'); return; }
       const eventId = eventResult.data.id;
       const [scanResult, countResult] = await Promise.all([
         sb.from('welcome_scans').select('guest_name,guest_company,scanned_at').eq('event_id', eventId).order('scanned_at', { ascending: false }).limit(1).maybeSingle(),
         sb.from('welcome_scans').select('*', { count: 'exact', head: true }).eq('event_id', eventId)
       ]);
-      $('event-name').textContent = eventResult.data.name;
+      setEventBrand(eventResult.data);
       setWelcomeCount(countResult.count);
       if (scanResult.data) showWelcome(scanResult.data);
+      if (isDemoAlias) {
+        const { data: demoGuests } = await sb.from('welcome_guests').select('name,company').eq('event_id', eventId).order('id');
+        if (demoGuests?.length) {
+          let position = 0;
+          const showNextDemoGuest = () => {
+            const guest = demoGuests[position++ % demoGuests.length];
+            showWelcome({ guest_name: guest.name, guest_company: guest.company });
+          };
+          window.setTimeout(showNextDemoGuest, 1200);
+          window.setInterval(showNextDemoGuest, 10500);
+        }
+      }
       sb.channel('welcome-screen-' + eventId)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'welcome_scans', filter: 'event_id=eq.' + eventId }, payload => {
           showWelcome(payload.new);

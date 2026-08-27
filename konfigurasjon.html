@@ -33,6 +33,8 @@
             <div class="field full"><label for="event-name">Arrangementnavn</label><input id="event-name" required placeholder="For eksempel: GS1 Nordic Summit" /></div>
             <div class="field"><label for="location">Stand eller lokasjon</label><input id="location" list="location-list" required placeholder="For eksempel: GS1 Norge, stand B12" /><datalist id="location-list"></datalist></div>
             <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="advanreader" /></div>
+            <div class="field"><label for="screen-logo">Storskjermlogo</label><select id="screen-logo"><option value="">Ingen logo</option><option value="assets/logos/invig-logo.png">Invig</option><option value="assets/logos/rambase-logo.png">Rambase</option></select></div>
+            <div class="field"><label for="custom-logo-url">Egen logo-URL</label><input id="custom-logo-url" type="url" placeholder="https://eksempel.no/logo.svg" /></div>
             <div class="field full"><label for="batch">RFID-tag batch</label><select id="batch" required></select></div>
             <div class="field"><label for="series-start">Fra ID-nummer</label><input id="series-start" type="number" required /></div>
             <div class="field"><label for="series-end">Til ID-nummer</label><input id="series-end" type="number" required /></div>
@@ -139,11 +141,16 @@
 
     async function createEvent(event) {
       event.preventDefault(); const batch = batchFor($('batch').value), start = +$('series-start').value, end = +$('series-end').value;
+      const logoUrl = $('custom-logo-url').value.trim() || $('screen-logo').value;
       if (!batch || start < batch.display_start || end > batch.display_end || end < start) { toast('Velg en gyldig ID-serie innenfor RFID-batchen.', true); return; }
       const button = $('create-button'); button.disabled = true;
-      const { error } = await sb.rpc('create_welcome_event', { p_name: $('event-name').value.trim(), p_location: $('location').value.trim(), p_batch: batch.id, p_reader: $('reader').value.trim(), p_start: start, p_end: end });
-      button.disabled = false; if (error) { toast(error.message, true); return; }
-      toast('Arrangementet er opprettet. Du kan nå tildele navn til taggene.'); $('event-form').reset(); $('reader').value = 'advanreader'; await load();
+      const { data: eventId, error } = await sb.rpc('create_welcome_event', { p_name: $('event-name').value.trim(), p_location: $('location').value.trim(), p_batch: batch.id, p_reader: $('reader').value.trim(), p_start: start, p_end: end });
+      if (error) { button.disabled = false; toast(error.message, true); return; }
+      if (logoUrl) {
+        const { error: logoError } = await sb.rpc('set_welcome_event_logo', { p_event: eventId, p_logo_url: logoUrl });
+        if (logoError) { button.disabled = false; toast('Arrangementet ble opprettet, men logoen kunne ikke lagres: ' + logoError.message, true); return; }
+      }
+      button.disabled = false; toast('Arrangementet er opprettet. Du kan nå tildele navn til taggene.'); $('event-form').reset(); $('reader').value = 'advanreader'; await load();
     }
 
     async function assignGuest(event) {
