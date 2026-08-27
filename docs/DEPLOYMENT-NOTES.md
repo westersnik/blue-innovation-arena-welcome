@@ -26,3 +26,7 @@ Konfigurasjonssiden viser `RFID-tag batch 1` med gyldig ID-serie `1–300` fra d
 
 Et aktivt arrangement med navn `Demo`, lokasjon `Demo-stand`, leseridentifikator `demo` og RFID-ID-serie `1–10` er opprettet. Den korte storskjermlenken bruker `?event=demo`. Første kontroll etter publisering viste at GitHub Pages fortsatt kunne servere den forrige JavaScript-versjonen; en oppdatert kontroll gjennomføres når Pages-byggingen er ferdigstilt.
 GitHub Pages-byggingen er nå bekreftet ferdig. `https://westersnik.github.io/gs1-nordic-welcome/storskjerm.html?event=demo` laster arrangementet `Demo` og viser klar-for-neste-gjest-tilstanden med null registrerte velkomster.
+
+## Profilert velkomstdemo
+
+Demoeventet inneholder fem fiktive gjester på RFID-ID 1–5. Storskjermen med `event=demo` viser gjestene automatisk i en kontrollert sekvens og valideringen bekreftet visningen «Amina Dahl» fra «Invig». Demoeventet har Rambase-logoen som lokal profilressurs, mens nye arrangementer kan velge Invig, Rambase eller en egendefinert HTTPS-logo i konfigurasjonssiden.
