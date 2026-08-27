@@ -36,7 +36,8 @@ assert.match(screen, /Velkommen til vår stand!/, 'Screen must display the agree
 assert.match(screen, /guest_name/, 'Screen must render the guest name');
 assert.match(screen, /guest_company/, 'Screen must render the guest company');
 assert.match(screen, /welcome_scans/, 'Screen must subscribe to welcome scans');
-assert.match(screen, /EVENT_ID/, 'Screen must be event-scoped');
+assert.match(screen, /EVENT_REFERENCE/, 'Screen must be event-scoped');
+assert.match(screen, /EVENT_REFERENCE\.toLowerCase\(\) === 'demo'/, 'Screen must support the demo alias');
 
 assert.match(relay, /welcome-rfid-relay/, 'Dedicated RFID relay must exist');
 assert.match(relay, /providedKey !== EVENT_KEY/, 'RFID relay must require the event key');

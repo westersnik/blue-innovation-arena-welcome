@@ -24,7 +24,7 @@
     const SUPABASE_URL = 'https://vvqpbvicvhwqbjezifst.supabase.co';
     const SUPABASE_ANON = 'sb_publishable_kt-8Rnuvrj3P3POYXPzuAQ_QT5vESGj';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    const EVENT_ID = new URLSearchParams(window.location.search).get('event');
+    const EVENT_REFERENCE = new URLSearchParams(window.location.search).get('event');
     const $ = id => document.getElementById(id);
     let clearWelcomeTimer = null;
 
@@ -42,18 +42,22 @@
     }
 
     async function load() {
-      if (!EVENT_ID) { showError('Denne storskjermlenken mangler arrangementets ID. Åpne storskjermen fra konfigurasjonssiden.'); return; }
-      const [eventResult, scanResult, countResult] = await Promise.all([
-        sb.from('welcome_events').select('name,status').eq('id', EVENT_ID).maybeSingle(),
-        sb.from('welcome_scans').select('guest_name,guest_company,scanned_at').eq('event_id', EVENT_ID).order('scanned_at', { ascending: false }).limit(1).maybeSingle(),
-        sb.from('welcome_scans').select('*', { count: 'exact', head: true }).eq('event_id', EVENT_ID)
-      ]);
+      if (!EVENT_REFERENCE) { showError('Denne storskjermlenken mangler arrangementets ID eller alias. Åpne storskjermen fra konfigurasjonssiden.'); return; }
+      const isDemoAlias = EVENT_REFERENCE.toLowerCase() === 'demo';
+      const eventResult = isDemoAlias
+        ? await sb.from('welcome_events').select('id,name,status').eq('reader_id', 'demo').eq('status', 'active').maybeSingle()
+        : await sb.from('welcome_events').select('id,name,status').eq('id', EVENT_REFERENCE).maybeSingle();
       if (eventResult.error || !eventResult.data) { showError(eventResult.error?.message || 'Arrangementet ble ikke funnet.'); return; }
+      const eventId = eventResult.data.id;
+      const [scanResult, countResult] = await Promise.all([
+        sb.from('welcome_scans').select('guest_name,guest_company,scanned_at').eq('event_id', eventId).order('scanned_at', { ascending: false }).limit(1).maybeSingle(),
+        sb.from('welcome_scans').select('*', { count: 'exact', head: true }).eq('event_id', eventId)
+      ]);
       $('event-name').textContent = eventResult.data.name;
       setWelcomeCount(countResult.count);
       if (scanResult.data) showWelcome(scanResult.data);
-      sb.channel('welcome-screen-' + EVENT_ID)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'welcome_scans', filter: 'event_id=eq.' + EVENT_ID }, payload => {
+      sb.channel('welcome-screen-' + eventId)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'welcome_scans', filter: 'event_id=eq.' + eventId }, payload => {
           showWelcome(payload.new);
           const current = Number(($('welcome-counter').textContent.match(/\d+/) || ['0'])[0]);
           setWelcomeCount(current + 1);
