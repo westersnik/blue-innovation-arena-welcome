@@ -21,3 +21,8 @@ Startsiden er publisert og tilgjengelig på `https://westersnik.github.io/gs1-no
 ## Sluttkontroll
 
 Konfigurasjonssiden viser `RFID-tag batch 1` med gyldig ID-serie `1–300` fra det nye Supabase-prosjektet. Direkte API-kontroll bekreftet lesetilgang til alle fem datakildene som siden bruker. Det offentlige `welcome-rfid-relay`-endepunktet svarer med `401 Unauthorized` uten `X-Event-Key`, som bekrefter at RFID-hemmeligheten er aktiv og at uautoriserte lesninger blir avvist.
+
+## Demoevent
+
+Et aktivt arrangement med navn `Demo`, lokasjon `Demo-stand`, leseridentifikator `demo` og RFID-ID-serie `1–10` er opprettet. Den korte storskjermlenken bruker `?event=demo`. Første kontroll etter publisering viste at GitHub Pages fortsatt kunne servere den forrige JavaScript-versjonen; en oppdatert kontroll gjennomføres når Pages-byggingen er ferdigstilt.
+GitHub Pages-byggingen er nå bekreftet ferdig. `https://westersnik.github.io/gs1-nordic-welcome/storskjerm.html?event=demo` laster arrangementet `Demo` og viser klar-for-neste-gjest-tilstanden med null registrerte velkomster.
