@@ -1,131 +1,118 @@
-# Oppsettguide: Event Welcome
+# Oppsettguide: Blue Innovation Arena Event Welcome
 
-Denne guiden klargjør den nye velkomstflyten med RFID-tagger. Løsningen er avgrenset fra den tidligere Digi-Coffee-flyten: den bruker egne `welcome_*`-tabeller og funksjonen `welcome-rfid-relay`.
+Denne veiledningen beskriver RFID-velkomstflyten for **Blue Innovation Arena**. Løsningen bruker egne `welcome_*`-tabeller, Edge Function-en `welcome-rfid-relay` og en Zebra SN5604-sensor ved inngangen.
 
-> **Personvern:** Konfigurasjonssiden inneholder navn og selskapsnavn. Den er foreløpig åpen på samme måte som kildeprosjektet. Legg den bak tilgangskontroll eller distribuer den bare til arrangementsansvarlige før reell produksjonsbruk.
+> **Personvern:** Konfigurasjonssiden inneholder navn og selskapsnavn. Ikke del administrasjonslenken offentlig ved reell bruk. Legg den bak tilgangskontroll eller begrens tilgangen til arrangementsansvarlige.
 
-## 1. Legg inn datamigrasjonen
+## 1. Datamodell og RFID-tagger
 
-Supabase-prosjektet er allerede klargjort med disse migrasjonene i rekkefølge:
+Supabase-prosjektet trenger disse migrasjonene i rekkefølge:
 
 ```text
 supabase/migrations/20260810_welcome_bootstrap.sql
 supabase/migrations/20260813_welcome_events.sql
+supabase/migrations/20260814_event_branding.sql
 ```
 
-Den første migrasjonen importerer 300 fysiske EPC-tagger fra prosjektets katalog. Den andre oppretter arrangements-, tagg-, gjeste- og skannetabeller, i tillegg til funksjonene som konfigurasjonssiden og RFID-endepunktet bruker.
+Den første migrasjonen importerer katalogen med 300 fysiske EPC-tagger. De neste oppretter arrangementer, nummerserier, gjester, velkomstskanninger og skjermprofilering. Duplikatkontroll er innebygd i `record_welcome_scan`, slik at én tagg bare kan utløse én velkomst per arrangement.
 
 | Funksjon | Brukes av | Formål |
 |---|---|---|
-| `create_welcome_event` | Konfigurasjon | Reserverer en batch og en sammenhengende ID-serie. |
+| `create_welcome_event` | Konfigurasjon | Reserverer batch og en sammenhengende ID-serie. |
 | `assign_welcome_guest` | Konfigurasjon | Kobler navn og selskap til én ledig ID-tagg. |
-| `record_welcome_scan` | RFID-endepunkt | Validerer lesningen og skriver en idempotent velkomstskann. |
+| `record_welcome_scan` | RFID-endepunkt | Validerer EPC, aktiv leser, gjest og duplikatbeskyttelse. |
+| `set_welcome_event_logo` | Konfigurasjon | Knytter en logo til arrangementets storskjerm. |
 | `close_welcome_event` | Konfigurasjon | Frigir aldri-tildelte tagger etter arrangementet. |
 
 ## 2. Distribuer RFID-endepunktet
 
-Kjør fra repositoryets rot etter at Supabase CLI er koblet til korrekt prosjekt:
+Kjør fra repositoryets rot etter at Supabase CLI er koblet til prosjektet:
 
 ```bash
 supabase functions deploy welcome-rfid-relay --project-ref vvqpbvicvhwqbjezifst --no-verify-jwt
 ```
 
-Angi en sterk `RFID_EVENT_KEY` som funksjonshemmelighet. Leseren må sende samme verdi i `X-Event-Key`.
-
-`RFID_EVENT_KEY` er allerede opprettet som funksjonshemmelighet i produksjonsprosjektet. Hent den fra den sikre leveransen når Keonn-leseren skal konfigureres; ikke legg nøkkelen inn i Git-repositoryet.
-
-Endepunktet er:
+Angi en sterk `RFID_EVENT_KEY` som Edge Function-hemmelighet. Integrasjonen som sender RFID-lesningene må oppgi samme verdi i HTTP-headeren `X-Event-Key`. Hemmeligheten skal aldri lagres i Git-repositoryet eller i en nettleser.
 
 ```text
 https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay
 ```
 
-## 3. Konfigurer Keonn AdvanReader
+## 3. Konfigurer Zebra SN5604 ved inngangen
 
-Bruk en unik leseridentifikator per fysisk RFID-sone, for eksempel `stand-b12-reader`. Den samme identifikatoren må stå i arrangementsoppsettet på `konfigurasjon.html`.
+Zebra SN5604 er sensoren som monteres over eller ved inngangsdøren. Den kobles til en kompatibel Zebra RFID-leser eller SmartLens-kontroller som kan videresende EPC-lesninger til dette HTTP-endepunktet. SN5604-sensoren skal derfor **ikke** konfigureres som en selvstendig HTTP-klient.
 
-| Felt i SimpleHTTPService | Verdi |
+Opprett arrangementet med en unik leseridentifikator, for eksempel `zebra-sn5604-entry`. Den samme verdien må brukes av integrasjonen som sender lesningen i feltet `reader_id` eller `devid`.
+
+| Oppsettpunkter | Anbefalt verdi |
 |---|---|
-| Aktivert | På |
+| Fysisk plassering | Over inngangsdøren, med lesesonen rett innenfor passasjen. |
+| Sensor | Zebra SN5604 / SmartLens Gen II Snap-sensor. |
+| Videresending | Zebra RFID-leser eller SmartLens-kontroller med HTTP-integrasjon. |
 | Metode | `POST` |
 | Endepunkt | `https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay` |
 | Content-Type | `application/json` |
-| Forventet status | `200` |
-| Tagg-TTL ved test | `5` sekunder |
-| Tagg-TTL i drift | `60` sekunder |
+| Header | `X-Event-Key: DIN_RFID_EVENT_KEY` |
+| Leser-ID | `zebra-sn5604-entry` eller den valgte arrangementskoden. |
 
-Legg inn tilpasset HTTP-header i leseren:
-
-```json
-{"customHeaders":[{"header":"X-Event-Key: DIN_RFID_EVENT_KEY"}]}
-```
-
-Leseren kan sende enkelt-EPC-er, `tags`, `reads` eller `epc_list`. Et typisk AdvanNet-format er:
+Eksempel på generisk melding fra Zebra-integrasjonen:
 
 ```json
 {
-  "devid": "stand-b12-reader",
-  "reads": [
-    {"epc": "3415AFBC0C000000000007EB", "rssi": "-60"}
+  "reader_id": "zebra-sn5604-entry",
+  "tags": [
+    {"epc": "3415AFBC0C000000000007EB"}
   ]
 }
 ```
 
+Endepunktet støtter også `devid` sammen med `reads`, og enkeltverdier i `epc`, slik at integrasjonen kan tilpasses den aktuelle Zebra-kontrolleren. Den returnerer `200` for mottatte meldinger, men forkaster ukjente, ikke-tildelte eller repeterte lesninger på serversiden.
+
 ## 4. Opprett og klargjør arrangementet
 
-Åpne `https://westersnik.github.io/gs1-nordic-welcome/konfigurasjon.html` og opprett arrangementet. Velg lokasjon, leser, taggbatch og synlig nummerserie, eksempelvis ID `1–100`.
+Etter at den nye repositoryen er publisert, åpner du dens `konfigurasjon.html` og oppretter arrangementet. Velg lokasjon, RFID-batch, nummerserie og profillogo. Sett RFID-leser til samme ID som Zebra-integrasjonen, for eksempel `zebra-sn5604-entry`.
 
-Deretter velger du arrangementet i kortet **Registrer gjest** og registrerer følgende for hver tagg:
+Deretter velger du arrangementet under **Registrer gjest** og knytter hvert ID-nummer til navn og selskap.
 
 | Felt | Eksempel |
 |---|---|
 | ID-nummer på tagg | `42` |
 | Navn | `Ada Lovelace` |
 | Selskapsnavn | `Acme AS` |
-
-Systemet vil avvise ID-nummer som ikke ligger i den aktive serien eller allerede er tildelt til en annen gjest.
+| RFID-leser | `zebra-sn5604-entry` |
 
 ## 5. Åpne storskjermen
 
-I arrangementslisten velger du **Åpne storskjerm**. Lenken har denne formen:
+I arrangementslisten velger du **Åpne storskjerm**. Lenken inneholder arrangementets UUID, mens demoen kan bruke det korte aliaset `?event=demo`.
 
 ```text
-https://westersnik.github.io/gs1-nordic-welcome/storskjerm.html?event={EVENT_ID}
+storskjerm.html?event={EVENT_ID}
+storskjerm.html?event=demo
 ```
 
-Storskjermen lytter på `welcome_scans` via Supabase Realtime. Når en gyldig, tildelt tagg leses første gang, vises:
+Når en gyldig, tildelt tagg passerer Zebra-sonen, viser skjermen gjestens navn og selskap. Visningen går tilbake til «Klar for neste gjest» etter ni sekunder. Gjentatte lesninger er kontrollert på serversiden for å hindre flimmer på storskjermen.
 
-> **Velkommen til vår stand!**
->
-> **Ada Lovelace**
->
-> Acme AS
+## 6. Verifiser før dørene åpner
 
-Visningen går tilbake til «Klar for neste gjest» etter ni sekunder. En tagg utløser én velkomst per arrangement; gjentatte lesninger blir ignorert for å hindre flimmer.
+Gjennomfør en test med en liten, ubrukt nummerserie før arrangementet åpner.
 
-## 6. Verifiser hele kjeden før dørene åpner
-
-Gjennomfør denne kontrollen i rekkefølge:
-
-1. Opprett et testarrangement med en liten, ubrukt serie.
-2. Tildel en fysisk tagg til et testnavn i konfigurasjonssiden.
+1. Opprett arrangementet med samme leser-ID som Zebra-integrasjonen.
+2. Tildel en fysisk RFID-tagg til et testnavn.
 3. Åpne arrangementets storskjerm i et eget vindu.
-4. Send en testlesning fra leseren eller med `curl`.
-5. Kontroller at navnet og selskapet vises én gang på storskjermen.
-6. Test en ukjent EPC og en uregistrert, men tildelt tagg. Begge skal avvises og registreres i `welcome_feedback`.
-
-Eksempel med `curl`:
+4. Send en testlesning via Zebra-kontrolleren eller med `curl`.
+5. Kontroller at navnet og selskapet vises én gang.
+6. Test en ukjent EPC og en ikke-tildelt tagg; begge skal avvises og registreres i `welcome_feedback`.
 
 ```bash
 curl -sS -X POST \
   'https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay' \
   -H 'Content-Type: application/json' \
   -H 'X-Event-Key: DIN_RFID_EVENT_KEY' \
-  -d '{"devid":"stand-b12-reader","reads":[{"epc":"3415AFBC0C000000000007EB"}]}'
+  -d '{"reader_id":"zebra-sn5604-entry","tags":[{"epc":"3415AFBC0C000000000007EB"}]}'
 ```
 
-Forventet resultat ved første vellykkede lesning er `recorded: 1`; ved en repetert lesning er resultatet `duplicates: 1`.
+En førstegangslesning skal returnere `recorded: 1`; en gjentatt lesning skal returnere en duplikatstatus i stedet for å utløse en ny velkomst.
 
 ## Avslutte arrangementet
 
-Velg **Avslutt arrangement** på konfigurasjonssiden etter at arrangementet er ferdig. Systemet frigir bare tagger med status `available`. Tagger som er tildelt eller allerede har utløst en velkomst beholdes i historikken og kan ikke uforvarende gjenbrukes i et nytt arrangement.
+Velg **Avslutt arrangement** i konfigurasjonssiden etter arrangementet. Bare tagger som aldri har vært tildelt, blir frigitt. Tildelte og velkomne tagger beholdes i historikken og kan ikke uforvarende gjenbrukes.

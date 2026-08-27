@@ -1,7 +1,7 @@
 /**
  * Supabase Edge Function: welcome-rfid-relay
  *
- * Converts Keonn/AdvanReader tag reads into event-scoped welcome scans.
+ * Converts RFID reads forwarded by a Zebra reader or SmartLens controller into event-scoped welcome scans.
  * The database function verifies the active reader, allocated number range,
  * guest assignment and duplicate scan before publishing data to the screen.
  */
@@ -21,7 +21,7 @@ function json(body: unknown, status = 200, extraHeaders: Record<string, string> 
 }
 
 function parseTags(body: any): RawTag[] {
-  const defaultReader = String(body?.devid ?? body?.reader_id ?? 'advanreader');
+  const defaultReader = String(body?.devid ?? body?.reader_id ?? 'zebra-sn5604-entry');
   if (typeof body?.epc === 'string') {
     return [{ epc: body.epc.toUpperCase(), readerId: defaultReader }];
   }

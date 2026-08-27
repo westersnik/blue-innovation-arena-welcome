@@ -32,7 +32,7 @@
           <form id="event-form"><div class="form-grid">
             <div class="field full"><label for="event-name">Arrangementnavn</label><input id="event-name" required placeholder="For eksempel: GS1 Nordic Summit" /></div>
             <div class="field"><label for="location">Stand eller lokasjon</label><input id="location" list="location-list" required placeholder="For eksempel: GS1 Norge, stand B12" /><datalist id="location-list"></datalist></div>
-            <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="advanreader" /></div>
+            <div class="field"><label for="reader">RFID-leser</label><input id="reader" required value="zebra-sn5604-entry" /></div>
             <div class="field"><label for="screen-logo">Storskjermlogo</label><select id="screen-logo"><option value="assets/logos/blue-innovation-arena.svg">Blue Innovation Arena</option><option value="">Ingen logo</option><option value="assets/logos/invig-logo.png">Invig</option><option value="assets/logos/rambase-logo.png">Rambase</option></select></div>
             <div class="field"><label for="custom-logo-url">Egen logo-URL</label><input id="custom-logo-url" type="url" placeholder="https://eksempel.no/logo.svg" /></div>
             <div class="field full"><label for="batch">RFID-tag batch</label><select id="batch" required></select></div>
@@ -150,7 +150,7 @@
         const { error: logoError } = await sb.rpc('set_welcome_event_logo', { p_event: eventId, p_logo_url: logoUrl });
         if (logoError) { button.disabled = false; toast('Arrangementet ble opprettet, men logoen kunne ikke lagres: ' + logoError.message, true); return; }
       }
-      button.disabled = false; toast('Arrangementet er opprettet. Du kan nå tildele navn til taggene.'); $('event-form').reset(); $('reader').value = 'advanreader'; await load();
+      button.disabled = false; toast('Arrangementet er opprettet. Du kan nå tildele navn til taggene.'); $('event-form').reset(); $('reader').value = 'zebra-sn5604-entry'; await load();
     }
 
     async function assignGuest(event) {

@@ -47,11 +47,13 @@ Tagger følger livssyklusen **available → assigned → welcomed**. Ved avslutn
 
 GitHub Pages publiseres fra `gh-pages`-grenens rotmappe. Supabase-prosjektet `vvqpbvicvhwqbjezifst` inneholder RFID-katalogen på 300 tagger og hele velkomstdatamodellen. Funksjonen `welcome-rfid-relay` er distribuert uten JWT og er beskyttet av den separate `RFID_EVENT_KEY`-hemmeligheten.
 
-Konfigurer Keonn AdvanReader til å poste til:
+Konfigurer Zebra RFID-leseren eller SmartLens-kontrolleren som er koblet til **SN5604-sensoren ved inngangen**, til å poste EPC-lesninger til:
 
 ```text
 https://vvqpbvicvhwqbjezifst.supabase.co/functions/v1/welcome-rfid-relay
 ```
+
+SN5604 er den fysisk monterte sensoren; en kompatibel RFID-leser eller kontroller videresender lesningene med arrangementets `reader_id` og headeren `X-Event-Key`.
 
 Detaljert konfigurasjon, inkludert header og testflyt, finnes i [oppsettguiden](docs/WELCOME-SETUP.md).
 

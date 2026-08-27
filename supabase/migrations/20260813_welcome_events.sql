@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS welcome_events (
   name TEXT NOT NULL,
   location_id UUID NOT NULL REFERENCES welcome_locations(id),
   batch_id UUID NOT NULL REFERENCES welcome_tag_batches(id),
-  reader_id TEXT NOT NULL DEFAULT 'advanreader',
+  reader_id TEXT NOT NULL DEFAULT 'zebra-sn5604-entry',
   series_start INT NOT NULL CHECK (series_start >= 1),
   series_end INT NOT NULL CHECK (series_end >= series_start),
   target_tags INT GENERATED ALWAYS AS (series_end - series_start + 1) STORED,
