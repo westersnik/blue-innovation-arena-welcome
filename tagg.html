@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#250e49" />
+  <meta name="description" content="Informasjon for gjester som skanner en Blue Innovation Arena Event Welcome-tag." />
+  <title>Blue Innovation Arena · Event Welcome</title>
+  <style>
+    :root {
+      --violet: #250e49;
+      --violet-deep: #16072d;
+      --lilac: #e9dcff;
+      --coral: #f15f3d;
+      --coral-dark: #be3e23;
+      --paper: #fffdf9;
+      --ink: #250e49;
+      --muted: #665d73;
+      --line: rgba(37, 14, 73, .14);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--violet-deep); }
+    body {
+      min-width: 320px;
+      min-height: 100dvh;
+      margin: 0;
+      color: var(--paper);
+      background:
+        radial-gradient(circle at 88% 6%, rgba(241, 95, 61, .34), transparent 27rem),
+        radial-gradient(circle at 5% 52%, rgba(166, 116, 255, .30), transparent 25rem),
+        var(--violet-deep);
+      font-family: "Avenir Next", Avenir, "Segoe UI", Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    .shell { width: min(100%, 720px); margin: 0 auto; padding: 18px; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 6px 0 28px;
+    }
+    .brand { display: inline-flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
+    .brand img { width: 54px; height: 54px; object-fit: contain; background: var(--paper); border-radius: 12px; padding: 7px; }
+    .brand-copy { min-width: 0; }
+    .brand-name { display: block; font-size: .875rem; font-weight: 800; letter-spacing: .015em; }
+    .brand-label { display: block; margin-top: 1px; color: var(--lilac); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    .page-label { color: var(--lilac); font-size: .7rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; }
+    main { padding-bottom: 20px; }
+    .hero { padding: clamp(20px, 5vw, 42px) 0 clamp(38px, 8vw, 64px); }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      color: #ffd0c3;
+      font-size: .75rem;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { width: 9px; height: 9px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 5px rgba(241, 95, 61, .16); content: ""; }
+    h1 { max-width: 13ch; margin: 0; font-size: clamp(2.45rem, 10vw, 4.6rem); line-height: .98; letter-spacing: -.055em; }
+    .lead { max-width: 38rem; margin: 22px 0 0; color: var(--lilac); font-size: clamp(1.05rem, 3.8vw, 1.25rem); }
+    .tag-card {
+      position: relative;
+      overflow: hidden;
+      padding: 25px;
+      color: var(--ink);
+      background: var(--paper);
+      border-radius: var(--radius);
+      box-shadow: 0 24px 65px rgba(0, 0, 0, .24);
+    }
+    .tag-card::after {
+      position: absolute;
+      right: -38px;
+      bottom: -42px;
+      width: 176px;
+      height: 176px;
+      border: 22px solid rgba(241, 95, 61, .16);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+    .tag-caption { margin: 0; color: var(--muted); font-size: .75rem; font-weight: 800; letter-spacing: .095em; text-transform: uppercase; }
+    .tag-id { margin: 7px 0 6px; font-size: clamp(2.1rem, 9vw, 3.5rem); font-weight: 800; letter-spacing: -.055em; line-height: 1; }
+    .tag-description { position: relative; z-index: 1; max-width: 28rem; margin: 0; color: var(--muted); font-size: .98rem; }
+    .scan-id { display: none; position: relative; z-index: 1; width: fit-content; margin: 16px 0 0; padding: 5px 9px; color: var(--violet); background: var(--lilac); border-radius: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .72rem; }
+    .scan-id.is-visible { display: block; }
+    .info { margin: 26px 0 0; padding: 0; list-style: none; }
+    .info li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 13px; padding: 18px 0; border-top: 1px solid rgba(255, 253, 249, .22); }
+    .info strong { display: block; margin-bottom: 3px; font-size: 1rem; }
+    .info p { margin: 0; color: var(--lilac); font-size: .94rem; }
+    .step { display: grid; place-items: center; width: 30px; height: 30px; color: var(--violet); background: var(--coral); border-radius: 50%; font-size: .8rem; font-weight: 900; }
+    .actions { display: grid; gap: 12px; margin: 32px 0 22px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 14px 20px;
+      border: 2px solid var(--coral);
+      border-radius: 12px;
+      color: var(--violet-deep);
+      background: var(--coral);
+      font-size: 1rem;
+      font-weight: 850;
+      text-align: center;
+      text-decoration: none;
+      touch-action: manipulation;
+      transition: transform .16s ease, background-color .16s ease, color .16s ease;
+    }
+    .button:hover { color: var(--paper); background: var(--coral-dark); border-color: var(--coral-dark); }
+    .button:active { transform: scale(.985); }
+    .button:focus-visible, .brand:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+    .privacy { margin: 0; color: var(--lilac); font-size: .8rem; text-align: center; }
+    footer { padding: 20px 0 8px; color: rgba(233, 220, 255, .78); font-size: .72rem; text-align: center; }
+    @media (min-width: 640px) {
+      .shell { padding: 30px; }
+      header { padding-bottom: 46px; }
+      .hero { padding-top: 36px; }
+      .tag-card { padding: 34px; }
+      .actions { display: flex; }
+      .button { min-width: 250px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <a class="brand" href="https://www.aakp.no/norsk-katapult-digital" aria-label="Besøk Blue Innovation Arena hos ÅKP">
+        <img src="assets/logos/blue-innovation-arena.svg" alt="Blue Innovation Arena" />
+        <span class="brand-copy"><span class="brand-name">Blue Innovation Arena</span><span class="brand-label">ÅKP · Norsk Katapult</span></span>
+      </a>
+      <span class="page-label">Event Welcome</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">RFID-tag registrert</p>
+        <h1 id="page-title">Velkommen til arenaen.</h1>
+        <p class="lead">Denne brikken er en del av Blue Innovation Arenas Event Welcome-opplevelse.</p>
+      </section>
+
+      <section class="tag-card" aria-label="Informasjon om den skannede RFID-taggen">
+        <p class="tag-caption">Din Event Welcome-tagg</p>
+        <p class="tag-id" id="tag-id">RFID-brikke</p>
+        <p class="tag-description" id="tag-description">Ta vare på brikken og ha den med deg når du ankommer arrangementsområdet.</p>
+        <code class="scan-id" id="scan-id"></code>
+      </section>
+
+      <ol class="info" aria-label="Slik bruker du taggen">
+        <li><span class="step">1</span><div><strong>Ta med brikken</strong><p>Brikken knytter RFID-ID-en din til arrangementet.</p></div></li>
+        <li><span class="step">2</span><div><strong>Gå inn i RFID-sonen</strong><p>Når brikken registreres, kan arrangementet gi deg en personlig velkomst på storskjermen.</p></div></li>
+        <li><span class="step">3</span><div><strong>Personvernet ivaretas</strong><p>Denne siden viser ikke navn, selskap eller andre personopplysninger fra arrangementsregistreringen.</p></div></li>
+      </ol>
+
+      <div class="actions">
+        <a class="button" href="https://www.aakp.no/norsk-katapult-digital">Les om Blue Innovation Arena</a>
+      </div>
+      <p class="privacy">RFID-en brukes til arrangementsopplevelsen, ikke som en offentlig deltakerprofil.</p>
+    </main>
+
+    <footer>Blue Innovation Arena · Event Welcome</footer>
+  </div>
+
+  <script>
+    (() => {
+      const giai = new URLSearchParams(window.location.search).get('giai');
+      const tagId = document.getElementById('tag-id');
+      const tagDescription = document.getElementById('tag-description');
+      const scanId = document.getElementById('scan-id');
+      const match = typeof giai === 'string' && /^7073539\d{4}$/.test(giai);
+
+      if (!match) return;
+
+      const reference = Number(giai.slice(7));
+      const displayId = reference - 4595;
+      if (displayId >= 1 && displayId <= 100) {
+        tagId.textContent = `RFID-ID ${displayId}`;
+        tagDescription.textContent = 'Denne RFID-brikken er registrert i Invig X ÅKP-serien for Event Welcome. Ta den med deg når du ankommer arrangementsområdet.';
+      } else {
+        tagId.textContent = 'RFID-brikke';
+      }
+      scanId.textContent = `GIAI 8004 / ${giai}`;
+      scanId.classList.add('is-visible');
+    })();
+  </script>
+</body>
+</html>

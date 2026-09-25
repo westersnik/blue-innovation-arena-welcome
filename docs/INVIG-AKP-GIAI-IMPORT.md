@@ -36,3 +36,24 @@ Etter import ble følgende kontrollert direkte fra Supabase:
 | Digital Link-test | `https://id.invig.no/8004/70735394596` returnerte HTTP 200 og videresendte til `https://ons.invig.no/`. |
 
 > **Viktig:** Selskapprefikset og GIAI-serien er hentet fra den vedlagte, allerede kodede arbeidsboken. EPC-runde-turen og fravær av katalogkonflikter er validert teknisk ved import. Ved en ny fysisk etikettproduksjon skal prefiksautorisasjonen fortsatt kontrolleres mot Invigs GS1-lisens.
+
+## Mål ved mobilskanning
+
+En mobilskanning av en QR-kode eller GS1 Digital Link skal vise en offentlig
+informasjonside for gjesten, ikke konfigurasjonssiden eller storskjermen.
+Siden finnes i GitHub Pages-publiseringen her:
+
+`https://westersnik.github.io/blue-innovation-arena-welcome/tagg.html?giai={GIAI}`
+
+For denne batchen skal Invigs GS1-resolver beholde den unike, standardiserte
+inngangslenken `https://id.invig.no/8004/{GIAI}`, men videresende den til
+siden over. Eksempel for tagg-ID 1:
+
+`https://id.invig.no/8004/70735394596` →
+`https://westersnik.github.io/blue-innovation-arena-welcome/tagg.html?giai=70735394596`
+
+ID 1–25 tilsvarer GIAI `70735394596–70735394620`. Videresendingen kan settes
+som en mønsterregel dersom resolveren støtter å sende den skannede GIAI-verdien
+videre som query-parameter. Dersom den ikke gjør det, skal det opprettes én
+videresendingsregel per GIAI. Den publiserte mottakersiden viser kun RFID-ID og
+GIAI, aldri navn eller selskap.
